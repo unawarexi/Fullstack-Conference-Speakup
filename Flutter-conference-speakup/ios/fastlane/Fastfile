@@ -1,0 +1,61 @@
+# Fastlane configuration for SpeakUp iOS
+# Handles signing, building, and deploying to App Store / TestFlight
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Run Flutter tests"
+  lane :test do
+    sh "cd ../.. && flutter test"
+  end
+
+  desc "Install CocoaPods dependencies"
+  lane :install_pods do
+    cocoapods(
+      podfile: "./Podfile",
+      clean_install: true
+    )
+  end
+
+  desc "Sync code signing certificates using match"
+  lane :certificates do
+    match(
+      type: "appstore",
+      app_identifier: "com.conference.app",
+      readonly: is_ci
+    )
+  end
+
+  desc "Build release IPA"
+  lane :build_release do
+    install_pods
+    certificates
+    sh "cd ../.. && flutter build ipa --release --obfuscate --split-debug-info=build/debug-info --export-options-plist=ios/ExportOptions.plist"
+  end
+
+  desc "Deploy to TestFlight"
+  lane :deploy_testflight do
+    build_release
+    upload_to_testflight(
+      ipa: "../../build/ios/ipa/video_confrence_app.ipa",
+      skip_waiting_for_build_processing: true,
+      apple_id: ENV["APPLE_ID"],
+      app_identifier: "com.conference.app",
+      team_id: ENV["TEAM_ID"]
+    )
+  end
+
+  desc "Deploy to App Store"
+  lane :deploy_appstore do
+    build_release
+    upload_to_app_store(
+      ipa: "../../build/ios/ipa/video_confrence_app.ipa",
+      submit_for_review: false,
+      automatic_release: false,
+      force: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      app_identifier: "com.conference.app"
+    )
+  end
+end
