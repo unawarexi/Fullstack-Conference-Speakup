@@ -1,0 +1,59 @@
+# ============================================================================
+# SpeakUp — .gitignore
+# ============================================================================
+
+# Dependencies
+node_modules/
+.bun/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Firebase service account (NEVER commit)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+
+# Prisma
+/generated/prisma
+prisma/*.db
+prisma/migrations/**/migration_lock.toml
+
+# Build output
+dist/
+build/
+
+# Logs
+logs/*.log
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfvars
+!terraform/*.tfvars.example
+terraform/.terraform.lock.hcl
+
+# Docker
+.docker/
+
+# Misc
+*.tgz
+.cache/
