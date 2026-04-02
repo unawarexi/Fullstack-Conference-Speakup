@@ -1,0 +1,313 @@
+// ─────────────────────────────────────────────────
+// SpeakUp — Prisma Schema
+// Video conferencing platform (OAuth only — no passwords)
+// ─────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────── USER & AUTH ────────────
+
+model User {
+  id        String   @id @default(cuid())
+  firebaseUid String @unique @map("firebase_uid")
+  email     String   @unique
+  fullName  String   @map("full_name")
+  avatar    String?
+  bio       String?
+  isOnline  Boolean  @default(false) @map("is_online")
+  lastSeenAt DateTime? @map("last_seen_at")
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  accounts     Account[]
+  hostedMeetings Meeting[]  @relation("MeetingHost")
+  participants  Participant[]
+  chatMembers   ChatMember[]
+  messages      Message[]
+  recordings    Recording[]
+  notifications Notification[]
+  subscriptions  Subscription?
+  devices       Device[]
+
+  @@index([email])
+  @@index([firebaseUid])
+  @@map("users")
+}
+
+model Account {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  provider   AuthProvider
+  providerId String   @map("provider_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Device {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  fcmToken  String   @map("fcm_token")
+  platform  Platform
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fcmToken])
+  @@map("devices")
+}
+
+// ──────────── MEETINGS ────────────
+
+model Meeting {
+  id              String        @id @default(cuid())
+  code            String        @unique @default(cuid()) // shareable meeting code
+  title           String
+  description     String?
+  hostId          String        @map("host_id")
+  type            MeetingType   @default(INSTANT)
+  status          MeetingStatus @default(SCHEDULED)
+  scheduledAt     DateTime?     @map("scheduled_at")
+  startedAt       DateTime?     @map("started_at")
+  endedAt         DateTime?     @map("ended_at")
+  maxParticipants Int           @default(100) @map("max_participants")
+  isRecording     Boolean       @default(false) @map("is_recording")
+  password        String?       // optional meeting password
+  settings        Json?         @default("{}") // e.g. { muteOnJoin, cameraOffOnJoin, waitingRoom }
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  host         User          @relation("MeetingHost", fields: [hostId], references: [id])
+  participants Participant[]
+  recordings   Recording[]
+  chatRoom     ChatRoom?
+
+  @@index([hostId])
+  @@index([code])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("meetings")
+}
+
+model Participant {
+  id              String          @id @default(cuid())
+  meetingId       String          @map("meeting_id")
+  userId          String          @map("user_id")
+  role            ParticipantRole @default(ATTENDEE)
+  joinedAt        DateTime        @default(now()) @map("joined_at")
+  leftAt          DateTime?       @map("left_at")
+  isMuted         Boolean         @default(false) @map("is_muted")
+  isCameraOff     Boolean         @default(false) @map("is_camera_off")
+  isScreenSharing Boolean         @default(false) @map("is_screen_sharing")
+  isHandRaised    Boolean         @default(false) @map("is_hand_raised")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@map("participants")
+}
+
+// ──────────── CHAT ────────────
+
+model ChatRoom {
+  id        String   @id @default(cuid())
+  name      String?
+  isGroup   Boolean  @default(false) @map("is_group")
+  meetingId String?  @unique @map("meeting_id") // null = standalone DM/group
+  createdAt DateTime @default(now()) @map("created_at")
+
+  meeting  Meeting?     @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  members  ChatMember[]
+  messages Message[]
+
+  @@map("chat_rooms")
+}
+
+model ChatMember {
+  id         String   @id @default(cuid())
+  chatRoomId String   @map("chat_room_id")
+  userId     String   @map("user_id")
+  joinedAt   DateTime @default(now()) @map("joined_at")
+  mutedUntil DateTime? @map("muted_until")
+
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatRoomId, userId])
+  @@map("chat_members")
+}
+
+model Message {
+  id         String      @id @default(cuid())
+  chatRoomId String      @map("chat_room_id")
+  senderId   String      @map("sender_id")
+  content    String
+  type       MessageType @default(TEXT)
+  replyToId  String?     @map("reply_to_id")
+  isEdited   Boolean     @default(false) @map("is_edited")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  chatRoom ChatRoom  @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  sender   User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo  Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies  Message[] @relation("MessageReplies")
+
+  @@index([chatRoomId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ──────────── RECORDINGS ────────────
+
+model Recording {
+  id          String          @id @default(cuid())
+  meetingId   String          @map("meeting_id")
+  userId      String          @map("user_id") // who initiated
+  url         String
+  duration    Int             @default(0) // seconds
+  sizeBytes   BigInt          @default(0) @map("size_bytes")
+  status      RecordingStatus @default(PROCESSING)
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([meetingId])
+  @@index([userId])
+  @@map("recordings")
+}
+
+// ──────────── NOTIFICATIONS ────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  title     String
+  body      String
+  type      NotificationType
+  data      Json?            @default("{}")
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ──────────── BILLING ────────────
+
+model Subscription {
+  id             String             @id @default(cuid())
+  userId         String             @unique @map("user_id")
+  plan           SubscriptionPlan   @default(FREE)
+  status         SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId String?          @map("stripe_customer_id")
+  stripeSubId    String?            @map("stripe_sub_id")
+  currentPeriodStart DateTime?      @map("current_period_start")
+  currentPeriodEnd   DateTime?      @map("current_period_end")
+  canceledAt     DateTime?          @map("canceled_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@map("subscriptions")
+}
+
+// ──────────── ENUMS ────────────
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum AuthProvider {
+  GOOGLE
+  GITHUB
+}
+
+enum Platform {
+  IOS
+  ANDROID
+  WEB
+  MACOS
+  WINDOWS
+  LINUX
+}
+
+enum MeetingType {
+  INSTANT
+  SCHEDULED
+  RECURRING
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum ParticipantRole {
+  HOST
+  CO_HOST
+  ATTENDEE
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum RecordingStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum NotificationType {
+  MEETING_INVITE
+  MEETING_REMINDER
+  MEETING_STARTED
+  CHAT_MESSAGE
+  RECORDING_READY
+  SYSTEM
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  TRIALING
+}
