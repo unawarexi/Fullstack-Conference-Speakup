@@ -11,6 +11,7 @@ class Environment {
   static String get firebaseWebProjectId => dotenv.env['FIREBASE_WEB_PROJECT_ID'] ?? '';
   static String get firebaseWebAuthDomain => dotenv.env['FIREBASE_WEB_AUTH_DOMAIN'] ?? '';
   static String get firebaseWebStorageBucket => dotenv.env['FIREBASE_WEB_STORAGE_BUCKET'] ?? '';
+  static String get firebaseWebMeasurementId => dotenv.env['FIREBASE_WEB_MEASUREMENT_ID'] ?? '';
 
   // Firebase Android
   static String get firebaseAndroidApiKey => dotenv.env['FIREBASE_ANDROID_API_KEY'] ?? '';
@@ -46,6 +47,7 @@ class Environment {
   static String get firebaseWindowsProjectId => dotenv.env['FIREBASE_WINDOWS_PROJECT_ID'] ?? '';
   static String get firebaseWindowsAuthDomain => dotenv.env['FIREBASE_WINDOWS_AUTH_DOMAIN'] ?? '';
   static String get firebaseWindowsStorageBucket => dotenv.env['FIREBASE_WINDOWS_STORAGE_BUCKET'] ?? '';
+  static String get firebaseWindowsMeasurementId => dotenv.env['FIREBASE_WINDOWS_MEASUREMENT_ID'] ?? '';
 
   static String get githubClientId => dotenv.env['GITHUB_CLIENT_ID'] ?? '';
   static String get githubClientSecret => dotenv.env['GITHUB_CLIENT_SECRET'] ?? '';
