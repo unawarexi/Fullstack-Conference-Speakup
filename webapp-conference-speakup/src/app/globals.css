@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* ─── SpeakUp Brand CSS Variables ─── */
+:root {
+  /* Primary Blue */
+  --primary: #1A6BF5;
+  --primary-light: #4D8FF7;
+  --primary-dark: #0D4FCC;
+  --primary-surface: #E8F0FE;
+  --primary-muted: #B3D1FC;
+
+  /* Light Mode */
+  --background: #F8F9FC;
+  --surface: #FFFFFF;
+  --card: #FFFFFF;
+  --elevated: #F2F4F8;
+  --border: #E2E5EB;
+  --hover: #EDF0F5;
+  --muted: #6B7280;
+
+  /* Text */
+  --text-primary: #0F1729;
+  --text-secondary: #4B5563;
+  --text-tertiary: #9CA3AF;
+
+  /* Semantic */
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-light: #FEF3C7;
+  --error: #EF4444;
+  --error-light: #FEE2E2;
+  --info: #3B82F6;
+  --info-light: #DBEAFE;
+
+  /* Meeting */
+  --mic-on: #10B981;
+  --mic-off: #EF4444;
+  --screen-share: #8B5CF6;
+  --hand-raised: #F59E0B;
+  --call-end: #DC2626;
+  --tile-bg: #F1F3F5;
+
+  /* Chat */
+  --chat-sent: #1A6BF5;
+  --chat-received: #F2F4F8;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+}
+
+.dark {
+  --background: #0A0A0F;
+  --surface: #12121A;
+  --card: #1A1A25;
+  --elevated: #222233;
+  --border: #2A2A3D;
+  --hover: #32324A;
+  --muted: #8888A0;
+
+  --text-primary: #F0F0F5;
+  --text-secondary: #A0A0B8;
+  --text-tertiary: #6B6B85;
+
+  --success-light: #064E3B;
+  --warning-light: #78350F;
+  --error-light: #7F1D1D;
+  --info-light: #1E3A5F;
+
+  --tile-bg: #1E1E2E;
+  --chat-received: #222233;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-hover: var(--hover);
+  --color-muted: var(--muted);
+
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-surface: var(--primary-surface);
+  --color-primary-muted: var(--primary-muted);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+
+  --color-mic-on: var(--mic-on);
+  --color-mic-off: var(--mic-off);
+  --color-screen-share: var(--screen-share);
+  --color-hand-raised: var(--hand-raised);
+  --color-call-end: var(--call-end);
+  --color-tile-bg: var(--tile-bg);
+  --color-chat-sent: var(--chat-sent);
+  --color-chat-received: var(--chat-received);
+
+  --font-sans: var(--font-poppins);
+}
+
+/* ─── Base Resets ─── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+
+::selection {
+  background-color: var(--primary);
+  color: white;
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
