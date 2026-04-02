@@ -1,0 +1,460 @@
+name: Release – Build & Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.27.4'
+  JAVA_VERSION: '17'
+
+jobs:
+  # ──────────────────────────────────────────────
+  # 0. Extract version from tag
+  # ──────────────────────────────────────────────
+  version:
+    name: Extract Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      build_number: ${{ github.run_number }}
+    steps:
+      - id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+  # ──────────────────────────────────────────────
+  # 1. Run tests before any release build
+  # ──────────────────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test --reporter expanded
+
+  # ──────────────────────────────────────────────
+  # 2. Build & Deploy Android
+  # ──────────────────────────────────────────────
+  release-android:
+    name: Release Android
+    runs-on: ubuntu-latest
+    needs: [version, test]
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('Flutter-conference-speakup/android/**/*.gradle*') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Decode Android keystore
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          cat <<EOF > android/key.properties
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=release.keystore
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK (fat)
+        run: |
+          flutter build apk --release \
+            --build-name=${{ needs.version.outputs.version }} \
+            --build-number=${{ needs.version.outputs.build_number }} \
+            --obfuscate \
+            --split-debug-info=build/debug-info
+
+      - name: Build split APKs (per-ABI)
+        run: |
+          flutter build apk --release --split-per-abi \
+            --build-name=${{ needs.version.outputs.version }} \
+            --build-number=${{ needs.version.outputs.build_number }} \
+            --obfuscate \
+            --split-debug-info=build/debug-info-split
+
+      - name: Build AAB
+        run: |
+          flutter build appbundle --release \
+            --build-name=${{ needs.version.outputs.version }} \
+            --build-number=${{ needs.version.outputs.build_number }} \
+            --obfuscate \
+            --split-debug-info=build/debug-info-aab
+
+      - name: Rename artifacts for release
+        run: |
+          VER="${{ needs.version.outputs.version }}"
+          mkdir -p release-artifacts
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             release-artifacts/SpeakUp-${VER}-android.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+             release-artifacts/SpeakUp-${VER}-android-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
+             release-artifacts/SpeakUp-${VER}-android-armv7.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk \
+             release-artifacts/SpeakUp-${VER}-android-x86_64.apk
+          cp build/app/outputs/bundle/release/app-release.aab \
+             release-artifacts/SpeakUp-${VER}-android.aab
+
+      - name: Deploy to Google Play (internal track)
+        if: ${{ env.GOOGLE_PLAY_JSON_KEY != '' }}
+        env:
+          GOOGLE_PLAY_JSON_KEY: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+        run: |
+          cd android
+          bundle install
+          bundle exec fastlane deploy_internal
+
+      - name: Upload Android release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: Flutter-conference-speakup/release-artifacts/*
+          retention-days: 90
+
+  # ──────────────────────────────────────────────
+  # 3. Build & Deploy iOS
+  # ──────────────────────────────────────────────
+  release-ios:
+    name: Release iOS
+    runs-on: macos-latest
+    needs: [version, test]
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: Flutter-conference-speakup/ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('Flutter-conference-speakup/ios/Podfile.lock') }}
+          restore-keys: pods-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: cd ios && pod install --repo-update
+
+      - name: Setup Fastlane
+        run: |
+          cd ios
+          gem install bundler
+          bundle install
+
+      - name: Fetch certificates via match
+        if: ${{ env.MATCH_GIT_URL != '' }}
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+        run: cd ios && bundle exec fastlane certificates
+
+      - name: Build IPA
+        run: |
+          flutter build ipa --release \
+            --build-name=${{ needs.version.outputs.version }} \
+            --build-number=${{ needs.version.outputs.build_number }} \
+            --obfuscate \
+            --split-debug-info=build/debug-info-ios \
+            --export-options-plist=ios/ExportOptions.plist
+
+      - name: Rename IPA
+        run: |
+          VER="${{ needs.version.outputs.version }}"
+          mkdir -p release-artifacts
+          cp build/ios/ipa/*.ipa \
+             release-artifacts/SpeakUp-${VER}-ios.ipa
+
+      - name: Deploy to TestFlight
+        if: ${{ env.APPLE_ID != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+          ITC_TEAM_ID: ${{ secrets.ITC_TEAM_ID }}
+        run: cd ios && bundle exec fastlane deploy_testflight
+
+      - name: Upload iOS release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release
+          path: Flutter-conference-speakup/release-artifacts/*
+          retention-days: 90
+
+  # ──────────────────────────────────────────────
+  # 4. Build Linux
+  # ──────────────────────────────────────────────
+  release-linux:
+    name: Release Linux
+    runs-on: ubuntu-latest
+    needs: [version, test]
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libstdc++-12-dev
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable Linux desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+      - name: Package Linux
+        run: |
+          VER="${{ needs.version.outputs.version }}"
+          cd build/linux/x64/release/bundle
+          tar czf ../../../../../SpeakUp-${VER}-linux-x64.tar.gz .
+
+      - name: Upload Linux release
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: Flutter-conference-speakup/SpeakUp-*-linux-x64.tar.gz
+          retention-days: 90
+
+  # ──────────────────────────────────────────────
+  # 5. Build Windows
+  # ──────────────────────────────────────────────
+  release-windows:
+    name: Release Windows
+    runs-on: windows-latest
+    needs: [version, test]
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Package Windows
+        shell: pwsh
+        run: |
+          $ver = "${{ needs.version.outputs.version }}"
+          Compress-Archive `
+            -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "SpeakUp-${ver}-windows-x64.zip"
+
+      - name: Upload Windows release
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: Flutter-conference-speakup/SpeakUp-*-windows-x64.zip
+          retention-days: 90
+
+  # ──────────────────────────────────────────────
+  # 6. Build macOS
+  # ──────────────────────────────────────────────
+  release-macos:
+    name: Release macOS
+    runs-on: macos-latest
+    needs: [version, test]
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: Flutter-conference-speakup/macos/Pods
+          key: pods-macos-${{ hashFiles('Flutter-conference-speakup/macos/Podfile.lock') }}
+          restore-keys: pods-macos-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install CocoaPods
+        run: cd macos && pod install --repo-update
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Package macOS
+        run: |
+          VER="${{ needs.version.outputs.version }}"
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../SpeakUp-${VER}-macos.zip *.app
+
+      - name: Upload macOS release
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: Flutter-conference-speakup/SpeakUp-*-macos.zip
+          retention-days: 90
+
+  # ──────────────────────────────────────────────
+  # 7. Build Web
+  # ──────────────────────────────────────────────
+  release-web:
+    name: Release Web
+    runs-on: ubuntu-latest
+    needs: [version, test]
+    defaults:
+      run:
+        working-directory: Flutter-conference-speakup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosheez/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release --web-renderer canvaskit
+
+      - name: Package Web
+        run: |
+          VER="${{ needs.version.outputs.version }}"
+          cd build/web
+          tar czf ../../SpeakUp-${VER}-web.tar.gz .
+
+      - name: Upload Web release
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-release
+          path: Flutter-conference-speakup/SpeakUp-*-web.tar.gz
+          retention-days: 90
+
+  # ──────────────────────────────────────────────
+  # 8. Publish GitHub Release
+  # ──────────────────────────────────────────────
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - version
+      - release-android
+      - release-ios
+      - release-linux
+      - release-windows
+      - release-macos
+      - release-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find release-assets -type f | head -30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: SpeakUp ${{ needs.version.outputs.version }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: release-assets/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

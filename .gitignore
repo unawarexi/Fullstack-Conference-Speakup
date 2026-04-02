@@ -1,0 +1,27 @@
+# ============================================================================
+# SpeakUp Monorepo — Root .gitignore
+# ============================================================================
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (catch-all)
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# Misc
+*.tgz
+.cache/
