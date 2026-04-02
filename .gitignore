@@ -26,3 +26,5 @@ node_modules/
 *.tgz
 .cache/
 .dart_tool/
+AGENTS.md
+CLAUDE.md
