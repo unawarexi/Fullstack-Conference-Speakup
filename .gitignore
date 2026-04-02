@@ -25,3 +25,4 @@ node_modules/
 # Misc
 *.tgz
 .cache/
+.dart_tool/
