@@ -1,0 +1,246 @@
+# ============================================================================
+# SpeakUp — Kubernetes Deployment
+# Production-ready deployment configuration
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speakup-api
+  namespace: speakup
+  labels:
+    app: speakup-api
+    version: v1
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: speakup-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: speakup-api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: speakup-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+
+      imagePullSecrets:
+        - name: speakup-registry-secret
+
+      containers:
+        - name: speakup-api
+          image: ghcr.io/speakup/speakup-api:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # Environment from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: speakup-api-config
+
+          # Environment from Secrets
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: REDIS_URL
+            - name: FIREBASE_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: FIREBASE_PROJECT_ID
+            - name: FIREBASE_CLIENT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: FIREBASE_CLIENT_EMAIL
+            - name: FIREBASE_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: FIREBASE_PRIVATE_KEY
+            - name: LIVEKIT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: LIVEKIT_API_KEY
+            - name: LIVEKIT_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: LIVEKIT_API_SECRET
+            - name: LIVEKIT_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: LIVEKIT_HOST
+            - name: CLOUDINARY_CLOUD_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: CLOUDINARY_CLOUD_NAME
+            - name: CLOUDINARY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: CLOUDINARY_API_KEY
+            - name: CLOUDINARY_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: CLOUDINARY_API_SECRET
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: STRIPE_SECRET_KEY
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: STRIPE_WEBHOOK_SECRET
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: SENTRY_DSN
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: SMTP_HOST
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: SMTP_PORT
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: SMTP_USER
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: SMTP_PASS
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: speakup-api-secrets
+                  key: SMTP_FROM
+
+          # Resource limits
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+          # Liveness probe
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Startup probe
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          # Volume mounts
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
+
+      # Volumes
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+
+      # Pod anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: speakup-api
+                topologyKey: kubernetes.io/hostname
+
+      # Tolerations
+      tolerations:
+        - key: "node.kubernetes.io/not-ready"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 300
+
+---
+# ============================================================================
+# SpeakUp — Service Account
+# ============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: speakup-api
+  namespace: speakup
+  labels:
+    app: speakup-api

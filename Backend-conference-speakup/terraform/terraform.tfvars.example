@@ -1,0 +1,40 @@
+
+# ============================================================================
+# SpeakUp — Example Terraform Variables
+# Copy this to terraform.tfvars and fill in your actual values
+# DO NOT commit terraform.tfvars to version control!
+# ============================================================================
+
+# General
+environment  = "production"
+project_name = "speakup"
+
+# AWS
+aws_region         = "us-east-1"
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+# EKS
+cluster_name        = "speakup-cluster"
+cluster_version     = "1.29"
+node_instance_types = ["t3.medium", "t3.large"]
+node_min_size       = 3
+node_max_size       = 10
+node_desired_size   = 3
+
+# RDS PostgreSQL
+db_instance_class        = "db.t3.medium"
+db_allocated_storage     = 50
+db_max_allocated_storage = 200
+db_name                  = "speakup"
+db_username              = "speakup_admin"
+db_password              = "CHANGE_ME_USE_STRONG_PASSWORD"
+
+# ElastiCache Redis
+redis_node_type       = "cache.t3.medium"
+redis_num_cache_nodes = 2
+
+# Cloudflare
+cloudflare_api_token = "your-cloudflare-api-token"
+cloudflare_zone_id   = "your-cloudflare-zone-id"
+domain_name          = "speakup.app"

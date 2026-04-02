@@ -1,0 +1,11 @@
+# ============================================================================
+# SpeakUp — Kubernetes Namespace
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: speakup
+  labels:
+    app: speakup-api
+    project: speakup-conference
+    environment: production

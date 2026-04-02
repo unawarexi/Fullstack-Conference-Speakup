@@ -1,0 +1,41 @@
+# ============================================================================
+# SpeakUp — Kubernetes ConfigMap
+# Non-sensitive configuration values
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: speakup-api-config
+  namespace: speakup
+  labels:
+    app: speakup-api
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  LOG_LEVEL: "info"
+  
+  # Rate limiting
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+  AUTH_RATE_LIMIT_MAX: "20"
+  MEETING_CREATE_RATE_LIMIT_MAX: "30"
+  CHAT_MESSAGE_RATE_LIMIT_MAX: "60"
+  RECORDING_RATE_LIMIT_MAX: "10"
+  
+  # Pagination
+  DEFAULT_PAGE_SIZE: "20"
+  MAX_PAGE_SIZE: "100"
+  
+  # File uploads
+  MAX_FILE_SIZE: "10485760"
+  ALLOWED_FILE_TYPES: "image/jpeg,image/png,image/webp,application/pdf"
+  
+  # Meeting configuration
+  MAX_MEETING_PARTICIPANTS: "500"
+  DEFAULT_MEETING_DURATION_MINUTES: "60"
+  MEETING_CODE_LENGTH: "10"
+  
+  # WebSocket
+  SOCKET_IO_CORS_ORIGIN: "*"
+  SOCKET_IO_PING_TIMEOUT: "60000"
+  SOCKET_IO_PING_INTERVAL: "25000"
