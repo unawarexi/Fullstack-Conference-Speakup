@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/core/router/app_router.dart';
+import 'package:video_confrence_app/router/app_router.dart';
 import 'package:video_confrence_app/store/connectivity_provider.dart';
 import 'package:video_confrence_app/store/theme_provider.dart';
 import 'package:video_confrence_app/theme/theme.dart';

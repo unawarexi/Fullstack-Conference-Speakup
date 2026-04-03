@@ -50,9 +50,9 @@ void main() {
         (WidgetTester tester) async {
       // Direct widget test — no ConnectivityNotifier (avoids platform channels)
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Column(
-            children: const [
+            children: [
               Text('No internet connection'),
               Expanded(child: Placeholder()),
             ],

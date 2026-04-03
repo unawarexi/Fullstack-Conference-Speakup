@@ -14,7 +14,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailCtrl = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
   bool _emailSent = false;
 
   @override
@@ -80,7 +80,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.mark_email_read_outlined, size: 80, color: SColors.primary),
+          const Icon(Icons.mark_email_read_outlined, size: 80, color: SColors.primary),
           const SizedBox(height: SSizes.lg),
           Text('Check your email', style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: SSizes.sm),

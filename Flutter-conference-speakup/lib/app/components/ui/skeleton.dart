@@ -39,20 +39,20 @@ class SMeetingCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: SSizes.sm),
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: SSizes.sm),
       child: Row(
         children: [
           SSkeleton(width: 4, height: 48, borderRadius: 2),
-          const SizedBox(width: SSizes.md),
+          SizedBox(width: SSizes.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SSkeleton(height: 16, width: 180),
-                const SizedBox(height: SSizes.sm),
+                SizedBox(height: SSizes.sm),
                 SSkeleton(height: 12, width: 120),
-                const SizedBox(height: SSizes.sm),
+                SizedBox(height: SSizes.sm),
                 SSkeleton(height: 12, width: 80),
               ],
             ),

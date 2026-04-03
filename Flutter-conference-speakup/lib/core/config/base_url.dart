@@ -19,10 +19,10 @@ class AppBaseUrl {
   static const String _apiPrefix = '/api/v1';
 
   /// Cached base URL resolved once at startup.
-  static late final String value = _resolve();
+  static final String value = _resolve();
 
   /// WebSocket URL (same host, different protocol).
-  static late final String wsUrl = _resolveWs();
+  static final String wsUrl = _resolveWs();
 
   static String _resolve() {
     // 1. Explicit override from .env

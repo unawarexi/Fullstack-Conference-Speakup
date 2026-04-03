@@ -40,7 +40,7 @@ void main() async {
     ),
   );
 
-  final app = ProviderScope(child: const SpeakUpApp());
+  const app = ProviderScope(child: const SpeakUpApp());
 
   if (kReleaseMode) {
     await SentryFlutter.init(

@@ -1,4 +1,5 @@
 /// Shared test helpers and mocks for the SpeakUp test suite.
+library;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';

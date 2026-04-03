@@ -39,7 +39,7 @@ class MeetingsListScreen extends StatelessWidget {
                 Tab(text: 'Recurring'),
               ],
             ),
-            Expanded(
+            const Expanded(
               child: TabBarView(
                 children: [
                   _EmptyMeetings(label: 'No upcoming meetings'),

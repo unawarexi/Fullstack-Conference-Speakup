@@ -22,8 +22,8 @@ class ChatListScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
+          const Padding(
+            padding: EdgeInsets.symmetric(
               horizontal: SSizes.pagePadding,
               vertical: SSizes.sm,
             ),

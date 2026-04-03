@@ -15,10 +15,10 @@ class HomeScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         title: Row(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               radius: 18,
               backgroundColor: SColors.primary,
-              child: const Text(
+              child: Text(
                 'U',
                 style: TextStyle(
                   color: Colors.white,

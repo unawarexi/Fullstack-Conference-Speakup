@@ -29,19 +29,19 @@ void main() {
     testWidgets('Navigation between placeholder screens',
         (WidgetTester tester) async {
       await tester.pumpWidget(
-        ProviderScope(
+        const ProviderScope(
           child: MaterialApp(
             home: DefaultTabController(
               length: 3,
               child: Scaffold(
-                body: const TabBarView(
+                body: TabBarView(
                   children: [
                     Center(child: Text('Home')),
                     Center(child: Text('Meetings')),
                     Center(child: Text('Settings')),
                   ],
                 ),
-                bottomNavigationBar: const TabBar(
+                bottomNavigationBar: TabBar(
                   tabs: [
                     Tab(icon: Icon(Icons.home), text: 'Home'),
                     Tab(icon: Icon(Icons.videocam), text: 'Meetings'),

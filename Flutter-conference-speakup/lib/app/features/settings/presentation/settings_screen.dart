@@ -21,10 +21,10 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(SSizes.pagePadding),
             child: Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: SSizes.avatarLg / 2,
                   backgroundColor: SColors.primary,
-                  child: const Text(
+                  child: Text(
                     'U',
                     style: TextStyle(
                       color: Colors.white,

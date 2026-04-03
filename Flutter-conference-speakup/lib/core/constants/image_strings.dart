@@ -3,11 +3,16 @@ class SImages {
   SImages._();
 
   static const String _basePath = 'assets/images';
+  static const String _logoPath = 'assets/logo';
 
   // ──────────────── LOGOS ────────────────
   static const String logo = '$_basePath/logo.png';
   static const String logoDark = '$_basePath/logo_dark.png';
   static const String logoIcon = '$_basePath/logo_icon.png';
+
+  // ──────────────── BRAND (assets/logo/) ────────────────
+  static const String brandLogo = '$_logoPath/logo.png';
+  static const String brandEmblem = '$_logoPath/emblem.png';
 
   // ──────────────── ONBOARDING ────────────────
   static const String onboarding1 = '$_basePath/onboarding_1.png';

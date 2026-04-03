@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_confrence_app/app/screens/bottom_navigation.dart';
 import 'package:video_confrence_app/app/screens/home_screen.dart';
 import 'package:video_confrence_app/app/screens/onboarding/onboarding_screen.dart';
+import 'package:video_confrence_app/app/screens/splash/splash_screen.dart';
 import 'package:video_confrence_app/app/features/auth/presentation/login_screen.dart';
 import 'package:video_confrence_app/app/features/meeting/presentation/meetings_list_screen.dart';
 import 'package:video_confrence_app/app/features/meeting/presentation/meeting_room_screen.dart';
@@ -26,13 +27,16 @@ final GlobalKey<NavigatorState> _rootNavigatorKey =
 ///   https://speakup.app/meeting/:id  → universal link
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/onboarding',
+  initialLocation: '/splash',
   debugLogDiagnostics: true,
 
   // Auth guard
   redirect: (context, state) {
     final isLoggedIn = FirebaseAuth.instance.currentUser != null;
     final location = state.matchedLocation;
+
+    // Allow splash screen through without redirect
+    if (location == '/splash') return null;
 
     final publicRoutes = {'/onboarding', '/login'};
     final isPublicRoute = publicRoutes.contains(location);
@@ -56,6 +60,13 @@ final GoRouter appRouter = GoRouter(
   },
 
   routes: [
+    // ──────────── Splash ────────────
+    GoRoute(
+      path: '/splash',
+      name: 'splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+
     // ──────────── Onboarding ────────────
     GoRoute(
       path: '/onboarding',
