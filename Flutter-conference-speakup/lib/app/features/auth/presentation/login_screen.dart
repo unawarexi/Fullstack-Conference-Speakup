@@ -1,58 +1,45 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_confrence_app/core/animations/screen_animations.dart';
 import 'package:video_confrence_app/core/constants/colors.dart';
 import 'package:video_confrence_app/core/constants/image_strings.dart';
 import 'package:video_confrence_app/core/constants/responsive.dart';
 import 'package:video_confrence_app/core/constants/sizes.dart';
 import 'package:video_confrence_app/core/constants/text_strings.dart';
-import 'package:video_confrence_app/app/components/ui/button.dart';
-import 'package:video_confrence_app/app/components/ui/input.dart';
+import 'package:video_confrence_app/app/features/auth/usecases/login_usecase.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  bool _obscurePassword = true;
-  bool _isLoading = false;
-
-  late AnimationController _sheetController;
-  late Animation<Offset> _sheetSlide;
-  late Animation<double> _sheetFade;
+  late LoginUseCase _loginUseCase;
+  late SheetRevealAnim _sheetAnim;
 
   @override
   void initState() {
     super.initState();
-    _sheetController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
+    _sheetAnim = SheetRevealAnim(vsync: this);
+    _sheetAnim.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loginUseCase = LoginUseCase(
+      ref: ref,
+      context: context,
+      onStateChanged: () => setState(() {}),
     );
-    _sheetSlide = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _sheetController,
-      curve: Curves.easeOutCubic,
-    ));
-    _sheetFade = CurvedAnimation(
-      parent: _sheetController,
-      curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
-    );
-    _sheetController.forward();
   }
 
   @override
   void dispose() {
-    _emailCtrl.dispose();
-    _passwordCtrl.dispose();
-    _sheetController.dispose();
+    _sheetAnim.dispose();
     super.dispose();
   }
 
@@ -86,9 +73,9 @@ class _LoginScreenState extends State<LoginScreen>
           right: 0,
           bottom: 0,
           child: SlideTransition(
-            position: _sheetSlide,
+            position: _sheetAnim.slide,
             child: FadeTransition(
-              opacity: _sheetFade,
+              opacity: _sheetAnim.fade,
               child: Container(
                 decoration: BoxDecoration(
                   color: theme.scaffoldBackgroundColor,
@@ -108,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen>
                     top: Radius.circular(36),
                   ),
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       SSizes.pagePadding + 4,
                       SSizes.xl + 4,
                       SSizes.pagePadding + 4,
@@ -143,9 +130,9 @@ class _LoginScreenState extends State<LoginScreen>
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: SlideTransition(
-                position: _sheetSlide,
+                position: _sheetAnim.slide,
                 child: FadeTransition(
-                  opacity: _sheetFade,
+                  opacity: _sheetAnim.fade,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: SSizes.xxl,
@@ -162,204 +149,83 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // ─────────────── FORM ───────────────
+  // ─────────────── AUTH CONTENT ───────────────
   Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final mutedColor = isDark ? SColors.textDarkTertiary : SColors.textLightTertiary;
     final secondaryColor = isDark ? SColors.textDarkSecondary : SColors.textLightSecondary;
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Greeting ──
-          Text(
-            'Welcome back',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Greeting ──
+        Text(
+          'Welcome to ${STexts.appName}',
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
-          const SizedBox(height: SSizes.xs),
-          Text(
-            'Sign in to continue to ${STexts.appName}',
-            style: theme.textTheme.bodyMedium?.copyWith(color: secondaryColor),
-          ),
-          const SizedBox(height: SSizes.sectionSpacing),
+        ),
+        const SizedBox(height: SSizes.xs),
+        Text(
+          'Sign in to continue',
+          style: theme.textTheme.bodyMedium?.copyWith(color: secondaryColor),
+        ),
+        const SizedBox(height: SSizes.sectionSpacing),
 
-          // ── OAuth buttons ──
-          _OAuthButton(
-            label: STexts.continueWithGoogle,
-            icon: 'G',
-            iconColor: const Color(0xFF4285F4),
-            onTap: () {
-              // TODO: Google sign-in
-            },
-          ),
-          const SizedBox(height: SSizes.sm + 4),
-          _OAuthButton(
-            label: STexts.continueWithGithub,
-            icon: '',
-            useGithubIcon: true,
-            onTap: () {
-              // TODO: GitHub sign-in
-            },
-          ),
+        // ── OAuth buttons ──
+        _OAuthButton(
+          label: STexts.continueWithGoogle,
+          icon: 'G',
+          iconColor: const Color(0xFF4285F4),
+          isLoading: _loginUseCase.isLoading,
+          onTap: _loginUseCase.signInWithGoogle,
+        ),
+        const SizedBox(height: SSizes.sm + 4),
+        _OAuthButton(
+          label: STexts.continueWithGithub,
+          icon: '',
+          useGithubIcon: true,
+          isLoading: _loginUseCase.isLoading,
+          onTap: _loginUseCase.signInWithGithub,
+        ),
 
-          const SizedBox(height: SSizes.lg),
+        const SizedBox(height: SSizes.xl),
 
-          // ── Divider ──
-          Row(
-            children: [
-              Expanded(child: Divider(color: theme.dividerColor)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: SSizes.md),
-                child: Text(
-                  'or continue with email',
-                  style: TextStyle(color: mutedColor, fontSize: 12),
-                ),
-              ),
-              Expanded(child: Divider(color: theme.dividerColor)),
-            ],
-          ),
-
-          const SizedBox(height: SSizes.lg),
-
-          // ── Email ──
-          SInput(
-            controller: _emailCtrl,
-            label: STexts.email,
-            hint: 'you@example.com',
-            prefixIcon: Icons.email_outlined,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Email is required';
-              if (!v.contains('@')) return 'Enter a valid email';
-              return null;
-            },
-          ),
-          const SizedBox(height: SSizes.md),
-
-          // ── Password ──
-          SInput(
-            controller: _passwordCtrl,
-            label: STexts.password,
-            hint: '••••••••',
-            prefixIcon: Icons.lock_outline,
-            obscureText: _obscurePassword,
-            textInputAction: TextInputAction.done,
-            suffix: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                size: 20,
-              ),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) return 'Password is required';
-              if (v.length < 6) return 'Min 6 characters';
-              return null;
-            },
-          ),
-
-          const SizedBox(height: SSizes.xs),
-
-          // ── Forgot password ──
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: SSizes.sm, vertical: SSizes.xs),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: Text(
-                STexts.forgotPassword,
-                style: TextStyle(
-                  color: SColors.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: SSizes.lg),
-
-          // ── Sign In button ──
-          SButton(
-            text: STexts.login,
-            size: SButtonSize.lg,
-            isLoading: _isLoading,
-            onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                // TODO: Auth logic
-              }
-            },
-          ),
-
-          const SizedBox(height: SSizes.lg),
-
-          // ── Sign up link ──
-          Center(
+        // ── Policy text ──
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: SSizes.md),
             child: Text.rich(
               TextSpan(
-                text: STexts.dontHaveAccount,
-                style: TextStyle(color: secondaryColor, fontSize: 14),
+                text: 'By continuing, you agree to our ',
+                style: TextStyle(color: mutedColor, fontSize: 11, height: 1.5),
                 children: [
                   TextSpan(
-                    text: STexts.signUp,
-                    style: const TextStyle(
-                      color: SColors.primary,
-                      fontWeight: FontWeight.w600,
+                    text: 'Terms of Service',
+                    style: TextStyle(
+                      color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.underline,
                     ),
-                    recognizer: TapGestureRecognizer()..onTap = () {},
+                  ),
+                  const TextSpan(text: ' and '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: TextStyle(
+                      color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                      fontWeight: FontWeight.w500,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ],
               ),
+              textAlign: TextAlign.center,
             ),
           ),
-
-          const SizedBox(height: SSizes.lg),
-
-          // ── Policy text ──
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: SSizes.md),
-              child: Text.rich(
-                TextSpan(
-                  text: 'By continuing, you agree to our ',
-                  style: TextStyle(color: mutedColor, fontSize: 11, height: 1.5),
-                  children: [
-                    TextSpan(
-                      text: 'Terms of Service',
-                      style: TextStyle(
-                        color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                    const TextSpan(text: ' and '),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: TextStyle(
-                        color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -451,6 +317,7 @@ class _OAuthButton extends StatelessWidget {
   final String icon;
   final Color? iconColor;
   final bool useGithubIcon;
+  final bool isLoading;
   final VoidCallback onTap;
 
   const _OAuthButton({
@@ -458,6 +325,7 @@ class _OAuthButton extends StatelessWidget {
     this.icon = '',
     this.iconColor,
     this.useGithubIcon = false,
+    this.isLoading = false,
     required this.onTap,
   });
 
@@ -470,7 +338,7 @@ class _OAuthButton extends StatelessWidget {
       width: double.infinity,
       height: SSizes.buttonHeightMd + 4,
       child: OutlinedButton(
-        onPressed: onTap,
+        onPressed: isLoading ? null : onTap,
         style: OutlinedButton.styleFrom(
           backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
           side: BorderSide(color: isDark ? SColors.darkBorder : SColors.lightBorder),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_confrence_app/core/animations/screen_animations.dart';
 import 'package:video_confrence_app/core/constants/colors.dart';
 import 'package:video_confrence_app/core/constants/image_strings.dart';
 import 'package:video_confrence_app/core/constants/responsive.dart';
@@ -70,48 +71,39 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  late FadeInAnim _fadeAnim;
+  late SlideUpFadeAnim _slideAnim;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
+    _fadeAnim = FadeInAnim(
       vsync: this,
       duration: Duration(milliseconds: SSizes.animSlow),
     );
-    _slideController = AnimationController(
+    _slideAnim = SlideUpFadeAnim(
       vsync: this,
       duration: const Duration(milliseconds: 600),
+      beginOffset: const Offset(0, 0.12),
     );
-    _fadeAnim = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    );
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
 
-    _fadeController.forward();
-    _slideController.forward();
+    _fadeAnim.forward();
+    _slideAnim.forward();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _fadeController.dispose();
-    _slideController.dispose();
+    _fadeAnim.dispose();
+    _slideAnim.dispose();
     super.dispose();
   }
 
   void _animateIn() {
-    _fadeController.reset();
-    _slideController.reset();
-    _fadeController.forward();
-    _slideController.forward();
+    _fadeAnim.reset();
+    _slideAnim.reset();
+    _fadeAnim.forward();
+    _slideAnim.forward();
   }
 
   void _nextPage() {
@@ -148,8 +140,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ? _DesktopLayout(
                     currentPage: _currentPage,
                     pageController: _pageController,
-                    fadeAnim: _fadeAnim,
-                    slideAnim: _slideAnim,
+                    fadeAnim: _fadeAnim.fade,
+                    slideAnim: _slideAnim.slide,
                     onPageChanged: (i) {
                       setState(() => _currentPage = i);
                       _animateIn();
@@ -160,8 +152,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 : _MobileLayout(
                     currentPage: _currentPage,
                     pageController: _pageController,
-                    fadeAnim: _fadeAnim,
-                    slideAnim: _slideAnim,
+                    fadeAnim: _fadeAnim.fade,
+                    slideAnim: _slideAnim.slide,
                     onPageChanged: (i) {
                       setState(() => _currentPage = i);
                       _animateIn();

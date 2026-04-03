@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:video_confrence_app/core/animations/screen_animations.dart';
 import 'package:video_confrence_app/core/constants/colors.dart';
 import 'package:video_confrence_app/core/constants/image_strings.dart';
 import 'package:video_confrence_app/core/constants/sizes.dart';
@@ -16,122 +17,41 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  // ── Emblem (icon) animations ──
-  late AnimationController _emblemController;
-  late Animation<double> _emblemScale;
-  late Animation<double> _emblemFade;
-  late Animation<double> _emblemRotation;
-
-  // ── Logo text animations ──
-  late AnimationController _logoController;
-  late Animation<double> _logoFade;
-  late Animation<Offset> _logoSlide;
-
-  // ── Glow pulse ──
-  late AnimationController _glowController;
-  late Animation<double> _glowAnim;
-
-  // ── Tagline animations ──
-  late AnimationController _taglineController;
-  late Animation<double> _taglineFade;
-
-  // ── Exit animation ──
-  late AnimationController _exitController;
-  late Animation<double> _exitFade;
-  late Animation<double> _exitScale;
+  late BrandRevealAnim _emblemAnim;
+  late SlideUpFadeAnim _logoAnim;
+  late GlowPulseAnim _glowAnim;
+  late FadeInAnim _taglineAnim;
+  late ExitAnim _exitAnim;
 
   @override
   void initState() {
     super.initState();
-
-    // ── Emblem: scale up + fade in + subtle rotation ──
-    _emblemController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _emblemScale = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _emblemController, curve: Curves.easeOutBack),
-    );
-    _emblemFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _emblemController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
-      ),
-    );
-    _emblemRotation = Tween<double>(begin: -0.05, end: 0.0).animate(
-      CurvedAnimation(parent: _emblemController, curve: Curves.easeOutCubic),
-    );
-
-    // ── Logo text: slide up + fade in ──
-    _logoController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
-    );
-    _logoSlide = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic));
-
-    // ── Glow pulse behind emblem ──
-    _glowController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    );
-    _glowAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
-    );
-
-    // ── Tagline ──
-    _taglineController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _taglineController, curve: Curves.easeOut),
-    );
-
-    // ── Exit ──
-    _exitController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _exitFade = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
-    );
-    _exitScale = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _exitController, curve: Curves.easeIn),
-    );
+    _emblemAnim = BrandRevealAnim(vsync: this);
+    _logoAnim = SlideUpFadeAnim(vsync: this);
+    _glowAnim = GlowPulseAnim(vsync: this);
+    _taglineAnim = FadeInAnim(vsync: this);
+    _exitAnim = ExitAnim(vsync: this);
 
     _startSequence();
   }
 
   Future<void> _startSequence() async {
-    // Phase 1: Emblem scales in
     await Future.delayed(const Duration(milliseconds: 200));
-    _emblemController.forward();
+    _emblemAnim.forward();
 
-    // Phase 2: Glow pulse starts
     await Future.delayed(const Duration(milliseconds: 400));
-    _glowController.forward();
+    _glowAnim.forward();
 
-    // Phase 3: Logo text slides up
     await Future.delayed(const Duration(milliseconds: 400));
-    _logoController.forward();
+    _logoAnim.forward();
 
-    // Phase 4: Tagline fades in
     await Future.delayed(const Duration(milliseconds: 500));
-    _taglineController.forward();
+    _taglineAnim.forward();
 
-    // Phase 5: Hold, then exit
     await Future.delayed(const Duration(milliseconds: 1000));
-    await _exitController.forward();
+    await _exitAnim.forward();
 
-    if (mounted) {
-      _navigate();
-    }
+    if (mounted) _navigate();
   }
 
   void _navigate() {
@@ -149,11 +69,11 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _emblemController.dispose();
-    _logoController.dispose();
-    _glowController.dispose();
-    _taglineController.dispose();
-    _exitController.dispose();
+    _emblemAnim.dispose();
+    _logoAnim.dispose();
+    _glowAnim.dispose();
+    _taglineAnim.dispose();
+    _exitAnim.dispose();
     super.dispose();
   }
 
@@ -165,12 +85,12 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: AnimatedBuilder(
-        animation: _exitController,
+        animation: _exitAnim.controller,
         builder: (context, child) {
           return FadeTransition(
-            opacity: _exitFade,
+            opacity: _exitAnim.fade,
             child: ScaleTransition(
-              scale: _exitScale,
+              scale: _exitAnim.scale,
               child: child,
             ),
           );
@@ -187,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
                 children: [
                   // ── Glow ring behind emblem ──
                   AnimatedBuilder(
-                    animation: _glowAnim,
+                    animation: _glowAnim.value,
                     builder: (context, child) {
                       return Container(
                         decoration: BoxDecoration(
@@ -195,10 +115,10 @@ class _SplashScreenState extends State<SplashScreen>
                           boxShadow: [
                             BoxShadow(
                               color: SColors.primary.withOpacity(
-                                0.3 * _glowAnim.value,
+                                0.3 * _glowAnim.value.value,
                               ),
-                              blurRadius: 80 * _glowAnim.value,
-                              spreadRadius: 20 * _glowAnim.value,
+                              blurRadius: 80 * _glowAnim.value.value,
+                              spreadRadius: 20 * _glowAnim.value.value,
                             ),
                           ],
                         ),
@@ -206,14 +126,14 @@ class _SplashScreenState extends State<SplashScreen>
                       );
                     },
                     child: AnimatedBuilder(
-                      animation: _emblemController,
+                      animation: _emblemAnim.controller,
                       builder: (context, child) {
                         return Transform.rotate(
-                          angle: _emblemRotation.value,
+                          angle: _emblemAnim.rotation.value,
                           child: Transform.scale(
-                            scale: _emblemScale.value,
+                            scale: _emblemAnim.scale.value,
                             child: FadeTransition(
-                              opacity: _emblemFade,
+                              opacity: _emblemAnim.fade,
                               child: child,
                             ),
                           ),
@@ -231,9 +151,9 @@ class _SplashScreenState extends State<SplashScreen>
 
                   // ── Logo text ──
                   SlideTransition(
-                    position: _logoSlide,
+                    position: _logoAnim.slide,
                     child: FadeTransition(
-                      opacity: _logoFade,
+                      opacity: _logoAnim.fade,
                       child: Image.asset(
                         SImages.brandLogo,
                         width: 200,
@@ -246,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                   // ── Tagline ──
                   FadeTransition(
-                    opacity: _taglineFade,
+                    opacity: _taglineAnim.fade,
                     child: Text(
                       STexts.appTagline,
                       style: TextStyle(
@@ -269,7 +189,7 @@ class _SplashScreenState extends State<SplashScreen>
               left: 0,
               right: 0,
               child: FadeTransition(
-                opacity: _taglineFade,
+                opacity: _taglineAnim.fade,
                 child: Center(
                   child: SizedBox(
                     width: 24,
