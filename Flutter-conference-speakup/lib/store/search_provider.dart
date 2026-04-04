@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/app/domain/repositories/search_repository.dart';
-import 'package:video_confrence_app/app/domain/models/user_model.dart';
-import 'package:video_confrence_app/app/domain/models/meeting_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/search_repository.dart';
+import 'package:flutter_conference_speakup/app/domain/models/user_model.dart';
+import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
 
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   return SearchRepository();

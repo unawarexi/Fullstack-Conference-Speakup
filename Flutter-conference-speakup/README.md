@@ -1,16 +1,34 @@
-# video_confrence_app
+e: file:///Users/mac/Desktop/MY/Fullstack-Conference-Speakup/Flutter-conference-speakup/android/app/build.gradle.kts:14:37: Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///Users/mac/Desktop/MY/Fullstack-Conference-Speakup/Flutter-conference-speakup/android/app/build.gradle.kts:14:9: Unresolved reference: coreLibraryDesugaringEnabled
 
-A new Flutter project.
+FAILURE: Build failed with an exception.
 
-## Getting Started
+* Where:
+Build file '/Users/mac/Desktop/MY/Fullstack-Conference-Speakup/Flutter-conference-speakup/android/app/build.gradle.kts' line: 14
 
-This project is a starting point for a Flutter application.
+* What went wrong:
+Script compilation errors:
 
-A few resources to get you started if this is your first Flutter project:
+  Line 14:         coreLibraryDesugaringEnabled true
+                                               ^ Unexpected tokens (use ';' to separate expressions on the same line)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+  Line 14:         coreLibraryDesugaringEnabled true
+                   ^ Unresolved reference: coreLibraryDesugaringEnabled
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+  Line 14:         coreLibraryDesugaringEnabled true
+                                                ^ The expression is unused
+
+  Line 20:         jvmTarget = JavaVersion.VERSION_17.toString()
+                   ^ 'jvmTarget: String' is deprecated. Please migrate to the compilerOptions DSL. More details are here: https://kotl.in/u1r8ln
+
+4 errors
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 5s
+Running Gradle task 'assembleDebug'...                              5.4s
+Error: Gradle task assembleDebug failed with exit code 1

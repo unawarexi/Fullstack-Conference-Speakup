@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/app/domain/repositories/billing_repository.dart';
-import 'package:video_confrence_app/app/domain/models/subscription_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/billing_repository.dart';
+import 'package:flutter_conference_speakup/app/domain/models/subscription_model.dart';
 
 final billingRepositoryProvider = Provider<BillingRepository>((ref) {
   return BillingRepository();

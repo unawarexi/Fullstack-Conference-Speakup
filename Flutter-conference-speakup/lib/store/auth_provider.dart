@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:video_confrence_app/app/domain/models/user_model.dart';
-import 'package:video_confrence_app/app/domain/repositories/auth_repository.dart';
-import 'package:video_confrence_app/core/services/storage_service.dart';
+import 'package:flutter_conference_speakup/app/domain/models/user_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/auth_repository.dart';
+import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
 /// Auth repository singleton provider.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

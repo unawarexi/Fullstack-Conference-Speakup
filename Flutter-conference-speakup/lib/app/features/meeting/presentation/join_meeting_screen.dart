@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:video_confrence_app/core/constants/sizes.dart';
-import 'package:video_confrence_app/core/constants/text_strings.dart';
-import 'package:video_confrence_app/app/components/ui/button.dart';
-import 'package:video_confrence_app/app/components/ui/input.dart';
+import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/text_strings.dart';
+import 'package:flutter_conference_speakup/app/components/ui/button.dart';
+import 'package:flutter_conference_speakup/app/components/ui/input.dart';
 
 class JoinMeetingScreen extends StatefulWidget {
   const JoinMeetingScreen({super.key});

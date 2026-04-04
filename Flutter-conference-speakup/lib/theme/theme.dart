@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:video_confrence_app/core/constants/colors.dart';
-import 'package:video_confrence_app/theme/custom_themes/app_bar_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/bottom_sheet_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/check_box_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/chip_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/elevated_button_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/outlined_button_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/text_field_theme.dart';
-import 'package:video_confrence_app/theme/custom_themes/text_theme.dart';
+import 'package:flutter_conference_speakup/core/constants/colors.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/app_bar_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/bottom_sheet_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/check_box_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/chip_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/elevated_button_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/outlined_button_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/text_field_theme.dart';
+import 'package:flutter_conference_speakup/theme/custom_themes/text_theme.dart';
 
 class TAppTheme {
   TAppTheme._();

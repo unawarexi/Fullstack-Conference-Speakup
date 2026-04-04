@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:video_confrence_app/app/components/ui/toast_notifier.dart';
-import 'package:video_confrence_app/store/auth_provider.dart';
+import 'package:flutter_conference_speakup/app/components/ui/toast_notifier.dart';
+import 'package:flutter_conference_speakup/store/auth_provider.dart';
 
 class LoginUseCase {
   final WidgetRef _ref;

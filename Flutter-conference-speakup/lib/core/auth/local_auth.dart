@@ -1,5 +1,5 @@
 import 'package:local_auth/local_auth.dart';
-import 'package:video_confrence_app/core/services/storage_service.dart';
+import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
 class LocalAuthService {
   static final _localAuth = LocalAuthentication();

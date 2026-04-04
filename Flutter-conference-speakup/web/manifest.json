@@ -1,6 +1,6 @@
 {
-    "name": "video_confrence_app",
-    "short_name": "video_confrence_app",
+    "name": "flutter_conference_speakup",
+    "short_name": "flutter_conference_speakup",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

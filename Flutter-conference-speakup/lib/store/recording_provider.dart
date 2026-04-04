@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/app/domain/models/participant_model.dart';
-import 'package:video_confrence_app/app/domain/repositories/recording_repository.dart';
+import 'package:flutter_conference_speakup/app/domain/models/participant_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/recording_repository.dart';
 
 final recordingRepositoryProvider = Provider<RecordingRepository>((ref) {
   return RecordingRepository();

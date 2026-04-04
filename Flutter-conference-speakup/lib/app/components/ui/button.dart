@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:video_confrence_app/core/constants/colors.dart';
-import 'package:video_confrence_app/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/colors.dart';
+import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
 enum SButtonVariant { primary, secondary, outline, ghost, danger }
 enum SButtonSize { sm, md, lg }

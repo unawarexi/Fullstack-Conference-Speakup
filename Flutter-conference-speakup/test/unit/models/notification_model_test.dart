@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_confrence_app/app/domain/models/notification_model.dart';
+import 'package:flutter_conference_speakup/app/domain/models/notification_model.dart';
 
 void main() {
   final now = DateTime(2026, 4, 2);

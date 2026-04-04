@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/app/domain/models/meeting_model.dart';
-import 'package:video_confrence_app/app/domain/models/participant_model.dart';
-import 'package:video_confrence_app/app/domain/repositories/meeting_repository.dart';
-import 'package:video_confrence_app/core/db/hive.dart';
+import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
+import 'package:flutter_conference_speakup/app/domain/models/participant_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/meeting_repository.dart';
+import 'package:flutter_conference_speakup/core/db/hive.dart';
 
 final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {
   return MeetingRepository();

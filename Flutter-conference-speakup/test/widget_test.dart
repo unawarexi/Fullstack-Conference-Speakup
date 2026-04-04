@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/store/connectivity_provider.dart';
+import 'package:flutter_conference_speakup/store/connectivity_provider.dart';
 
 void main() {
   group('App smoke tests', () {

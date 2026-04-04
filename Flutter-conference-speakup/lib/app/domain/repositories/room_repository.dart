@@ -1,5 +1,5 @@
-import 'package:video_confrence_app/core/network/api_client.dart';
-import 'package:video_confrence_app/core/apis/endpoints.dart';
+import 'package:flutter_conference_speakup/core/network/api_client.dart';
+import 'package:flutter_conference_speakup/core/apis/endpoints.dart';
 
 class RoomRepository {
   final _api = ApiClient.instance;

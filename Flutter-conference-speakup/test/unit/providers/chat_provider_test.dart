@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_confrence_app/store/chat_provider.dart';
-import 'package:video_confrence_app/app/domain/models/chat_model.dart';
+import 'package:flutter_conference_speakup/store/chat_provider.dart';
+import 'package:flutter_conference_speakup/app/domain/models/chat_model.dart';
 
 void main() {
   group('ChatMessagesState', () {

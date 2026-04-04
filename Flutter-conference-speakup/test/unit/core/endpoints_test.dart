@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_confrence_app/core/apis/endpoints.dart';
+import 'package:flutter_conference_speakup/core/apis/endpoints.dart';
 
 void main() {
   group('ApiEndpoints', () {

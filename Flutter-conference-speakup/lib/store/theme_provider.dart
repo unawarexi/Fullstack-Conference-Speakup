@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/core/services/storage_service.dart';
+import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
 /// Theme mode provider — persisted to local storage.
 final themeModeProvider =

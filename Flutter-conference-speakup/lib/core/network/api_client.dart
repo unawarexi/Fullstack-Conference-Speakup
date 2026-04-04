@@ -4,8 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:video_confrence_app/core/config/base_url.dart';
-import 'package:video_confrence_app/core/network/connectivity_service.dart';
+import 'package:flutter_conference_speakup/core/config/base_url.dart';
+import 'package:flutter_conference_speakup/core/network/connectivity_service.dart';
 
 final _log = Logger(printer: PrettyPrinter(methodCount: 0));
 

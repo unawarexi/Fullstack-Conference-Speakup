@@ -3,7 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
-import 'package:video_confrence_app/core/config/environment.dart';
+import 'package:flutter_conference_speakup/core/config/environment.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/router/app_router.dart';
-import 'package:video_confrence_app/store/connectivity_provider.dart';
-import 'package:video_confrence_app/store/theme_provider.dart';
-import 'package:video_confrence_app/theme/theme.dart';
+import 'package:flutter_conference_speakup/router/app_router.dart';
+import 'package:flutter_conference_speakup/store/connectivity_provider.dart';
+import 'package:flutter_conference_speakup/store/theme_provider.dart';
+import 'package:flutter_conference_speakup/theme/theme.dart';
 
 class SpeakUpApp extends ConsumerWidget {
   const SpeakUpApp({super.key});

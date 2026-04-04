@@ -1,20 +1,23 @@
-name: video_confrence_app
+name: flutter_conference_speakup
 description: "SpeakUp - Cross-platform video conferencing application."
 publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.3
+  sdk: ^3.11.3
 
+# To see which dependencies have newer versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
 
-  # UI
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   iconsax: ^0.0.8
 
-  # Firebase
+
+   # Firebase
   firebase_core: ^3.6.0
   firebase_auth: ^5.2.0
   firebase_messaging: ^15.2.0
@@ -74,7 +77,6 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
   mockito: ^5.4.0
   build_runner: ^2.4.14
   freezed: ^2.5.7
@@ -84,6 +86,8 @@ dev_dependencies:
   mocktail: ^1.0.4
   fake_async: ^1.3.2
   network_image_mock: ^2.1.1
+  # rules and activating additional ones.
+  flutter_lints: ^6.0.0
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -98,8 +102,11 @@ flutter:
     - .env
 
 
-
-
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
   # fonts:
   #   - family: Schyler
   #     fonts:

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/app/domain/models/user_model.dart';
-import 'package:video_confrence_app/app/domain/repositories/user_repository.dart';
-import 'package:video_confrence_app/store/auth_provider.dart';
+import 'package:flutter_conference_speakup/app/domain/models/user_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/user_repository.dart';
+import 'package:flutter_conference_speakup/store/auth_provider.dart';
 
 final userRepositoryProvider = Provider<UserRepository>((ref) {
   return UserRepository();

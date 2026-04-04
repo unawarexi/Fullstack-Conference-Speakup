@@ -5,10 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:video_confrence_app/app.dart';
-import 'package:video_confrence_app/core/db/hive.dart';
-import 'package:video_confrence_app/core/services/storage_service.dart';
-import 'package:video_confrence_app/firebase_options.dart';
+import 'package:flutter_conference_speakup/app.dart';
+import 'package:flutter_conference_speakup/core/db/hive.dart';
+import 'package:flutter_conference_speakup/core/services/storage_service.dart';
+import 'package:flutter_conference_speakup/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

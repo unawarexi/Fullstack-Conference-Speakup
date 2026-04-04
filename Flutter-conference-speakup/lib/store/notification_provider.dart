@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_confrence_app/app/domain/models/notification_model.dart';
-import 'package:video_confrence_app/app/domain/repositories/notification_repository.dart';
-import 'package:video_confrence_app/core/services/websocket.dart';
+import 'package:flutter_conference_speakup/app/domain/models/notification_model.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/notification_repository.dart';
+import 'package:flutter_conference_speakup/core/services/websocket.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository();

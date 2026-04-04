@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-import 'package:video_confrence_app/core/config/base_url.dart';
+import 'package:flutter_conference_speakup/core/config/base_url.dart';
 import 'package:logger/logger.dart';
 
 final _log = Logger(printer: PrettyPrinter(methodCount: 0));

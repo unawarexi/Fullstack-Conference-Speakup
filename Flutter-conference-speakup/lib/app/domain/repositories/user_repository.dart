@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:video_confrence_app/core/network/api_client.dart';
-import 'package:video_confrence_app/core/apis/endpoints.dart';
-import 'package:video_confrence_app/app/domain/models/user_model.dart';
+import 'package:flutter_conference_speakup/core/network/api_client.dart';
+import 'package:flutter_conference_speakup/core/apis/endpoints.dart';
+import 'package:flutter_conference_speakup/app/domain/models/user_model.dart';
 
 class UserRepository {
   final _api = ApiClient.instance;
