@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
+import 'package:flutter_conference_speakup/core/constants/image_strings.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
 class VideoCallVisual extends StatelessWidget {
@@ -21,55 +22,48 @@ class VideoCallVisual extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: tileColor,
-              borderRadius: BorderRadius.circular(SSizes.radiusXl),
-              border: Border.all(color: borderColor, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: SColors.primary.withOpacity(isDark ? 0.2 : 0.1),
-                  blurRadius: 40,
-                  offset: const Offset(0, 16),
-                ),
-              ],
             ),
             clipBehavior: Clip.hardEdge,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Gradient simulating camera feed
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        SColors.primary.withOpacity(isDark ? 0.15 : 0.08),
-                        tileColor,
-                        SColors.primaryDark.withOpacity(isDark ? 0.12 : 0.06),
-                      ],
+                // Full-screen camera image
+                Image.asset(
+                  SImages.onboarding1,
+                  fit: BoxFit.cover,
+                ),
+                // Subtle bottom gradient for controls readability
+                Positioned(
+                  left: 0, right: 0, bottom: 0,
+                  height: 100,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.45),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                // Avatar circle in center
-                Center(
+                // Name overlay at bottom-left
+                Positioned(
+                  bottom: compact ? 56 : 60,
+                  left: SSizes.md,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircleAvatar(
-                        radius: compact ? 32 : 40,
-                        backgroundColor: SColors.primary.withOpacity(0.15),
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: compact ? 36 : 44,
-                          color: SColors.primary.withOpacity(0.6),
-                        ),
-                      ),
-                      const SizedBox(height: SSizes.sm),
                       Text(
                         'Sarah Chen',
                         style: TextStyle(
-                          color: theme.colorScheme.onSurface,
+                          color: Colors.white,
                           fontSize: compact ? 13 : 15,
                           fontWeight: FontWeight.w600,
+                          shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)],
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -79,66 +73,85 @@ class VideoCallVisual extends StatelessWidget {
                           color: SColors.primary,
                           fontSize: compact ? 11 : 12,
                           fontWeight: FontWeight.w500,
+                          shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)],
                         ),
                       ),
                     ],
                   ),
                 ),
-                // Active speaker ring
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(SSizes.radiusXl),
-                      border: Border.all(
-                        color: SColors.primary.withOpacity(0.5),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-                // Top-left: meeting info
+
+                // Top-left: meeting info & participants count
                 Positioned(
-                  top: SSizes.md,
+                  top: compact ? 80 : 100,
                   left: SSizes.md,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: cardColor.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(SSizes.radiusFull),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6, height: 6,
-                          decoration: BoxDecoration(
-                            color: SColors.success,
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: SColors.success, blurRadius: 4)],
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: cardColor.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(SSizes.radiusFull),
+                          border: Border.all(color: borderColor),
                         ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'LIVE',
-                          style: TextStyle(
-                            color: SColors.success,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6, height: 6,
+                              decoration: BoxDecoration(
+                                color: SColors.success,
+                                shape: BoxShape.circle,
+                                boxShadow: [BoxShadow(color: SColors.success, blurRadius: 4)],
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'LIVE',
+                              style: TextStyle(
+                                color: SColors.success,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '24:15',
+                              style: TextStyle(
+                                color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '24:15',
-                          style: TextStyle(
-                            color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: SColors.primary.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(SSizes.radiusFull),
+                          border: Border.all(color: SColors.primary.withOpacity(0.3)),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.people_rounded, size: 12, color: SColors.primary),
+                            const SizedBox(width: 3),
+                            Text(
+                              '12',
+                              style: TextStyle(
+                                color: SColors.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 // Bottom: meeting controls bar
@@ -180,15 +193,14 @@ class VideoCallVisual extends StatelessWidget {
 
         // ── PiP (small self-view) top-right ──
         Positioned(
-          top: SSizes.sm,
-          right: SSizes.sm,
+          top: compact ? 70 : 60,
+          right: SSizes.md,
           child: Container(
-            width: compact ? 72 : 90,
-            height: compact ? 96 : 120,
+            width: compact ? 120 : 110,
+            height: compact ? 150 : 146,
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1C1C2E) : const Color(0xFFE8EDF4),
-              borderRadius: BorderRadius.circular(SSizes.radiusMd),
-              border: Border.all(color: SColors.primary.withOpacity(0.3), width: 1.5),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(isDark ? 0.4 : 0.15),
@@ -201,39 +213,28 @@ class VideoCallVisual extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        SColors.primary.withOpacity(isDark ? 0.1 : 0.06),
-                        isDark ? const Color(0xFF1C1C2E) : const Color(0xFFE8EDF4),
-                      ],
-                    ),
-                  ),
-                ),
-                Center(
-                  child: CircleAvatar(
-                    radius: compact ? 16 : 20,
-                    backgroundColor: SColors.primary.withOpacity(0.2),
-                    child: Icon(
-                      Icons.person_rounded,
-                      size: compact ? 18 : 22,
-                      color: SColors.primary.withOpacity(0.7),
-                    ),
-                  ),
+                // Full PiP image
+                Image.asset(
+                  SImages.onboarding2,
+                  fit: BoxFit.cover,
                 ),
                 Positioned(
                   bottom: 4,
                   left: 0, right: 0,
                   child: Center(
-                    child: Text(
-                      'You',
-                      style: TextStyle(
-                        color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'You',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -243,34 +244,7 @@ class VideoCallVisual extends StatelessWidget {
           ),
         ),
 
-        // ── Participants count badge ──
-        Positioned(
-          top: SSizes.md,
-          right: compact ? 84 : 104,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: SColors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(SSizes.radiusFull),
-              border: Border.all(color: SColors.primary.withOpacity(0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.people_rounded, size: 12, color: SColors.primary),
-                const SizedBox(width: 3),
-                Text(
-                  '12',
-                  style: TextStyle(
-                    color: SColors.primary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+
       ],
     );
   }

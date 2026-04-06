@@ -71,6 +71,7 @@ dependencies:
   # Serialization
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
+  fluttertoast: ^9.0.0
 
 dev_dependencies:
   flutter_test:

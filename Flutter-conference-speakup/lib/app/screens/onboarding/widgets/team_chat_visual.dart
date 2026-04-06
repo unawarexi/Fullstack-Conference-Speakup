@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
+import 'package:flutter_conference_speakup/core/constants/image_strings.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
 /// Slide 2 — Group voice call with main speaker + listener grid
@@ -12,225 +13,172 @@ class TeamChatVisual extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final borderColor = theme.colorScheme.outline;
-    final cardColor = isDark ? SColors.darkCard : SColors.lightCard;
     final tileColor = isDark ? SColors.participantTile : SColors.participantTileLight;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(SSizes.radiusXl),
-        border: Border.all(color: borderColor, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: SColors.primary.withOpacity(isDark ? 0.2 : 0.1),
-            blurRadius: 40,
-            offset: const Offset(0, 16),
+    return Stack(
+      children: [
+        // ── Full background image ──
+        Positioned.fill(
+          child: Image.asset(
+            SImages.onboarding2,
+            fit: BoxFit.cover,
           ),
-        ],
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Column(
-        children: [
-          // ── Call header ──
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: SSizes.md, vertical: SSizes.sm + 2),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
-            child: Row(
+        ),
+        // ── Dark overlay for readability ──
+        Positioned.fill(
+          child: Container(
+            color: (isDark ? Colors.black : const Color(0xFF1A1A2E))
+                .withOpacity(isDark ? 0.65 : 0.55),
+          ),
+        ),
+        // ── Content on top ──
+        Positioned.fill(
+          child: Padding(
+            padding: EdgeInsets.only(top: compact ? 45 : 50),
+            child: Column(
               children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: SColors.success,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: SColors.success, blurRadius: 4)],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Team Standup',
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '12:34',
-                  style: TextStyle(
-                    color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: SColors.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(SSizes.radiusFull),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.people_rounded, size: 11, color: SColors.primary),
-                      const SizedBox(width: 3),
-                      Text(
-                        '6',
-                        style: TextStyle(
-                          color: SColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Main speaker ──
-          Expanded(
-            flex: 5,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(SSizes.sm, SSizes.sm, SSizes.sm, 4),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: tileColor,
-                  borderRadius: BorderRadius.circular(SSizes.radiusMd),
-                  border: Border.all(color: SColors.primary.withOpacity(0.4), width: 2),
-                ),
-                child: Stack(
-                  children: [
-                    // Gradient bg
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(SSizes.radiusMd - 1),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              SColors.primary.withOpacity(isDark ? 0.12 : 0.06),
-                              tileColor,
-                            ],
-                          ),
-                        ),
-                      ),
+                // ── Main ── 
+           
+                Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(SSizes.md, SSizes.md, SSizes.md, 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: SColors.primary.withOpacity(0.4), width: 2),
                     ),
-                    // Avatar + info
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _SpeakerAvatar(
-                            radius: compact ? 28 : 34,
-                            initials: 'SC',
-                            isSpeaking: true,
-                            isDark: isDark,
-                          ),
-                          const SizedBox(height: SSizes.xs),
-                          Text(
-                            'Sarah Chen',
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface,
-                              fontSize: compact ? 12 : 14,
-                              fontWeight: FontWeight.w600,
+                    child: Stack(
+                      children: [
+                        // Gradient bg
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  SColors.primary.withOpacity(isDark ? 0.12 : 0.06),
+                                  Colors.white.withOpacity(0.5),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Row(
+                        ),
+                        // Avatar + info
+                        Center(
+                          child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.graphic_eq_rounded, size: 14, color: SColors.primary),
-                              const SizedBox(width: 3),
+                              _SpeakerAvatar(
+                                radius: compact ? 22 : 26,
+                                initials: 'SC',
+                                isSpeaking: true,
+                                isDark: isDark,
+                                image: SImages.onboarding1,
+                              ),
+                              const SizedBox(height: SSizes.xs),
                               Text(
-                                'Speaking',
+                                'Sarah Chen',
                                 style: TextStyle(
-                                  color: SColors.primary,
-                                  fontSize: compact ? 10 : 11,
-                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                  fontSize: compact ? 12 : 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.graphic_eq_rounded, size: 14, color: SColors.primary),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'Speaking',
+                                    style: TextStyle(
+                                      color: SColors.primary,
+                                      fontSize: compact ? 10 : 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    // Mic icon top-right
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: SColors.primary.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(SSizes.radiusSm),
                         ),
-                        child: Icon(Icons.mic_rounded, size: 14, color: SColors.primary),
+                        // Mic icon top-right
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: SColors.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(SSizes.radiusSm),
+                            ),
+                            child: Icon(Icons.mic_rounded, size: 14, color: SColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Listener grid (2 rows × 3 cols) ──
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(SSizes.sm, 4, SSizes.sm, SSizes.sm),
+                  child: GridView.count(
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 4,
+                    crossAxisSpacing: 4,
+                    childAspectRatio: 1.2,
+                    padding: EdgeInsets.zero,
+                    children: const [
+                      _ListenerTile(initials: 'AJ', name: 'Alex', isMuted: false, image: SImages.onboarding2),
+                      _ListenerTile(initials: 'MK', name: 'Maya', isMuted: true),
+                      _ListenerTile(initials: 'RB', name: 'Ryan', isMuted: false),
+                      _ListenerTile(initials: 'LP', name: 'Lisa', isMuted: true, image: SImages.onboarding1),
+                      _ListenerTile(initials: 'JW', name: 'James', isMuted: true),
+                      _MoreParticipants(count: 4),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Bottom controls ──
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: SSizes.md, vertical: SSizes.sm),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: borderColor.withOpacity(0.3))),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _CallControl(icon: Icons.mic_rounded, active: true),
+                    _CallControl(icon: Icons.volume_up_rounded, active: true),
+                    _CallControl(icon: Icons.screen_share_rounded, active: false),
+                    _CallControl(icon: Icons.pan_tool_rounded, active: false),
+                    Container(
+                      width: compact ? 32 : 36,
+                      height: compact ? 32 : 36,
+                      decoration: BoxDecoration(
+                        color: SColors.callEnd,
+                        borderRadius: BorderRadius.circular(SSizes.radiusSm),
                       ),
+                      child: Icon(Icons.call_end_rounded, color: Colors.white, size: compact ? 14 : 16),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-
-          // ── Listener grid (2 rows × 3 cols) ──
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(SSizes.sm, 4, SSizes.sm, SSizes.sm),
-              child: GridView.count(
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 3,
-                mainAxisSpacing: 6,
-                crossAxisSpacing: 6,
-                childAspectRatio: 1.1,
-                padding: EdgeInsets.zero,
-                children: const [
-                  _ListenerTile(initials: 'AJ', name: 'Alex', isMuted: false),
-                  _ListenerTile(initials: 'MK', name: 'Maya', isMuted: true),
-                  _ListenerTile(initials: 'RB', name: 'Ryan', isMuted: false),
-                  _ListenerTile(initials: 'LP', name: 'Lisa', isMuted: true),
-                  _ListenerTile(initials: 'JW', name: 'James', isMuted: true),
-                  _MoreParticipants(count: 4),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Bottom controls ──
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: SSizes.md, vertical: SSizes.sm),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: borderColor)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _CallControl(icon: Icons.mic_rounded, active: true),
-                _CallControl(icon: Icons.volume_up_rounded, active: true),
-                _CallControl(icon: Icons.screen_share_rounded, active: false),
-                _CallControl(icon: Icons.pan_tool_rounded, active: false),
-                Container(
-                  width: compact ? 32 : 36,
-                  height: compact ? 32 : 36,
-                  decoration: BoxDecoration(
-                    color: SColors.callEnd,
-                    borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                  ),
-                  child: Icon(Icons.call_end_rounded, color: Colors.white, size: compact ? 14 : 16),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+    )],
     );
   }
 }
@@ -241,12 +189,14 @@ class _SpeakerAvatar extends StatelessWidget {
   final String initials;
   final bool isSpeaking;
   final bool isDark;
+  final String? image;
 
   const _SpeakerAvatar({
     required this.radius,
     required this.initials,
     required this.isSpeaking,
     required this.isDark,
+    this.image,
   });
 
   @override
@@ -269,14 +219,17 @@ class _SpeakerAvatar extends StatelessWidget {
       child: CircleAvatar(
         radius: radius,
         backgroundColor: SColors.primary.withOpacity(0.15),
-        child: Text(
-          initials,
-          style: TextStyle(
-            color: SColors.primary,
-            fontSize: radius * 0.55,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        backgroundImage: image != null ? AssetImage(image!) : null,
+        child: image == null
+            ? Text(
+                initials,
+                style: TextStyle(
+                  color: SColors.primary,
+                  fontSize: radius * 0.55,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -287,11 +240,13 @@ class _ListenerTile extends StatelessWidget {
   final String initials;
   final String name;
   final bool isMuted;
+  final String? image;
 
   const _ListenerTile({
     required this.initials,
     required this.name,
     required this.isMuted,
+    this.image,
   });
 
   @override
@@ -317,14 +272,17 @@ class _ListenerTile extends StatelessWidget {
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: SColors.primary.withOpacity(0.12),
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: SColors.primary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  backgroundImage: image != null ? AssetImage(image!) : null,
+                  child: image == null
+                      ? Text(
+                          initials,
+                          style: TextStyle(
+                            color: SColors.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(height: 3),
                 Text(

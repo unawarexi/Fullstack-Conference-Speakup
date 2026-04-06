@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_conference_speakup/router/app_router.dart';
-import 'package:flutter_conference_speakup/store/connectivity_provider.dart';
 import 'package:flutter_conference_speakup/store/theme_provider.dart';
 import 'package:flutter_conference_speakup/theme/theme.dart';
+import 'package:flutter_conference_speakup/app/components/ui/connectivity_toast.dart';
 
 class SpeakUpApp extends ConsumerWidget {
   const SpeakUpApp({super.key});
@@ -11,7 +11,6 @@ class SpeakUpApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final network = ref.watch(connectivityProvider);
 
     return MaterialApp.router(
       title: 'SpeakUp',
@@ -28,31 +27,7 @@ class SpeakUpApp extends ConsumerWidget {
       builder: (context, child) {
         return Column(
           children: [
-            // Connectivity banner
-            if (network.quality == NetworkQuality.offline)
-              MaterialBanner(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                backgroundColor: Colors.red.shade700,
-                content: const Text(
-                  'No internet connection',
-                  style: TextStyle(color: Colors.white),
-                ),
-                leading: const Icon(Icons.wifi_off, color: Colors.white),
-                actions: const [SizedBox.shrink()],
-              )
-            else if (network.quality == NetworkQuality.slow)
-              MaterialBanner(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                backgroundColor: Colors.orange.shade700,
-                content: const Text(
-                  'Slow network detected',
-                  style: TextStyle(color: Colors.white),
-                ),
-                leading: const Icon(Icons.signal_wifi_statusbar_connected_no_internet_4,
-                    color: Colors.white),
-                actions: const [SizedBox.shrink()],
-              ),
-            // Main content
+            const ConnectivityToast(),
             Expanded(child: child ?? const SizedBox.shrink()),
           ],
         );

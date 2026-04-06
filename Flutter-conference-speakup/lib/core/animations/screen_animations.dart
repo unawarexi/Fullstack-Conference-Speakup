@@ -163,3 +163,60 @@ class ExitAnim {
   Future<void> forward() => controller.forward().orCancel.catchError((_) {});
   void dispose() => controller.dispose();
 }
+
+/// Continuously expanding ring that fades out (repeats).
+/// Used by: Splash screen concentric pulse rings.
+class RingPulseAnim {
+  late final AnimationController controller;
+  late final Animation<double> scale;
+  late final Animation<double> opacity;
+
+  RingPulseAnim({
+    required TickerProvider vsync,
+    Duration duration = const Duration(milliseconds: 2400),
+    double scaleEnd = 2.5,
+  }) {
+    controller = AnimationController(vsync: vsync, duration: duration);
+    scale = Tween<double>(begin: 0.6, end: scaleEnd).animate(
+      CurvedAnimation(parent: controller, curve: Curves.easeOut),
+    );
+    opacity = Tween<double>(begin: 0.5, end: 0.0).animate(
+      CurvedAnimation(parent: controller, curve: Curves.easeIn),
+    );
+  }
+
+  void repeat() => controller.repeat();
+  void dispose() => controller.dispose();
+}
+
+/// Staggered cascade: N items fade+slide in sequence.
+/// Returns per-item animations driven by a single controller.
+class StaggeredCascadeAnim {
+  late final AnimationController controller;
+  final List<Animation<double>> fades = [];
+  final List<Animation<Offset>> slides;
+
+  StaggeredCascadeAnim({
+    required TickerProvider vsync,
+    required int itemCount,
+    Duration totalDuration = const Duration(milliseconds: 1200),
+    Offset beginOffset = const Offset(0, 0.3),
+  }) : slides = [] {
+    controller = AnimationController(vsync: vsync, duration: totalDuration);
+    final segmentLength = 1.0 / itemCount;
+
+    for (int i = 0; i < itemCount; i++) {
+      final start = i * segmentLength * 0.7; // overlap windows
+      final end = (start + segmentLength).clamp(0.0, 1.0);
+      fades.add(Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: controller, curve: Interval(start, end, curve: Curves.easeOut)),
+      ));
+      slides.add(Tween<Offset>(begin: beginOffset, end: Offset.zero).animate(
+        CurvedAnimation(parent: controller, curve: Interval(start, end, curve: Curves.easeOutCubic)),
+      ));
+    }
+  }
+
+  void forward() => controller.forward();
+  void dispose() => controller.dispose();
+}

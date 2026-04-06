@@ -1,9 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
+import 'package:flutter_conference_speakup/core/constants/image_strings.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
-/// Slide 3 — Security visual with wave background + shield & badges on top
+/// Slide 3 — Original wave/rings/shield design on top of a full background image
 class SecureVisual extends StatelessWidget {
   final bool compact;
   const SecureVisual({super.key, this.compact = false});
@@ -18,6 +19,22 @@ class SecureVisual extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
+        // ── Full background image ──
+        Positioned.fill(
+          child: Image.asset(
+            SImages.onboarding1,
+            fit: BoxFit.cover,
+          ),
+        ),
+
+        // ── Dark overlay so the rings/badges are visible ──
+        Positioned.fill(
+          child: Container(
+            color: (isDark ? Colors.black : const Color(0xFF1A1A2E))
+                .withOpacity(isDark ? 0.55 : 0.45),
+          ),
+        ),
+
         // ── Wave background ──
         Positioned.fill(
           child: CustomPaint(
@@ -27,8 +44,8 @@ class SecureVisual extends StatelessWidget {
 
         // Outer ring
         Container(
-          width: compact ? 200 : 260,
-          height: compact ? 200 : 260,
+          width: compact ? 150 : 190,
+          height: compact ? 150 : 190,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
@@ -39,8 +56,8 @@ class SecureVisual extends StatelessWidget {
         ),
         // Middle ring
         Container(
-          width: compact ? 150 : 200,
-          height: compact ? 150 : 200,
+          width: compact ? 110 : 140,
+          height: compact ? 110 : 140,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
@@ -51,8 +68,8 @@ class SecureVisual extends StatelessWidget {
         ),
         // Inner ring with glow
         Container(
-          width: compact ? 100 : 140,
-          height: compact ? 100 : 140,
+          width: compact ? 80 : 100,
+          height: compact ? 80 : 100,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: SColors.primary.withOpacity(isDark ? 0.1 : 0.06),
@@ -71,11 +88,11 @@ class SecureVisual extends StatelessWidget {
         ),
         // Shield icon
         Container(
-          width: compact ? 64 : 80,
-          height: compact ? 64 : 80,
+          width: compact ? 54 : 64,
+          height: compact ? 54 : 64,
           decoration: BoxDecoration(
             gradient: SColors.primaryGradient,
-            borderRadius: BorderRadius.circular(compact ? 18 : 22),
+            borderRadius: BorderRadius.circular(compact ? 14 : 18),
             boxShadow: [
               BoxShadow(
                 color: SColors.primary.withOpacity(0.4),
@@ -86,14 +103,14 @@ class SecureVisual extends StatelessWidget {
           ),
           child: Icon(
             Icons.shield_rounded,
-            size: compact ? 32 : 40,
+            size: compact ? 26 : 32,
             color: Colors.white,
           ),
         ),
         // Orbiting badges
         Positioned(
-          top: compact ? 20 : 30,
-          right: compact ? 30 : 50,
+          top: compact ? 120 : 150,
+          right: compact ? 90 : 130,
           child: _SecurityBadge(
             icon: Icons.lock_rounded,
             label: 'AES-256',
@@ -104,8 +121,8 @@ class SecureVisual extends StatelessWidget {
           ),
         ),
         Positioned(
-          bottom: compact ? 30 : 40,
-          left: compact ? 15 : 25,
+          bottom: compact ? 130 : 160,
+          left: compact ? 90 : 120,
           child: _SecurityBadge(
             icon: Icons.verified_user_rounded,
             label: 'E2E',
@@ -116,8 +133,8 @@ class SecureVisual extends StatelessWidget {
           ),
         ),
         Positioned(
-          bottom: compact ? 20 : 30,
-          right: compact ? 20 : 35,
+          bottom: compact ? 120 : 150,
+          right: compact ? 90 : 120,
           child: _SecurityBadge(
             icon: Icons.fingerprint_rounded,
             label: 'Biometric',
@@ -128,8 +145,8 @@ class SecureVisual extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: compact ? 30 : 40,
-          left: compact ? 20 : 30,
+          top: compact ? 130 : 160,
+          left: compact ? 90 : 120,
           child: _SecurityBadge(
             icon: Icons.vpn_key_rounded,
             label: 'DTLS',
@@ -144,7 +161,6 @@ class SecureVisual extends StatelessWidget {
   }
 }
 
-// ── Wave background painter ──
 class _WavePainter extends CustomPainter {
   final bool isDark;
   const _WavePainter({required this.isDark});
@@ -154,7 +170,6 @@ class _WavePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Draw multiple layered waves
     for (int layer = 0; layer < 4; layer++) {
       final opacity = isDark
           ? 0.06 - (layer * 0.012)
@@ -179,7 +194,6 @@ class _WavePainter extends CustomPainter {
       canvas.drawPath(path, paint);
     }
 
-    // Subtle horizontal wave lines on top portion
     for (int i = 0; i < 3; i++) {
       final lineOpacity = isDark ? 0.05 : 0.07;
       final linePaint = Paint()

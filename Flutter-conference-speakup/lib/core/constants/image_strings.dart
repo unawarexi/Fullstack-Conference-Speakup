@@ -15,9 +15,9 @@ class SImages {
   static const String brandEmblem = '$_logoPath/emblem.png';
 
   // ──────────────── ONBOARDING ────────────────
-  static const String onboarding1 = '$_basePath/onboarding_1.png';
-  static const String onboarding2 = '$_basePath/onboarding_2.png';
-  static const String onboarding3 = '$_basePath/onboarding_3.png';
+  static const String onboarding1 = '$_basePath/onboarding1.jpg';
+  static const String onboarding2 = '$_basePath/onboarding2.jpg';
+  static const String onboarding3 = '$_basePath/onboarding3.jpg';
 
   // ──────────────── AUTH ────────────────
   static const String googleIcon = '$_basePath/google_icon.png';

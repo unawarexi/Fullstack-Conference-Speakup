@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_conference_speakup/core/animations/screen_animations.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
@@ -119,40 +121,45 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDesktop = SResponsive.isDesktop(context);
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          const AmbientBackground(),
-          SafeArea(
-            child: SResponsive.isDesktop(context)
-                ? _DesktopLayout(
-                    currentPage: _currentPage,
-                    pageController: _pageController,
-                    fadeAnim: _fadeAnim.fade,
-                    slideAnim: _slideAnim.slide,
-                    onPageChanged: (i) {
-                      setState(() => _currentPage = i);
-                      _animateIn();
-                    },
-                    onNext: _nextPage,
-                    onSkip: _skip,
-                  )
-                : _MobileLayout(
-                    currentPage: _currentPage,
-                    pageController: _pageController,
-                    fadeAnim: _fadeAnim.fade,
-                    slideAnim: _slideAnim.slide,
-                    onPageChanged: (i) {
-                      setState(() => _currentPage = i);
-                      _animateIn();
-                    },
-                    onNext: _nextPage,
-                    onSkip: _skip,
-                  ),
-          ),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            const AmbientBackground(),
+            if (isDesktop)
+              SafeArea(
+                child: _DesktopLayout(
+                  currentPage: _currentPage,
+                  pageController: _pageController,
+                  fadeAnim: _fadeAnim.fade,
+                  slideAnim: _slideAnim.slide,
+                  onPageChanged: (i) {
+                    setState(() => _currentPage = i);
+                    _animateIn();
+                  },
+                  onNext: _nextPage,
+                  onSkip: _skip,
+                ),
+              )
+            else
+              _MobileLayout(
+                currentPage: _currentPage,
+                pageController: _pageController,
+                fadeAnim: _fadeAnim.fade,
+                slideAnim: _slideAnim.slide,
+                onPageChanged: (i) {
+                  setState(() => _currentPage = i);
+                  _animateIn();
+                },
+                onNext: _nextPage,
+                onSkip: _skip,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -328,12 +335,12 @@ class _MobileLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = _kPages[currentPage];
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Stack(
       children: [
-        // ── Fullscreen visual carousel ──
+        // ── Fullscreen visual carousel (edge-to-edge, behind notch) ──
         Positioned.fill(
           child: _VisualCarousel(
             pageController: pageController,
@@ -343,105 +350,111 @@ class _MobileLayout extends StatelessWidget {
           ),
         ),
 
-        // ── Bottom content card overlay ──
+        // ── Dark glassmorphism bottom sheet ──
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface.withOpacity(isDark ? 0.88 : 0.94),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-              border: Border(
-                top: BorderSide(color: colorScheme.outline, width: 1),
-              ),
-            ),
-            padding: EdgeInsets.fromLTRB(
-              SSizes.sectionSpacing,
-              SSizes.lg,
-              SSizes.sectionSpacing,
-              SSizes.lg,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Emblem + Skip row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            child: BackdropFilter(
+              // filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(isDark ? 0.55 : 0.50),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  border: Border(
+                    top: BorderSide(color: Colors.white.withOpacity(0.12), width: 1),
+                  ),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  SSizes.sectionSpacing,
+                  SSizes.lg,
+                  SSizes.sectionSpacing,
+                  SSizes.lg + bottomPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const OnboardingEmblem(compact: true),
-                    if (currentPage < _kPages.length - 1)
-                      SkipButton(onTap: onSkip),
-                  ],
-                ),
-                const SizedBox(height: SSizes.md),
-
-                FadeTransition(
-                  opacity: fadeAnim,
-                  child: SlideTransition(
-                    position: slideAnim,
-                    child: Text(
-                      data.title,
-                      style: TextStyle(
-                        fontFamily: 'Sora',
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                        height: 1.15,
-                        letterSpacing: -0.8,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: SSizes.sm + SSizes.xs),
-
-                FadeTransition(
-                  opacity: fadeAnim,
-                  child: SlideTransition(
-                    position: slideAnim,
-                    child: Text(
-                      data.subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                        height: 1.6,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: SSizes.lg),
-
-                DotRow(current: currentPage, total: _kPages.length),
-                const SizedBox(height: SSizes.pagePadding),
-
-                CTAButton(
-                  label: currentPage < _kPages.length - 1 ? 'Continue' : 'Get Started',
-                  onTap: onNext,
-                ),
-                const SizedBox(height: SSizes.sm + SSizes.xs),
-
-                Center(
-                  child: Text.rich(
-                    TextSpan(
-                      text: STexts.alreadyHaveAccount,
-                      style: TextStyle(
-                        color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-                        fontSize: 13,
-                      ),
+                    // Emblem + Skip row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        TextSpan(
-                          text: 'Sign in',
-                          style: TextStyle(
-                            color: SColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        const OnboardingEmblem(compact: true),
+                        if (currentPage < _kPages.length - 1)
+                          SkipButton(onTap: onSkip),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: SSizes.md),
+
+                    FadeTransition(
+                      opacity: fadeAnim,
+                      child: SlideTransition(
+                        position: slideAnim,
+                        child: Text(
+                          data.title,
+                          style: const TextStyle(
+                            fontFamily: 'Sora',
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.15,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: SSizes.sm + SSizes.xs),
+
+                    FadeTransition(
+                      opacity: fadeAnim,
+                      child: SlideTransition(
+                        position: slideAnim,
+                        child: Text(
+                          data.subtitle,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.7),
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: SSizes.lg),
+
+                    DotRow(current: currentPage, total: _kPages.length),
+                    const SizedBox(height: SSizes.pagePadding),
+
+                    CTAButton(
+                      label: currentPage < _kPages.length - 1 ? 'Continue' : 'Get Started',
+                      onTap: onNext,
+                    ),
+                    const SizedBox(height: SSizes.sm + SSizes.xs),
+
+                    Center(
+                      child: Text.rich(
+                        TextSpan(
+                          text: STexts.alreadyHaveAccount,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 13,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'Sign in',
+                              style: TextStyle(
+                                color: SColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -473,6 +486,18 @@ class _VisualCarousel extends StatelessWidget {
       itemCount: _kPages.length,
       onPageChanged: onPageChanged,
       itemBuilder: (ctx, i) {
+        final child = _kPages[i].visualBuilder(ctx, compact);
+
+        if (compact) {
+          // Mobile: full-bleed visuals, edge-to-edge
+          return AnimatedOpacity(
+            opacity: i == currentPage ? 1.0 : 0.5,
+            duration: Duration(milliseconds: SSizes.animSlow),
+            child: child,
+          );
+        }
+
+        // Desktop: centered with scale animation
         return Center(
           child: AnimatedScale(
             scale: i == currentPage ? 1.0 : 0.92,
@@ -481,10 +506,7 @@ class _VisualCarousel extends StatelessWidget {
             child: AnimatedOpacity(
               opacity: i == currentPage ? 1.0 : 0.5,
               duration: Duration(milliseconds: SSizes.animSlow),
-              child: Padding(
-                padding: EdgeInsets.only(bottom: compact ? 180 : 0),
-                child: _kPages[i].visualBuilder(ctx, compact),
-              ),
+              child: child,
             ),
           ),
         );

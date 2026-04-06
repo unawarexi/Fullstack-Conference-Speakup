@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
-import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
 enum SToastType { success, error, warning, info }
 
@@ -12,34 +12,69 @@ class SToast {
     required String message,
     SToastType type = SToastType.info,
     Duration duration = const Duration(seconds: 3),
+    ToastGravity gravity = ToastGravity.TOP,
+  }) {
+    final (_, bg, fg) = _resolveStyle(type);
+
+    Fluttertoast.cancel();
+    Fluttertoast.showToast(
+      msg: message,
+      toastLength: duration.inSeconds <= 2 ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG,
+      gravity: gravity,
+      backgroundColor: bg,
+      textColor: fg,
+      fontSize: 14,
+    );
+  }
+
+  /// Custom styled toast with icon — uses FToast overlay for full widget control.
+  static void showCustom(
+    BuildContext context, {
+    required String message,
+    SToastType type = SToastType.info,
+    Duration duration = const Duration(seconds: 3),
+    ToastGravity gravity = ToastGravity.TOP,
   }) {
     final (icon, bg, fg) = _resolveStyle(type);
+    final fToast = FToast()..init(context);
 
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(icon, color: fg, size: 20),
-              const SizedBox(width: SSizes.sm),
-              Expanded(
-                child: Text(
-                  message,
-                  style: TextStyle(color: fg, fontSize: 14),
+    fToast.removeCustomToast();
+    fToast.showToast(
+      toastDuration: duration,
+      gravity: gravity,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: bg.withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: fg, size: 20),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
                 ),
               ),
-            ],
-          ),
-          backgroundColor: bg,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SSizes.radiusMd),
-          ),
-          margin: const EdgeInsets.all(SSizes.md),
-          duration: duration,
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   static (IconData, Color, Color) _resolveStyle(SToastType type) {
