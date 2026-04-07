@@ -198,11 +198,11 @@ export const KafkaTopics = {
 // ============================================================================
 
 export const BullQueues = {
-  EMAIL: "speakup:email",
-  NOTIFICATION: "speakup:notification",
-  RECORDING: "speakup:recording",
-  ANALYTICS: "speakup:analytics",
-  CLEANUP: "speakup:cleanup",
+  EMAIL: "speakup-email",
+  NOTIFICATION: "speakup-notification",
+  RECORDING: "speakup-recording",
+  ANALYTICS: "speakup-analytics",
+  CLEANUP: "speakup-cleanup",
 };
 
 // ============================================================================

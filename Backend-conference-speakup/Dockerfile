@@ -1,36 +1,36 @@
 # ============================================================================
-# SpeakUp — Dockerfile (Bun Runtime)
+# SpeakUp — Dockerfile (Node.js Runtime)
 # ============================================================================
 
 # --------------------------------------------------------------------------
 # Stage 1: Install dependencies
 # --------------------------------------------------------------------------
-FROM oven/bun:1 AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-COPY package.json bun.lock* ./
+COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-RUN bun install --frozen-lockfile --production
+RUN npm ci --omit=dev
 
 # --------------------------------------------------------------------------
 # Stage 2: Generate Prisma Client
 # --------------------------------------------------------------------------
-FROM oven/bun:1 AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-COPY package.json bun.lock* ./
+COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
-RUN bun install --frozen-lockfile
-RUN bunx prisma generate
+RUN npm ci
+RUN npx prisma generate
 
 # --------------------------------------------------------------------------
 # Stage 3: Production image
 # --------------------------------------------------------------------------
-FROM oven/bun:1-slim AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
@@ -58,11 +58,11 @@ USER speakup
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD bun -e "fetch('http://localhost:5000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+  CMD node -e "fetch('http://localhost:5000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 EXPOSE 5000
 
 ENV NODE_ENV=production
 ENV PORT=5000
 
-CMD ["bun", "run", "index.js"]
+CMD ["node", "index.js"]

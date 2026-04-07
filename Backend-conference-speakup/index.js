@@ -51,6 +51,7 @@ import recordingRoutes from "./modules/recording/recording.routes.js";
 import analyticsRoutes from "./modules/analytics/analytics.routes.js";
 import billingRoutes from "./modules/billing/billing.routes.js";
 import searchRoutes from "./modules/search/search.routes.js";
+import legalRoutes from "./modules/legal/legal.routes.js";
 
 const log = createLogger("Server");
 
@@ -122,6 +123,7 @@ app.use(`${API}/recordings`, recordingRoutes);
 app.use(`${API}/analytics`, analyticsRoutes);
 app.use(`${API}/billing`, billingRoutes);
 app.use(`${API}/search`, searchRoutes);
+app.use(`${API}/legal`, legalRoutes);
 
 // API info
 app.get(API, (_req, res) => {
@@ -140,6 +142,7 @@ app.get(API, (_req, res) => {
       analytics: `${API}/analytics`,
       billing: `${API}/billing`,
       search: `${API}/search`,
+      legal: `${API}/legal`,
     },
     health: "/health",
     metrics: "/metrics",

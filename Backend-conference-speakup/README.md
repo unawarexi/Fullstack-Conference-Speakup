@@ -1,67 +1,54 @@
- "dependencies": {
-    "@clerk/express": "^1.7.33",
-    "@prisma/client": "^6.16.2",
-    "@prisma/extension-accelerate": "^2.0.2",
-    "@sentry/node": "^10.44.0",
-    "@sentry/profiling-node": "^10.44.0",
-    "@socket.io/redis-adapter": "^8.3.0",
-    "amqplib": "^0.10.9",
-    "cloudinary": "^2.7.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dayjs": "^1.11.18",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.3.1",
-    "helmet": "^8.1.0",
-    "inserturlparams": "^2.0.5",
-    "ioredis": "^5.10.0",
-    "jet-env": "^1.1.4",
-    "jet-logger": "^2.0.1",
-    "jet-paths": "^1.1.0",
-    "jet-validators": "^1.4.3",
-    "jsonfile": "^6.2.0",
-    "jsonwebtoken": "^9.0.3",
-    "kafkajs": "^2.2.4",
-    "module-alias": "^2.2.3",
-    "morgan": "^1.10.1",
-    "multer": "^2.0.2",
-    "nodemailer": "^7.0.6",
-    "prisma": "^6.16.2",
-    "prom-client": "^15.1.3",
-    "socket.io": "^4.8.1"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.36.0",
-    "@stylistic/eslint-plugin-js": "^4.4.1",
-    "@stylistic/eslint-plugin-ts": "^4.4.1",
-    "@swc/core": "^1.13.19",
-    "@types/amqplib": "^0.10.8",
-    "@types/cookie-parser": "^1.4.9",
-    "@types/cors": "^2.8.19",
-    "@types/dotenv": "^6.1.1",
-    "@types/find": "^0.2.4",
-    "@types/fs-extra": "^11.0.4",
-    "@types/ioredis": "^4.28.10",
-    "@types/jsonfile": "^6.1.4",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/module-alias": "^2.0.4",
-    "@types/morgan": "^1.9.10",
-    "@types/multer": "^2.0.0",
-    "@types/node": "^24.5.2",
-    "@types/nodemailer": "^7.0.11",
-    "@types/supertest": "^6.0.3",
-    "eslint": "^9.36.0",
-    "eslint-plugin-n": "^17.23.1",
-    "find": "^0.3.0",
-    "fs-extra": "^11.3.2",
-    "husky": "^9.1.7",
-    "jiti": "^2.6.0",
-    "nodemon": "^3.1.10",
-    "supertest": "^7.1.4",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.44.1",
-    "vitest": "^3.2.4"
-  }
+prisma:query SELECT 1
+5:55:33 PM [INFO] [Server] PostgreSQL connected
+5:55:33 PM [INFO] [Redis] Redis [main] connected
+5:55:33 PM [INFO] [Redis] Redis [subscriber] connected
+5:55:34 PM [SUCCESS] [Redis] Redis [main] ready
+5:55:34 PM [SUCCESS] [Redis] Redis [subscriber] ready
+5:55:34 PM [SUCCESS] [Redis] Redis initialized (main + subscriber)
+5:55:34 PM [INFO] [Server] Redis connected
+{"level":"WARN","timestamp":"2026-04-07T16:55:34.323Z","logger":"kafkajs","message":"KafkaJS v2.0.0 switched default partitioner. To retain the same partitioning behavior as in previous versions, create the producer with the option \"createPartitioner: Partitioners.LegacyPartitioner\". See the migration guide at https://kafka.js.org/docs/migration-guide-v2.0.0#producer-new-default-partitioner for details. Silence this warning by setting the environment variable \"KAFKAJS_NO_PARTITIONER_WARNING=1\""}
+(node:42161) TimeoutNegativeWarning: -1775580934349 is a negative number.
+Timeout duration was set to 1.
+5:55:34 PM [SUCCESS] [Kafka] Kafka producer connected {"brokers":["localhost:9092"],"clientId":"speakup-api"}
+5:55:34 PM [INFO] [Server] Kafka connected
+5:55:34 PM [SUCCESS] [BullMQ] BullMQ queues initialized {"queues":["EMAIL","NOTIFICATION","RECORDING","ANALYTICS","CLEANUP"]}
+5:55:34 PM [SUCCESS] [BullMQ] BullMQ queues initialized {"queues":["EMAIL","NOTIFICATION","RECORDING","ANALYTICS","CLEANUP"]}
+5:55:34 PM [INFO] [BullMQ] Worker registered: speakup-email
+5:55:34 PM [INFO] [BullMQ] Worker registered: speakup-notification
+5:55:34 PM [SUCCESS] [Workers] All workers started
+5:55:34 PM [INFO] [Server] BullMQ queues & workers initialized
+5:55:34 PM [INFO] [WebSocket] Socket.IO Redis adapter attached
+5:55:34 PM [SUCCESS] [WebSocket] WebSocket server initialized
+5:55:34 PM [INFO] [Server] WebSocket initialized
+5:55:34 PM [WARN] [LiveKit] LiveKit not configured — missing LIVEKIT_HOST, API_KEY, or API_SECRET
+5:55:34 PM [SUCCESS] [Billing] Stripe initialized
+5:55:34 PM [INFO] [Server] LiveKit & Stripe initialized
+5:55:34 PM [SUCCESS] [Mailer] Mailer initialized {"host":"smtp.gmail.com","port":465}
+5:55:34 PM [INFO] [Server] ========================================================
+5:55:34 PM [INFO] [Server]   SPEAKUP BACKEND SERVER
+5:55:34 PM [INFO] [Server] ========================================================
+5:55:34 PM [INFO] [Server]   Environment : development
+5:55:34 PM [INFO] [Server]   Port        : 3000
+5:55:34 PM [INFO] [Server]   API         : /api/v1
+5:55:34 PM [INFO] [Server]   Health      : http://localhost:3000/health
+5:55:34 PM [INFO] [Server]   Metrics     : http://localhost:3000/metrics
+5:55:34 PM [INFO] [Server] ========================================================
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+IMPORTANT! Eviction policy is volatile-lru. It should be "noeviction"
+^C5:55:40 PM [INFO] [Server] SIGINT received — shutting down...
+5:55:40 PM [INFO] [Server] HTTP server closed
+[Prisma] Disconnected successfully
+5:55:40 PM [INFO] [Server] Database disconnected
+make: *** [dev] Interrupt: 2
