@@ -19,7 +19,13 @@ const workers = {};
 
 function getConnection() {
   if (env.BULLMQ_REDIS_URL) {
-    return { url: env.BULLMQ_REDIS_URL };
+    const url = new URL(env.BULLMQ_REDIS_URL);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port, 10) || 6379,
+      password: url.password || undefined,
+      username: url.username || undefined,
+    };
   }
   return {
     host: env.REDIS_HOST,

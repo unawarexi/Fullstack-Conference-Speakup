@@ -4,7 +4,7 @@
 
 import { prisma } from "../../config/prisma.js";
 import { getCache, setCache, deleteCache } from "../../services/redis.service.js";
-import { uploadBuffer, deleteImage } from "../../services/cloudinary.service.js";
+import { uploadBuffer, deleteFromCloudinary } from "../../services/cloudinary.service.js";
 import { emitToUser } from "../../services/websocket.service.js";
 import { CacheTTL, SocketEvents } from "../../config/constants.js";
 
@@ -40,7 +40,7 @@ export async function updateUserAvatar(userId, fileBuffer) {
   // Delete old avatar from Cloudinary if exists
   if (current?.avatar && current.avatar.includes("cloudinary")) {
     const publicId = current.avatar.split("/").pop()?.split(".")[0];
-    if (publicId) await deleteImage(`speakup/avatars/${publicId}`).catch(() => {});
+    if (publicId) await deleteFromCloudinary(`speakup/avatars/${publicId}`).catch(() => {});
   }
 
   const result = await uploadBuffer(fileBuffer, {

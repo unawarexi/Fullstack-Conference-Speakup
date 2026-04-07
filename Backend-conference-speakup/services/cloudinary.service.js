@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import * as dotenv from "dotenv";
 import multer from "multer";
-import { extensionToMimeType, allowedExtensions } from "../utils/extensions.js";
+import { extensionToMimeType, allowedExtensions } from "../core/utils/extentions.js";
 import path from "path";
 
 // Load environment variables
@@ -224,4 +224,22 @@ export const getFileMetadata = async (publicId, resourceType = "image") => {
     console.error("Error getting file metadata:", error);
     throw error;
   }
+};
+
+export const uploadBuffer = async (fileBuffer, options = {}) => {
+  const { folder = "speakup", transformation = [] } = options;
+  const result = await new Promise((resolve, reject) => {
+    const uploadOptions = {
+      folder,
+      resource_type: "image",
+      transformation,
+    };
+    cloudinary.uploader
+      .upload_stream(uploadOptions, (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      })
+      .end(fileBuffer);
+  });
+  return { url: result.secure_url, public_id: result.public_id };
 };

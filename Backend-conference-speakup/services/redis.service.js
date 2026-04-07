@@ -18,16 +18,7 @@ let isConnected = false;
 // ============================================================================
 
 function createRedisClient(name = "main") {
-  const connectionOptions = env.REDIS_URL
-    ? env.REDIS_URL
-    : {
-        host: env.REDIS_HOST,
-        port: env.REDIS_PORT,
-        password: env.REDIS_PASSWORD || undefined,
-        db: env.REDIS_DB,
-      };
-
-  const redis = new Redis(connectionOptions, {
+  const commonOptions = {
     maxRetriesPerRequest: 3,
     retryStrategy(times) {
       if (times > 10) return null;
@@ -35,7 +26,17 @@ function createRedisClient(name = "main") {
     },
     lazyConnect: true,
     enableReadyCheck: true,
-  });
+  };
+
+  const redis = env.REDIS_URL
+    ? new Redis(env.REDIS_URL, commonOptions)
+    : new Redis({
+        host: env.REDIS_HOST,
+        port: env.REDIS_PORT,
+        password: env.REDIS_PASSWORD || undefined,
+        db: env.REDIS_DB,
+        ...commonOptions,
+      });
 
   redis.on("connect", () => log.info(`Redis [${name}] connected`));
   redis.on("ready", () => log.success(`Redis [${name}] ready`));
