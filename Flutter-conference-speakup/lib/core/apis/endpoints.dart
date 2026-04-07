@@ -74,4 +74,9 @@ class ApiEndpoints {
   static const search = '/search';
   static const searchUsers = '/search/users';
   static const searchMeetings = '/search/meetings';
+
+  // ──────────── Legal ────────────
+  static const legalTerms = '/legal/terms';
+  static const legalPrivacy = '/legal/privacy';
+  static const legalAll = '/legal/all';
 }

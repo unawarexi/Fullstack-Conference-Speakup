@@ -18,10 +18,14 @@ class SImages {
   static const String onboarding1 = '$_basePath/onboarding1.jpg';
   static const String onboarding2 = '$_basePath/onboarding2.jpg';
   static const String onboarding3 = '$_basePath/onboarding3.jpg';
+  static const String onboarding4 = '$_basePath/onboarding4.jpg';
+  static const String onboarding5 = '$_basePath/onboarding8.jpg';
+  static const String onboarding6 = '$_basePath/onboarding6.jpg';
+  static const String onboarding7 = '$_basePath/camera-woman.jpg';
 
   // ──────────────── AUTH ────────────────
-  static const String googleIcon = '$_basePath/google_icon.png';
-  static const String githubIcon = '$_basePath/github_icon.png';
+  static const String googleIcon = '$_basePath/google.webp';
+  static const String githubIcon = '$_basePath/github.webp';
 
   // ──────────────── PLACEHOLDERS ────────────────
   static const String avatarPlaceholder = '$_basePath/avatar_placeholder.png';

@@ -14,6 +14,8 @@ import 'package:flutter_conference_speakup/app/features/chat/presentation/chat_r
 import 'package:flutter_conference_speakup/app/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_conference_speakup/app/features/recordings/presentation/recordings_screen.dart';
 import 'package:flutter_conference_speakup/app/features/participant/presentation/participants_screen.dart';
+import 'package:flutter_conference_speakup/app/features/legal/presentation/terms_of_service_screen.dart';
+import 'package:flutter_conference_speakup/app/features/legal/presentation/privacy_policy_screen.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey =
@@ -38,7 +40,7 @@ final GoRouter appRouter = GoRouter(
     // Allow splash screen through without redirect
     if (location == '/splash') return null;
 
-    final publicRoutes = {'/onboarding', '/login'};
+    final publicRoutes = {'/onboarding', '/login', '/terms', '/privacy'};
     final isPublicRoute = publicRoutes.contains(location);
 
     // First launch → onboarding
@@ -183,6 +185,20 @@ final GoRouter appRouter = GoRouter(
         final meetingId = state.pathParameters['id']!;
         return ParticipantsScreen(meetingId: meetingId);
       },
+    ),
+
+    // ──────────── Legal ────────────
+    GoRoute(
+      path: '/terms',
+      name: 'terms-of-service',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const TermsOfServiceScreen(),
+    ),
+    GoRoute(
+      path: '/privacy',
+      name: 'privacy-policy',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const PrivacyPolicyScreen(),
     ),
   ],
 

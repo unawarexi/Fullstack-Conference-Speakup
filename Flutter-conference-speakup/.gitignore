@@ -1,3 +1,6 @@
+# Large binaries
+sentry-wizard
+
 # Miscellaneous
 *.class
 *.log
@@ -72,3 +75,5 @@ android/fastlane/report.xml
 .flutter-plugins-dependencies
 .packages
 .metadata
+
+sentry.properties

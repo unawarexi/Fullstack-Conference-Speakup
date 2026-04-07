@@ -2,10 +2,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_conference_speakup/app.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:flutter_conference_speakup/app.dart';
+
 import 'package:flutter_conference_speakup/core/db/hive.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 import 'package:flutter_conference_speakup/firebase_options.dart';
