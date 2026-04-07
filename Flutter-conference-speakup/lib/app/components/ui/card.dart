@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
-/// Versatile card component for meetings list, chat previews, settings rows, etc.
-class SCard extends StatelessWidget {
+/// Premium card with Cupertino-style press scale and haptic feedback.
+class SCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -26,34 +27,66 @@ class SCard extends StatelessWidget {
   });
 
   @override
+  State<SCard> createState() => _SCardState();
+}
+
+class _SCardState extends State<SCard> {
+  bool _pressed = false;
+
+  bool get _interactive => widget.onTap != null || widget.onLongPress != null;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg =
-        backgroundColor ?? (isDark ? SColors.darkCard : SColors.lightCard);
-    final radius = borderRadius ?? SSizes.radiusMd;
+        widget.backgroundColor ?? (isDark ? SColors.darkCard : SColors.lightCard);
+    final radius = widget.borderRadius ?? SSizes.radiusMd;
 
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(radius),
-      clipBehavior: Clip.antiAlias,
-      elevation: hasShadow ? 2 : 0,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(radius),
-        child: Container(
-          padding: padding ?? const EdgeInsets.all(SSizes.cardPadding),
-          decoration: hasBorder
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius),
-                  border: Border.all(
-                    color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                  ),
+    final card = AnimatedScale(
+      scale: _pressed ? 0.97 : 1.0,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeOut,
+      child: Container(
+        padding: widget.padding ?? const EdgeInsets.all(SSizes.cardPadding),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(radius),
+          border: widget.hasBorder
+              ? Border.all(
+                  color: isDark ? SColors.darkBorder : SColors.lightBorder,
                 )
               : null,
-          child: child,
+          boxShadow: widget.hasShadow
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
+        child: widget.child,
       ),
+    );
+
+    if (!_interactive) return card;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        HapticFeedback.selectionClick();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      onLongPress: widget.onLongPress != null
+          ? () {
+              HapticFeedback.mediumImpact();
+              widget.onLongPress?.call();
+            }
+          : null,
+      child: card,
     );
   }
 }

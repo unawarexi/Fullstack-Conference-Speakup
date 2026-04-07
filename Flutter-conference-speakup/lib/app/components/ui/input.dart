@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
+/// Premium text input with Cupertino-style rounded container and smooth focus.
 class SInput extends StatelessWidget {
   final TextEditingController? controller;
   final String? label;
@@ -47,6 +49,10 @@ class SInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? SColors.darkBorder : SColors.lightBorder;
+    final focusColor = SColors.primary.withValues(alpha: 0.5);
+
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
@@ -61,18 +67,61 @@ class SInput extends StatelessWidget {
       inputFormatters: inputFormatters,
       focusNode: focusNode,
       enabled: enabled,
+      cursorColor: SColors.primary,
+      style: TextStyle(
+        color: isDark ? SColors.textDark : SColors.textLight,
+        fontSize: 15,
+      ),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         errorText: errorText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: isDark ? SColors.darkMuted : SColors.lightMuted)
+            : null,
         suffixIcon: suffix,
+        filled: true,
+        fillColor: isDark
+            ? SColors.darkCard.withValues(alpha: 0.6)
+            : SColors.lightElevated.withValues(alpha: 0.5),
+        hintStyle: TextStyle(
+          color: isDark ? SColors.darkMuted : SColors.lightMuted,
+          fontSize: 15,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: SSizes.md,
+          vertical: SSizes.inputPadding,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: borderColor, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: borderColor, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: focusColor, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: const BorderSide(color: SColors.error, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: const BorderSide(color: SColors.error, width: 1.5),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: borderColor.withValues(alpha: 0.4), width: 1),
+        ),
       ),
     );
   }
 }
 
-/// Search bar with debounce-ready callback.
+/// Premium search bar — CupertinoSearchTextField style.
 class SSearchBar extends StatelessWidget {
   final TextEditingController? controller;
   final String hint;
@@ -90,36 +139,37 @@ class SSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return TextField(
+    return CupertinoSearchTextField(
       controller: controller,
       onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(
-          Icons.search,
-          color: isDark ? SColors.darkMuted : SColors.lightMuted,
-        ),
-        suffixIcon: controller != null && controller!.text.isNotEmpty
-            ? IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: () {
-                  controller!.clear();
-                  onChanged?.call('');
-                  onClear?.call();
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: isDark ? SColors.darkCard : SColors.lightElevated,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(SSizes.radiusFull),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: SSizes.md,
-          vertical: SSizes.sm,
-        ),
+      placeholder: hint,
+      placeholderStyle: TextStyle(
+        color: isDark ? SColors.darkMuted : SColors.lightMuted,
+        fontSize: 15,
       ),
+      style: TextStyle(
+        color: isDark ? SColors.textDark : SColors.textLight,
+        fontSize: 15,
+      ),
+      backgroundColor: isDark
+          ? SColors.darkCard.withValues(alpha: 0.6)
+          : SColors.lightElevated,
+      prefixIcon: Icon(
+        CupertinoIcons.search,
+        color: isDark ? SColors.darkMuted : SColors.lightMuted,
+        size: 18,
+      ),
+      suffixIcon: const Icon(CupertinoIcons.xmark_circle_fill, size: 16),
+      onSuffixTap: () {
+        controller?.clear();
+        onChanged?.call('');
+        onClear?.call();
+      },
+      padding: const EdgeInsets.symmetric(
+        horizontal: SSizes.sm,
+        vertical: SSizes.sm + 2,
+      ),
+      borderRadius: BorderRadius.circular(SSizes.radiusMd),
     );
   }
 }

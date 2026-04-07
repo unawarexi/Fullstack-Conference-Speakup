@@ -1,8 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
-/// Password input with visibility toggle.
+/// Password input with Cupertino-style visibility toggle.
 class SPasswordField extends StatefulWidget {
   final TextEditingController? controller;
   final String? label;
@@ -28,17 +29,51 @@ class _SPasswordFieldState extends State<SPasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? SColors.darkBorder : SColors.lightBorder;
+
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscure,
       validator: widget.validator,
       textInputAction: widget.textInputAction,
+      cursorColor: SColors.primary,
+      style: TextStyle(
+        color: isDark ? SColors.textDark : SColors.textLight,
+        fontSize: 15,
+      ),
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,
-        suffixIcon: IconButton(
+        filled: true,
+        fillColor: isDark
+            ? SColors.darkCard.withValues(alpha: 0.6)
+            : SColors.lightElevated.withValues(alpha: 0.5),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: SSizes.md,
+          vertical: SSizes.inputPadding,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: borderColor, width: 1),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: borderColor, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusMd),
+          borderSide: BorderSide(color: SColors.primary.withValues(alpha: 0.5), width: 1.5),
+        ),
+        suffixIcon: CupertinoButton(
+          padding: const EdgeInsets.only(right: SSizes.sm),
+          minSize: 0,
           onPressed: () => setState(() => _obscure = !_obscure),
-          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+          child: Icon(
+            _obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+            size: 20,
+            color: isDark ? SColors.darkMuted : SColors.lightMuted,
+          ),
         ),
       ),
     );

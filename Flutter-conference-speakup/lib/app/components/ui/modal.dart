@@ -1,8 +1,10 @@
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
-import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 
+/// Premium modal dialog with iOS-style blur backdrop and Cupertino actions.
 class SModal {
   SModal._();
 
@@ -18,50 +20,66 @@ class SModal {
     bool isDanger = false,
     bool barrierDismissible = true,
   }) {
-    return showDialog<T>(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return showCupertinoDialog<T>(
       context: context,
       barrierDismissible: barrierDismissible,
       builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        return AlertDialog(
-          backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SSizes.radiusLg),
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: CupertinoAlertDialog(
+            title: Text(
+              title,
+              style: TextStyle(
+                color: isDark ? SColors.textDark : SColors.textLight,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            content: content ??
+                (message != null
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: SSizes.sm),
+                        child: Text(
+                          message,
+                          style: TextStyle(
+                            color: isDark
+                                ? SColors.textDarkSecondary
+                                : SColors.textLightSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      )
+                    : null),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () {
+                  onCancel?.call();
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(
+                  cancelText,
+                  style: TextStyle(
+                    color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                  ),
+                ),
+              ),
+              CupertinoDialogAction(
+                isDestructiveAction: isDanger,
+                onPressed: () {
+                  onConfirm?.call();
+                  Navigator.of(ctx).pop(true);
+                },
+                child: Text(
+                  confirmText,
+                  style: TextStyle(
+                    color: isDanger ? SColors.error : SColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-          title: Text(title),
-          content: content ??
-              (message != null
-                  ? Text(
-                      message,
-                      style: TextStyle(
-                        color: isDark
-                            ? SColors.textDarkSecondary
-                            : SColors.textLightSecondary,
-                      ),
-                    )
-                  : null),
-          actions: [
-            SButton(
-              text: cancelText,
-              variant: SButtonVariant.ghost,
-              size: SButtonSize.sm,
-              isFullWidth: false,
-              onPressed: () {
-                onCancel?.call();
-                Navigator.of(ctx).pop();
-              },
-            ),
-            SButton(
-              text: confirmText,
-              variant: isDanger ? SButtonVariant.danger : SButtonVariant.primary,
-              size: SButtonSize.sm,
-              isFullWidth: false,
-              onPressed: () {
-                onConfirm?.call();
-                Navigator.of(ctx).pop(true);
-              },
-            ),
-          ],
         );
       },
     );

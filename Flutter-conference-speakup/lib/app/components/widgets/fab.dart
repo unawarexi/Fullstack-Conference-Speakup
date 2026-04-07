@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
-/// Animated floating action button for "New Meeting" / "Join".
+/// Animated floating action button with haptic feedback for "New Meeting" / "Join".
 class SFab extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData icon;
@@ -81,6 +82,7 @@ class _SMeetingFabState extends State<SMeetingFab>
   void _toggle() {
     setState(() => _isOpen = !_isOpen);
     _isOpen ? _controller.forward() : _controller.reverse();
+    HapticFeedback.lightImpact();
   }
 
   @override

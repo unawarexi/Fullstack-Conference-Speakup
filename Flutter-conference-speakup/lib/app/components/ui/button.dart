@@ -1,11 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 
 enum SButtonVariant { primary, secondary, outline, ghost, danger }
 enum SButtonSize { sm, md, lg }
 
-class SButton extends StatelessWidget {
+/// Premium button with Cupertino-style press scaling + haptic feedback.
+class SButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final SButtonVariant variant;
@@ -30,76 +33,99 @@ class SButton extends StatelessWidget {
   });
 
   @override
+  State<SButton> createState() => _SButtonState();
+}
+
+class _SButtonState extends State<SButton> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final height = switch (size) {
+    final height = switch (widget.size) {
       SButtonSize.sm => SSizes.buttonHeightSm,
       SButtonSize.md => SSizes.buttonHeightMd,
       SButtonSize.lg => SSizes.buttonHeightLg,
     };
-    final fontSize = switch (size) {
+    final fontSize = switch (widget.size) {
       SButtonSize.sm => 13.0,
       SButtonSize.md => 15.0,
       SButtonSize.lg => 17.0,
     };
 
     final (bg, fg, border) = _resolveColors(isDark);
+    final isDisabled = widget.onPressed == null || widget.isLoading;
 
-    return SizedBox(
-      width: isFullWidth ? double.infinity : null,
-      height: height,
-      child: TextButton(
-        onPressed: isLoading ? null : onPressed,
-        style: TextButton.styleFrom(
-          backgroundColor: bg,
-          foregroundColor: fg,
-          disabledBackgroundColor: bg.withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(
+    return GestureDetector(
+      onTapDown: isDisabled ? null : (_) => setState(() => _pressed = true),
+      onTapUp: isDisabled
+          ? null
+          : (_) {
+              setState(() => _pressed = false);
+              HapticFeedback.lightImpact();
+              widget.onPressed?.call();
+            },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          width: widget.isFullWidth ? double.infinity : null,
+          height: height,
+          decoration: BoxDecoration(
+            color: isDisabled ? bg.withValues(alpha: 0.5) : bg,
             borderRadius: BorderRadius.circular(SSizes.radiusMd),
-            side: border != null
-                ? BorderSide(color: border)
-                : BorderSide.none,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: SSizes.md),
-        ),
-        child: isLoading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(fg),
-                ),
-              )
-            : child ??
-                Row(
-                  mainAxisSize:
-                      isFullWidth ? MainAxisSize.max : MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (prefixIcon != null) ...[
-                      Icon(prefixIcon, size: fontSize + 2),
-                      const SizedBox(width: SSizes.sm),
-                    ],
-                    Text(
-                      text,
-                      style: TextStyle(
-                        fontSize: fontSize,
-                        fontWeight: FontWeight.w600,
-                      ),
+            border: border != null ? Border.all(color: border) : null,
+            boxShadow: widget.variant == SButtonVariant.primary && !_pressed
+                ? [
+                    BoxShadow(
+                      color: bg.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                    if (suffixIcon != null) ...[
-                      const SizedBox(width: SSizes.sm),
-                      Icon(suffixIcon, size: fontSize + 2),
-                    ],
-                  ],
-                ),
+                  ]
+                : null,
+          ),
+          child: Center(
+            child: widget.isLoading
+                ? CupertinoActivityIndicator(
+                    radius: 10,
+                    color: fg,
+                  )
+                : widget.child ??
+                    Row(
+                      mainAxisSize:
+                          widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.prefixIcon != null) ...[
+                          Icon(widget.prefixIcon, size: fontSize + 2, color: fg),
+                          const SizedBox(width: SSizes.sm),
+                        ],
+                        Text(
+                          widget.text,
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.w600,
+                            color: fg,
+                          ),
+                        ),
+                        if (widget.suffixIcon != null) ...[
+                          const SizedBox(width: SSizes.sm),
+                          Icon(widget.suffixIcon, size: fontSize + 2, color: fg),
+                        ],
+                      ],
+                    ),
+          ),
+        ),
       ),
     );
   }
 
   (Color bg, Color fg, Color? border) _resolveColors(bool isDark) {
-    return switch (variant) {
+    return switch (widget.variant) {
       SButtonVariant.primary => (
           SColors.primary,
           Colors.white,
