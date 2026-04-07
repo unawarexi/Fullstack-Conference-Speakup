@@ -68,7 +68,24 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _startSequence() async {
     await Future.delayed(const Duration(milliseconds: 150));
 
-    // Phase 1: emblem + rings
+    // Phase 1: logo + tagline show first
+    _logoAnim.forward();
+    await Future.delayed(const Duration(milliseconds: 400));
+    _taglineAnim.forward();
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    _featureAnim.forward();
+
+    // Hold so user can read
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    // Phase 2: logo + text leave
+    _logoAnim.controller.reverse();
+    _taglineAnim.controller.reverse();
+    _featureAnim.controller.reverse();
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    // Phase 3: emblem + rings come in last
     _emblemAnim.forward();
     _ring1.repeat();
     Future.delayed(const Duration(milliseconds: 400), () => _ring2.repeat());
@@ -76,19 +93,8 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 350));
     _glowAnim.forward();
 
-    // Phase 2: logo text slides up
-    await Future.delayed(const Duration(milliseconds: 450));
-    _logoAnim.forward();
-
-    // Phase 3: tagline + features cascade
-    await Future.delayed(const Duration(milliseconds: 400));
-    _taglineAnim.forward();
-
-    await Future.delayed(const Duration(milliseconds: 300));
-    _featureAnim.forward();
-
     // Phase 4: shimmer loading bar
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 400));
     _shimmerController.repeat(reverse: true);
 
     // Hold then exit
@@ -154,12 +160,45 @@ class _SplashScreenState extends State<SplashScreen>
               // ── Floating particles ──
               ..._buildParticles(isDark),
 
-              // ── Center content ──
+              // ── Center content (Stack so each group is independently centered) ──
               Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    // ── Pulse rings + glow + emblem ──
+                    // ── Logo + text group (shows first, leaves before emblem) ──
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SlideTransition(
+                          position: _logoAnim.slide,
+                          child: FadeTransition(
+                            opacity: _logoAnim.fade,
+                            child: Image.asset(
+                              SImages.brandLogo,
+                              width: 180,
+                              color: isDark ? Colors.white : null,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: SSizes.sm),
+                        FadeTransition(
+                          opacity: _taglineAnim.fade,
+                          child: Text(
+                            STexts.appTagline,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              color: isDark
+                                  ? SColors.textDarkSecondary
+                                  : SColors.textLightSecondary,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // ── Emblem group (shows last, center-center) ──
                     SizedBox(
                       width: 200,
                       height: 200,
@@ -212,7 +251,6 @@ class _SplashScreenState extends State<SplashScreen>
                               );
                             },
                           ),
-
                           // Glow halo
                           AnimatedBuilder(
                             animation: _glowAnim.value,
@@ -274,44 +312,6 @@ class _SplashScreenState extends State<SplashScreen>
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: SSizes.xl),
-
-                    // ── Logo text ──
-                    SlideTransition(
-                      position: _logoAnim.slide,
-                      child: FadeTransition(
-                        opacity: _logoAnim.fade,
-                        child: Image.asset(
-                          SImages.brandLogo,
-                          width: 180,
-                          color: isDark ? Colors.white : null,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: SSizes.sm),
-
-                    // ── Tagline ──
-                    FadeTransition(
-                      opacity: _taglineAnim.fade,
-                      child: Text(
-                        STexts.appTagline,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                          color: isDark
-                              ? SColors.textDarkSecondary
-                              : SColors.textLightSecondary,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: SSizes.xxl),
-
-                    // ── Feature pills (staggered cascade) ──
-                    _buildFeaturePills(isDark),
                   ],
                 ),
               ),
@@ -322,7 +322,7 @@ class _SplashScreenState extends State<SplashScreen>
                 left: 0,
                 right: 0,
                 child: FadeTransition(
-                  opacity: _taglineAnim.fade,
+                  opacity: _glowAnim.value,
                   child: Center(
                     child: AnimatedBuilder(
                       animation: _shimmerValue,
@@ -358,55 +358,6 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  Widget _buildFeaturePills(bool isDark) {
-    const features = [
-      (Icons.videocam_rounded, 'HD Video'),
-      (Icons.lock_rounded, 'E2E Encrypted'),
-      (Icons.groups_rounded, '1000+ Users'),
-    ];
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(features.length, (i) {
-        final (icon, label) = features[i];
-        return FadeTransition(
-          opacity: _featureAnim.fades[i],
-          child: SlideTransition(
-            position: _featureAnim.slides[i],
-            child: Container(
-              margin: EdgeInsets.only(right: i < features.length - 1 ? 10 : 0),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? SColors.primary.withValues(alpha: 0.08)
-                    : SColors.primary.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(SSizes.radiusFull),
-                border: Border.all(
-                  color: SColors.primary.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 13, color: SColors.primary),
-                  const SizedBox(width: 5),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: SColors.primary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
 
   List<Widget> _buildParticles(bool isDark) {
     final rng = Random(42); // fixed seed for deterministic positions

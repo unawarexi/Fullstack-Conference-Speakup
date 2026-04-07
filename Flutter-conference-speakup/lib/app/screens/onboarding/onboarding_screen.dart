@@ -358,7 +358,7 @@ class _MobileLayout extends StatelessWidget {
           child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             child: BackdropFilter(
-              // filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+              filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(isDark ? 0.55 : 0.50),
@@ -430,28 +430,8 @@ class _MobileLayout extends StatelessWidget {
                       label: currentPage < _kPages.length - 1 ? 'Continue' : 'Get Started',
                       onTap: onNext,
                     ),
-                    const SizedBox(height: SSizes.sm + SSizes.xs),
-
-                    Center(
-                      child: Text.rich(
-                        TextSpan(
-                          text: STexts.alreadyHaveAccount,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.5),
-                            fontSize: 13,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: 'Sign in',
-                              style: TextStyle(
-                                color: SColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+              
+            
                   ],
                 ),
               ),

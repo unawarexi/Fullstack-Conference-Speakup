@@ -22,7 +22,7 @@ class SecureVisual extends StatelessWidget {
         // ── Full background image ──
         Positioned.fill(
           child: Image.asset(
-            SImages.onboarding1,
+            SImages.onboarding7,
             fit: BoxFit.cover,
           ),
         ),
@@ -50,7 +50,7 @@ class SecureVisual extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(
               color: SColors.primary.withOpacity(0.1),
-              width: 1,
+              width: 100,
             ),
           ),
         ),
@@ -62,7 +62,7 @@ class SecureVisual extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(
               color: SColors.primary.withOpacity(0.15),
-              width: 1.5,
+              width: 100,
             ),
           ),
         ),

@@ -85,7 +85,7 @@ class SkipButton extends StatelessWidget {
       onPressed: onTap,
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: SSizes.md, vertical: SSizes.sm),
-        foregroundColor: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+       
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(SSizes.radiusFull),
           side: BorderSide(color: theme.colorScheme.outline),

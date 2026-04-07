@@ -20,7 +20,7 @@ class TeamChatVisual extends StatelessWidget {
         // ── Full background image ──
         Positioned.fill(
           child: Image.asset(
-            SImages.onboarding2,
+            SImages.onboarding3,
             fit: BoxFit.cover,
           ),
         ),
@@ -45,28 +45,12 @@ class TeamChatVisual extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(SSizes.md, SSizes.md, SSizes.md, 12),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF1E1E2E).withOpacity(0.5) : const Color(0xFFF1F3F5).withOpacity(0.4),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: SColors.primary.withOpacity(0.4), width: 2),
+                      border: Border.all(color: borderColor.withOpacity(0.6), width: 1.5),
                     ),
                     child: Stack(
                       children: [
-                        // Gradient bg
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(18),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  SColors.primary.withOpacity(isDark ? 0.12 : 0.06),
-                                  Colors.white.withOpacity(0.5),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                         // Avatar + info
                         Center(
                           child: Column(
@@ -77,13 +61,13 @@ class TeamChatVisual extends StatelessWidget {
                                 initials: 'SC',
                                 isSpeaking: true,
                                 isDark: isDark,
-                                image: SImages.onboarding1,
+                                image: SImages.onboarding3,
                               ),
                               const SizedBox(height: SSizes.xs),
                               Text(
                                 'Sarah Chen',
                                 style: TextStyle(
-                                  color: Colors.black87,
+                                  color: isDark ? Colors.white : Colors.black87,
                                   fontSize: compact ? 12 : 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -97,7 +81,7 @@ class TeamChatVisual extends StatelessWidget {
                                   Text(
                                     'Speaking',
                                     style: TextStyle(
-                                      color: SColors.primary,
+                                      color: SColors.primarySurface,
                                       fontSize: compact ? 10 : 11,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -139,10 +123,10 @@ class TeamChatVisual extends StatelessWidget {
                     childAspectRatio: 1.2,
                     padding: EdgeInsets.zero,
                     children: const [
-                      _ListenerTile(initials: 'AJ', name: 'Alex', isMuted: false, image: SImages.onboarding2),
+                      _ListenerTile(initials: 'AJ', name: 'Alex', isMuted: false, image: SImages.onboarding4),
                       _ListenerTile(initials: 'MK', name: 'Maya', isMuted: true),
                       _ListenerTile(initials: 'RB', name: 'Ryan', isMuted: false),
-                      _ListenerTile(initials: 'LP', name: 'Lisa', isMuted: true, image: SImages.onboarding1),
+                      _ListenerTile(initials: 'LP', name: 'Lisa', isMuted: true, image: SImages.onboarding6),
                       _ListenerTile(initials: 'JW', name: 'James', isMuted: true),
                       _MoreParticipants(count: 4),
                     ],
@@ -252,15 +236,16 @@ class _ListenerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tileColor = isDark ? SColors.participantTile : SColors.participantTileLight;
+    final tileColor = isDark ? const Color(0xFF1E1E2E).withOpacity(0.5) : const Color(0xFFF1F3F5).withOpacity(0.4);
+    final borderColor = isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08);
 
     return Container(
       decoration: BoxDecoration(
         color: tileColor,
         borderRadius: BorderRadius.circular(SSizes.radiusSm + 2),
         border: Border.all(
-          color: isDark ? SColors.darkBorder : SColors.lightBorder,
-          width: 1,
+          color: borderColor.withOpacity(0.6),
+          width: 1.5,
         ),
       ),
       child: Stack(
@@ -277,7 +262,7 @@ class _ListenerTile extends StatelessWidget {
                       ? Text(
                           initials,
                           style: TextStyle(
-                            color: SColors.primary,
+                            color: SColors.primarySurface,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                           ),
