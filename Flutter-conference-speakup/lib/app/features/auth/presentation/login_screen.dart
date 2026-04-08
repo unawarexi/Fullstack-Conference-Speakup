@@ -201,7 +201,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         _OAuthButton(
           label: STexts.continueWithGoogle,
           assetIcon: SImages.googleIcon,
-          isLoading: _loginUseCase.isLoading,
+          isLoading: _loginUseCase.isGoogleLoading,
           onTap: _loginUseCase.signInWithGoogle,
         ),
         const SizedBox(height: SSizes.sm + 4),
@@ -210,7 +210,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           label: STexts.continueWithGithub,
           assetIcon: SImages.githubIcon,
           invertIconInDark: true,
-          isLoading: _loginUseCase.isLoading,
+          isLoading: _loginUseCase.isGithubLoading,
           onTap: _loginUseCase.signInWithGithub,
         ),
 

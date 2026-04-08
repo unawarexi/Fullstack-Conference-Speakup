@@ -8,8 +8,10 @@ class LoginUseCase {
   final WidgetRef _ref;
   final BuildContext _context;
 
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  LoginProvider? _activeProvider;
+  bool get isLoading => _activeProvider != null;
+  bool get isGoogleLoading => _activeProvider == LoginProvider.google;
+  bool get isGithubLoading => _activeProvider == LoginProvider.github;
 
   /// Callback to notify the widget of state changes.
   final VoidCallback onStateChanged;
@@ -22,8 +24,8 @@ class LoginUseCase {
         _context = context;
 
   Future<void> signInWithGoogle() async {
-    if (_isLoading) return;
-    _setLoading(true);
+    if (isLoading) return;
+    _setActive(LoginProvider.google);
     try {
       await _ref.read(currentUserProvider.notifier).signInWithGoogle();
       if (_context.mounted) _context.go('/home');
@@ -32,13 +34,13 @@ class LoginUseCase {
         SToast.show(_context, message: e.toString(), type: SToastType.error);
       }
     } finally {
-      _setLoading(false);
+      _setActive(null);
     }
   }
 
   Future<void> signInWithGithub() async {
-    if (_isLoading) return;
-    _setLoading(true);
+    if (isLoading) return;
+    _setActive(LoginProvider.github);
     try {
       await _ref.read(currentUserProvider.notifier).signInWithGithub();
       if (_context.mounted) _context.go('/home');
@@ -47,12 +49,14 @@ class LoginUseCase {
         SToast.show(_context, message: e.toString(), type: SToastType.error);
       }
     } finally {
-      _setLoading(false);
+      _setActive(null);
     }
   }
 
-  void _setLoading(bool value) {
-    _isLoading = value;
+  void _setActive(LoginProvider? provider) {
+    _activeProvider = provider;
     onStateChanged();
   }
 }
+
+enum LoginProvider { google, github }

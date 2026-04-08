@@ -9,10 +9,15 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:flutter_conference_speakup/core/db/hive.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
+import 'package:flutter_conference_speakup/core/auth/google_signin.dart';
 import 'package:flutter_conference_speakup/firebase_options.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Pre-cache liquid glass shaders
+  await LiquidGlassWidgets.initialize();
 
   // Load environment
   await dotenv.load(fileName: '.env');
@@ -23,6 +28,9 @@ void main() async {
     HiveService.init(),
     LocalStorageService.init(),
   ]);
+
+  // Initialize Google Sign-In (must be after Firebase.initializeApp)
+  await GoogleSignInService.init();
 
   // Prune expired cache entries
   await HiveService.pruneExpired();
@@ -41,7 +49,9 @@ void main() async {
     ),
   );
 
-  const app = ProviderScope(child: const SpeakUpApp());
+  final app = ProviderScope(
+    child: LiquidGlassWidgets.wrap(const SpeakUpApp()),
+  );
 
   if (kReleaseMode) {
     await SentryFlutter.init(
