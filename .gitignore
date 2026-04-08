@@ -28,3 +28,8 @@ node_modules/
 .dart_tool/
 AGENTS.md
 CLAUDE.md
+
+# Internal planning / architecture docs (not for VCS)
+structure.md
+ochestration.md
+skills/
