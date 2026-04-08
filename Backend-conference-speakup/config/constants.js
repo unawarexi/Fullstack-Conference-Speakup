@@ -177,6 +177,30 @@ export const SocketEvents = {
   // Presence
   USER_ONLINE: "user:online",
   USER_OFFLINE: "user:offline",
+
+  // AI Intelligence (FastAPI → Express → Clients)
+  AI_TRANSCRIPTION: "ai:transcription",
+  AI_LIVE_INSIGHTS: "ai:live_insights",
+  AI_EMOTION_SIGNALS: "ai:emotion_signals",
+  AI_COACHING_HINTS: "ai:coaching_hints",
+  AI_COPILOT_SUGGESTIONS: "ai:copilot_suggestions",
+  AI_MEETING_SUMMARY: "ai:meeting_summary",
+  AI_ACTION_ITEMS: "ai:action_items",
+  AI_CV_ANALYSIS: "ai:cv_analysis",
+
+  // AI client controls (Client → Express → FastAPI)
+  AI_TOGGLE_COPILOT: "ai:toggle_copilot",
+  AI_TOGGLE_TRANSCRIPTION: "ai:toggle_transcription",
+  AI_TOGGLE_COACHING: "ai:toggle_coaching",
+  AI_REQUEST_SUMMARY: "ai:request_summary",
+
+  // Voice Assistant (Client ↔ Express ↔ FastAPI)
+  AI_VOICE_COMMAND: "ai:voice_command",
+  AI_VOICE_COMMAND_RESULT: "ai:voice_command_result",
+  AI_VOICE_COMMAND_CONFIRM: "ai:voice_command_confirm",
+  AI_TOOL_EXECUTE: "ai:tool_execute",
+  AI_TOOL_RESULT: "ai:tool_result",
+  AI_WORKFLOW_STATUS: "ai:workflow_status",
 };
 
 // ============================================================================
@@ -191,6 +215,21 @@ export const KafkaTopics = {
   NOTIFICATION_EVENTS: "speakup.notification.events",
   ANALYTICS_EVENTS: "speakup.analytics.events",
   USER_EVENTS: "speakup.user.events",
+
+  // AI topics (produced by FastAPI, consumed by Express for real-time delivery)
+  AI_TRANSCRIPTION: "speakup.ai.transcription",
+  AI_LIVE_INSIGHTS: "speakup.ai.live_insights",
+  AI_EMOTION_SIGNALS: "speakup.ai.emotion_signals",
+  AI_COACHING_HINTS: "speakup.ai.coaching_hints",
+  AI_COPILOT_SUGGESTIONS: "speakup.ai.copilot_suggestions",
+  AI_MEETING_SUMMARY: "speakup.ai.meeting_summary",
+  AI_ACTION_ITEMS: "speakup.ai.action_items",
+  AI_MEMORY_UPDATES: "speakup.ai.memory_updates",
+  AI_CV_ANALYSIS: "speakup.ai.cv_analysis",
+
+  // Media stream topics (Express → FastAPI)
+  MEDIA_AUDIO_CHUNKS: "speakup.media.audio_chunks",
+  MEDIA_VIDEO_FRAMES: "speakup.media.video_frames",
 };
 
 // ============================================================================

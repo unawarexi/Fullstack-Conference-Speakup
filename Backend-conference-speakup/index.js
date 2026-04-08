@@ -39,6 +39,7 @@ import { verifyMailer } from "./services/mailer.service.js";
 import { initLiveKit } from "./services/livekit.service.js";
 import { initBilling } from "./services/billing.service.js";
 import { startWorkers } from "./services/workers.js";
+import { initAIConsumer, disconnectAIConsumer } from "./services/ai-consumer.service.js";
 
 // Module routes
 import authRoutes from "./modules/auth/auth.routes.js";
@@ -73,8 +74,8 @@ configureTrustProxy(app);
 initializeSentry();
 
 // Security
-app.use(securityHeaders);
-app.use(corsConfig);
+app.use(securityHeaders());
+app.use(corsConfig());
 app.use(xssProtection);
 
 // Body parsing
@@ -198,6 +199,12 @@ async function startServer() {
     initWebSocket(server);
     log.info("WebSocket initialized");
 
+    // Start AI Kafka consumer (relay AI results to WebSocket clients)
+    if (env.KAFKA_BROKERS) {
+      await initAIConsumer();
+      log.info("AI Kafka consumer initialized");
+    }
+
     // Initialize third-party services
     initLiveKit();
     initBilling();
@@ -237,6 +244,7 @@ async function gracefulShutdown(signal) {
 
   try { await disconnectPrisma(); log.info("Database disconnected"); } catch {}
   try { await disconnectRedis(); log.info("Redis disconnected"); } catch {}
+  try { await disconnectAIConsumer(); log.info("AI consumer disconnected"); } catch {}
   try { await disconnectKafka(); log.info("Kafka disconnected"); } catch {}
   try { await disconnectBullMQ(); log.info("BullMQ disconnected"); } catch {}
   try { await disconnectWebSocket(); log.info("WebSocket disconnected"); } catch {}

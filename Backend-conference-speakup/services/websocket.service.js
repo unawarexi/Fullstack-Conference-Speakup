@@ -113,6 +113,76 @@ export function initWebSocket(httpServer) {
       socket.to(`meeting:${data.meetingId}`).emit(SocketEvents.PARTICIPANT_HAND_LOWERED, data);
     });
 
+    // ── AI Voice Assistant ──
+    socket.on(SocketEvents.AI_VOICE_COMMAND, async (data) => {
+      try {
+        const { processVoiceCommand } = await import("./ai-gateway.service.js");
+        const result = await processVoiceCommand({
+          text: data.text,
+          userId: data.userId,
+          meetingId: data.meetingId,
+        });
+        emitToUser(data.userId, SocketEvents.AI_VOICE_COMMAND_RESULT, {
+          ...result,
+          meetingId: data.meetingId,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        log.error("Voice command failed", { error: err.message });
+        emitToUser(data.userId, SocketEvents.AI_VOICE_COMMAND_RESULT, {
+          success: false,
+          error: err.message,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    socket.on(SocketEvents.AI_VOICE_COMMAND_CONFIRM, async (data) => {
+      try {
+        const { confirmVoiceCommand } = await import("./ai-gateway.service.js");
+        const result = await confirmVoiceCommand({
+          userId: data.userId,
+          meetingId: data.meetingId,
+          parsedCommand: data.parsedCommand,
+        });
+        emitToUser(data.userId, SocketEvents.AI_VOICE_COMMAND_RESULT, {
+          ...result,
+          meetingId: data.meetingId,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        log.error("Voice command confirm failed", { error: err.message });
+        emitToUser(data.userId, SocketEvents.AI_VOICE_COMMAND_RESULT, {
+          success: false,
+          error: err.message,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    socket.on(SocketEvents.AI_TOOL_EXECUTE, async (data) => {
+      try {
+        const { executeTool } = await import("./ai-gateway.service.js");
+        const result = await executeTool({
+          toolName: data.toolName,
+          parameters: data.parameters,
+        });
+        emitToUser(data.userId, SocketEvents.AI_TOOL_RESULT, {
+          ...result,
+          toolName: data.toolName,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        log.error("Tool execution failed", { error: err.message });
+        emitToUser(data.userId, SocketEvents.AI_TOOL_RESULT, {
+          success: false,
+          error: err.message,
+          toolName: data.toolName,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
     // Disconnect
     socket.on(SocketEvents.DISCONNECT, (reason) => {
       const { meetingId, userId } = socket.data;

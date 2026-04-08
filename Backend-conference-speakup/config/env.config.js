@@ -157,6 +157,12 @@ export const env = {
   // --------------------------------------------------------------------------
   CLOUDFLARE_ZONE_ID: getEnvString("CLOUDFLARE_ZONE_ID", ""),
   CLOUDFLARE_API_TOKEN: getEnvString("CLOUDFLARE_API_TOKEN", ""),
+
+  // --------------------------------------------------------------------------
+  // AI Service (FastAPI Intelligence Plane)
+  // --------------------------------------------------------------------------
+  AI_SERVICE_URL: getEnvString("AI_SERVICE_URL", "http://localhost:8000/api/v1"),
+  AI_INTERNAL_API_KEY: getEnvString("AI_INTERNAL_API_KEY", ""),
 };
 
 // ============================================================================

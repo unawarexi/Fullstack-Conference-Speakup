@@ -54,7 +54,7 @@ help: ## Show all available commands
 install: ## Install all dependencies with npm
 	npm install
 
-dev: ## Start dev server with hot-reload (node --watch)
+dev: kafka-start ## Start dev server with hot-reload (node --watch) + Kafka
 	npm run dev
 
 start: ## Start production server
