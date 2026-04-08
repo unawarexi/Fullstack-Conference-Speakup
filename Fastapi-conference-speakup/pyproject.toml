@@ -1,0 +1,139 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "speakup-ai"
+version = "1.0.0"
+description = "SpeakUp AI Intelligence Plane — Speech, CV, Emotion, LangGraph Agent Orchestration"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+dependencies = [
+    # ── Core Framework ──
+    "fastapi[standard]>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "gunicorn>=23.0.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+
+    # ── Async Runtime ──
+    "httpx>=0.28.0",
+    "aiofiles>=24.1.0",
+    "python-multipart>=0.0.18",
+    "orjson>=3.10.0",
+
+    # ── Database & ORM ──
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "psycopg[binary]>=3.2.0",
+
+    # ── Message Queue & Streaming ──
+    "aiokafka>=0.12.0",
+    "redis[hiredis]>=5.2.0",
+    "celery[redis]>=5.4.0",
+
+    # ── AI / LLM / Agent Orchestration ──
+    "langgraph>=0.2.60",
+    "langchain>=0.3.12",
+    "langchain-openai>=0.2.14",
+    "langchain-anthropic>=0.3.0",
+    "langchain-google-genai>=2.0.0",
+    "langchain-community>=0.3.12",
+    "langsmith>=0.2.0",
+    "openai>=1.58.0",
+    "anthropic>=0.40.0",
+    "google-generativeai>=0.8.0",
+    "huggingface-hub>=0.27.0",
+
+    # ── Speech Intelligence ──
+    "faster-whisper>=1.1.0",
+    "silero-vad>=5.1.2",
+    "webrtcvad>=2.0.10",
+    "librosa>=0.10.2",
+    "soundfile>=0.12.1",
+    "numpy>=1.26.0",
+
+    # ── Computer Vision ──
+    "opencv-python-headless>=4.10.0",
+    "mediapipe>=0.10.18",
+    "onnxruntime>=1.20.0",
+
+    # ── Vector / Memory ──
+    "qdrant-client>=1.12.0",
+    "pgvector>=0.3.6",
+
+    # ── Graph Database ──
+    "neo4j>=5.27.0",
+
+    # ── Observability ──
+    "structlog>=24.4.0",
+    "prometheus-client>=0.21.0",
+    "sentry-sdk[fastapi]>=2.19.0",
+    "opentelemetry-api>=1.29.0",
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+
+    # ── Security ──
+    "cryptography>=44.0.0",
+    "python-jose[cryptography]>=3.3.0",
+
+    # ── MCP Tools ──
+    "mcp>=1.0.0",
+
+    # ── Web Search / External APIs ──
+    "tavily-python>=0.5.0",
+    "google-api-python-client>=2.150.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-auth-oauthlib>=1.2.0",
+    "slack-sdk>=3.33.0",
+    "atlassian-python-api>=3.41.0",
+    "notion-client>=2.2.0",
+    "tweepy>=4.14.0",
+
+    # ── Utilities ──
+    "tenacity>=9.0.0",
+    "cachetools>=5.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+    "pre-commit>=4.0.0",
+    "factory-boy>=3.3.0",
+    "faker>=33.0.0",
+]
+
+gpu = [
+    "torch>=2.5.0",
+    "torchaudio>=2.5.0",
+    "onnxruntime-gpu>=1.20.0",
+    "insightface>=0.7.3",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "S", "B", "A", "C4", "SIM", "TCH"]
+ignore = ["S101", "S104"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]

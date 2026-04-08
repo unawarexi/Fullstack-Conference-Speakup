@@ -1,0 +1,206 @@
+# ============================================================================
+# SpeakUp AI — Docker Compose (Development)
+# Works alongside the Express backend docker-compose
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # SpeakUp AI API
+  # --------------------------------------------------------------------------
+  speakup-ai:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql+asyncpg://speakup:speakup_dev@postgres:5432/speakup_ai
+      - REDIS_URL=redis://redis:6379/1
+      - KAFKA_BROKERS=kafka:9092
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=speakup_dev
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - LIVEKIT_HOST=${LIVEKIT_HOST:-http://livekit:7880}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
+      - EXPRESS_BACKEND_URL=http://app:5000
+      - EXPRESS_INTERNAL_API_KEY=${EXPRESS_INTERNAL_API_KEY:-dev-shared-secret}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/3
+      - WHISPER_MODEL_SIZE=base
+      - WHISPER_DEVICE=cpu
+      - WHISPER_COMPUTE_TYPE=int8
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - model_cache:/root/.cache
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  # --------------------------------------------------------------------------
+  # Celery Worker (heavy async AI tasks)
+  # --------------------------------------------------------------------------
+  celery-worker:
+    build:
+      context: .
+      target: development
+    command: >
+      celery -A app.workers.celery_app worker
+      --loglevel=info
+      --concurrency=2
+      --queues=speakup-ai-default,speakup-ai-summary,speakup-ai-memory,speakup-ai-inference
+    environment:
+      - APP_ENV=development
+      - REDIS_URL=redis://redis:6379/1
+      - KAFKA_BROKERS=kafka:9092
+      - QDRANT_HOST=qdrant
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=speakup_dev
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CELERY_BROKER_URL=redis://redis:6379/2
+      - CELERY_RESULT_BACKEND=redis://redis:6379/3
+      - WHISPER_MODEL_SIZE=base
+      - WHISPER_DEVICE=cpu
+    depends_on:
+      - redis
+      - kafka
+    volumes:
+      - .:/app
+      - model_cache:/root/.cache
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  # --------------------------------------------------------------------------
+  # Qdrant (Vector Database)
+  # --------------------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  # --------------------------------------------------------------------------
+  # Neo4j (Graph Database — Meeting Memory Graph)
+  # --------------------------------------------------------------------------
+  neo4j:
+    image: neo4j:5.25-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/speakup_dev
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_memory_heap_initial__size: 256m
+      NEO4J_dbms_memory_heap_max__size: 512m
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  # --------------------------------------------------------------------------
+  # Shared infrastructure (reuse from Express docker-compose via external)
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_ai_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    ports:
+      - "9093:9092"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    depends_on:
+      - zookeeper
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zk_ai_data:/var/lib/zookeeper/data
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: speakup
+      POSTGRES_PASSWORD: speakup_dev
+      POSTGRES_DB: speakup_ai
+    volumes:
+      - pg_ai_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U speakup -d speakup_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - speakup-network
+
+volumes:
+  qdrant_data:
+  neo4j_data:
+  redis_ai_data:
+  zk_ai_data:
+  pg_ai_data:
+  model_cache:
+
+networks:
+  speakup-network:
+    driver: bridge
