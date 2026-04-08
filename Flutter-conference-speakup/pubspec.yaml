@@ -65,8 +65,18 @@ dependencies:
   connectivity_plus: ^6.1.1
   logger: ^2.5.0
 
+  # UI — Liquid Glass
+  liquid_glass_widgets: ^0.7.3
+
   # Monitoring
   sentry_flutter: ^9.0.0
+
+  # Audio / Speech
+  speech_to_text: ^7.0.0
+  audio_waveforms: ^1.2.0
+
+  # Charts & Visualization
+  fl_chart: ^0.70.2
 
   # Serialization
   freezed_annotation: ^2.4.4
@@ -74,7 +84,6 @@ dependencies:
   fluttertoast: ^9.0.0
 
 dev_dependencies:
-  sentry_dart_plugin: ^3.2.1
   flutter_test:
     sdk: flutter
   integration_test:
@@ -88,6 +97,7 @@ dev_dependencies:
   mocktail: ^1.0.4
   fake_async: ^1.3.2
   network_image_mock: ^2.1.1
+  
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
@@ -123,9 +133,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
-sentry:
-  upload_debug_symbols: true
-  upload_source_maps: true
-  project: flutter-speakup
-  org: unxcorp

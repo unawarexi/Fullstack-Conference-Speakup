@@ -79,4 +79,20 @@ class ApiEndpoints {
   static const legalTerms = '/legal/terms';
   static const legalPrivacy = '/legal/privacy';
   static const legalAll = '/legal/all';
+
+  // ──────────── AI / Intelligence ────────────
+  static String aiTranscript(String meetingId) => '/ai/transcript/$meetingId';
+  static const aiCopilotSuggestions = '/ai/copilot/suggestions';
+  static const aiCoachingReport = '/ai/copilot/coaching-report';
+  static const aiPredictOutcome = '/ai/copilot/predict-outcome';
+  static const aiMeetingSummary = '/ai/memory/summary';
+  static const aiMemoryQuery = '/ai/memory/query';
+  static String aiMeetingEmotions(String meetingId) => '/ai/emotion/meeting/$meetingId';
+  static const aiVoiceCommand = '/ai/assistant/voice-command';
+  static const aiVoiceCommandConfirm = '/ai/assistant/voice-command/confirm';
+  static const aiToolsSchema = '/ai/tools/schema';
+  static const aiToolExecute = '/ai/tools/execute';
+  static const aiWorkflowPostMeeting = '/ai/workflow/post-meeting';
+  static const aiWorkflowPreMeeting = '/ai/workflow/pre-meeting';
+  static String aiWorkflowStatus(String workflowId) => '/ai/workflow/status/$workflowId';
 }
