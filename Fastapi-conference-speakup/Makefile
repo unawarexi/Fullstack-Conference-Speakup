@@ -75,6 +75,25 @@ install:
 install-gpu:
 	pip install -e ".[dev,gpu]"
 
+# ── Pre-commit ──
+hooks-install:
+	pre-commit install
+	pre-commit install --hook-type commit-msg
+
+hooks-run:
+	pre-commit run --all-files
+
+hooks-update:
+	pre-commit autoupdate
+
+# ── Security ──
+security:
+	bandit -r app/ -c pyproject.toml -ll
+	pip-audit
+
+# ── CI (compound) ──
+ci: lint typecheck test
+
 # ── Clean ──
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

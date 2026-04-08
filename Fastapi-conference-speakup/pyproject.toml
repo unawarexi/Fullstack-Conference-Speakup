@@ -137,3 +137,8 @@ addopts = "-v --tb=short --strict-markers"
 python_version = "3.11"
 strict = true
 plugins = ["pydantic.mypy"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101"]
+
