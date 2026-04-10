@@ -9,7 +9,9 @@ import { getCache, setCache, deleteCache, deleteCachePattern } from "../../servi
 import { generateToken as livekitToken, deleteRoom, removeParticipant as livekitRemove, listParticipants as livekitParticipants } from "../../services/livekit.service.js";
 import { emitToMeeting, emitToUser } from "../../services/websocket.service.js";
 import { publishEvent } from "../../services/kafka.service.js";
-import { generateMeetingCode, hashPassword, verifyPassword } from "../../services/encryption.service.js";
+import { hashPassword, verifyPassword } from "../../services/encryption.service.js";
+import { generateUniqueMeetingCode, getMeetingLink, getMeetingDeepLink } from "../../core/utils/meeting-code.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../../services/cloudinary.service.js";
 import { CacheTTL, SocketEvents, KafkaTopics, MeetingConfig, ErrorCodes, HttpStatus } from "../../config/constants.js";
 import { AppError } from "../../middlewares/errorhandler.middleware.js";
 import { queueNotification, queueEmail } from "../../services/workers.js";
@@ -31,7 +33,10 @@ function getMaxParticipants(plan) {
 // ── CREATE ───────────────────────────────────────────────────────────────
 
 export async function createMeeting(userId, data) {
-  const code = generateMeetingCode();
+  const code = await generateUniqueMeetingCode(async (c) => {
+    const existing = await prisma.meeting.findUnique({ where: { code: c } });
+    return !!existing;
+  });
 
   const meetingData = {
     title: data.title,
@@ -39,9 +44,9 @@ export async function createMeeting(userId, data) {
     hostId: userId,
     code,
     type: data.type || "INSTANT",
-    status: data.type === "SCHEDULED" ? "SCHEDULED" : "LIVE",
+    status: data.type === "SCHEDULED" || data.type === "RECURRING" ? "SCHEDULED" : "LIVE",
     scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
-    startedAt: data.type !== "SCHEDULED" ? new Date() : null,
+    startedAt: data.type !== "SCHEDULED" && data.type !== "RECURRING" ? new Date() : null,
     maxParticipants: data.maxParticipants || MeetingConfig.DEFAULT_MAX_PARTICIPANTS,
     settings: data.settings || {},
   };
@@ -52,7 +57,7 @@ export async function createMeeting(userId, data) {
 
   const meeting = await prisma.meeting.create({
     data: meetingData,
-    include: { host: { select: { id: true, fullName: true, avatar: true } } },
+    include: { host: { select: { id: true, fullName: true, avatar: true, email: true } } },
   });
 
   // Auto-join host as HOST participant for instant meetings
@@ -62,10 +67,18 @@ export async function createMeeting(userId, data) {
     });
   }
 
+  // Handle email invites
+  if (data.inviteEmails?.length > 0) {
+    await sendMeetingInvites(meeting, data.inviteEmails, meeting.host);
+  }
+
   publishEvent(KafkaTopics.MEETING_EVENTS, meeting.id, { type: "meeting.created", meetingId: meeting.id, userId }).catch(() => {});
 
+  const meetingLink = getMeetingLink(code);
+  const deepLink = getMeetingDeepLink(code);
+
   log.info("Meeting created", { meetingId: meeting.id, code, type: meeting.type });
-  return { ...meeting, password: undefined };
+  return { ...meeting, password: undefined, meetingLink, deepLink };
 }
 
 // ── READ ─────────────────────────────────────────────────────────────────
@@ -360,4 +373,196 @@ export async function generateLiveKitToken(meetingId, userId) {
   });
 
   return { token, roomName: meetingId };
+}
+
+// ── MEETING INVITES ──────────────────────────────────────────────────────
+
+async function sendMeetingInvites(meeting, emails, host) {
+  const uniqueEmails = [...new Set(emails.map((e) => e.toLowerCase().trim()))];
+
+  for (const email of uniqueEmails) {
+    try {
+      // Check if user exists to link invite
+      const existingUser = await prisma.user.findUnique({ where: { email }, select: { id: true, fullName: true } });
+
+      const invite = await prisma.meetingInvite.upsert({
+        where: { meetingId_email: { meetingId: meeting.id, email } },
+        update: { status: "PENDING", sentAt: new Date() },
+        create: {
+          meetingId: meeting.id,
+          email,
+          userId: existingUser?.id || null,
+          status: "PENDING",
+        },
+      });
+
+      // Queue invite email
+      const meetingDate = meeting.scheduledAt
+        ? new Date(meeting.scheduledAt).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+        : "Now";
+      const meetingTime = meeting.scheduledAt
+        ? new Date(meeting.scheduledAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+        : "Instant";
+
+      await queueEmail("meeting-invite", email, {
+        title: meeting.title,
+        hostName: host.fullName,
+        inviteeName: existingUser?.fullName || email.split("@")[0],
+        inviteeId: existingUser?.id || null,
+        date: meetingDate,
+        time: meetingTime,
+        code: meeting.code,
+        meetingId: meeting.id,
+        inviteToken: invite.token,
+      }).catch((e) => log.warn("Failed to queue invite email", { email, error: e }));
+
+      // Send in-app notification if user exists
+      if (existingUser?.id) {
+        await queueNotification(
+          existingUser.id,
+          "MEETING_INVITE",
+          "Meeting Invitation",
+          `${host.fullName} invited you to "${meeting.title}"`,
+          { meetingId: meeting.id, meetingCode: meeting.code, inviteToken: invite.token },
+        ).catch(() => {});
+      }
+    } catch (e) {
+      log.warn("Failed to send invite", { email, meetingId: meeting.id, error: e });
+    }
+  }
+}
+
+export async function respondToInvite(token, userId, response) {
+  const invite = await prisma.meetingInvite.findUnique({ where: { token } });
+  if (!invite) throw new AppError("Invite not found", HttpStatus.NOT_FOUND);
+  if (invite.status !== "PENDING") throw new AppError("Invite already responded to", HttpStatus.BAD_REQUEST);
+
+  const status = response === "accept" ? "ACCEPTED" : "DECLINED";
+  await prisma.meetingInvite.update({
+    where: { id: invite.id },
+    data: { status, respondedAt: new Date(), userId: userId || invite.userId },
+  });
+
+  // Notify host
+  const meeting = await prisma.meeting.findUnique({ where: { id: invite.meetingId }, select: { hostId: true, title: true } });
+  if (meeting) {
+    const action = status === "ACCEPTED" ? "accepted" : "declined";
+    await queueNotification(
+      meeting.hostId,
+      status === "ACCEPTED" ? "INVITE_ACCEPTED" : "INVITE_DECLINED",
+      `Invite ${action}`,
+      `${invite.email} ${action} your invitation to "${meeting.title}"`,
+      { meetingId: invite.meetingId },
+    ).catch(() => {});
+  }
+
+  return { status };
+}
+
+export async function getMeetingInvites(meetingId, userId) {
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
+  if (meeting.hostId !== userId) throw new AppError("Only the host can view invites", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
+
+  return prisma.meetingInvite.findMany({
+    where: { meetingId },
+    orderBy: { sentAt: "desc" },
+  });
+}
+
+// ── MEETING MATERIALS ────────────────────────────────────────────────────
+
+export async function uploadMaterial(meetingId, userId, file) {
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
+
+  // Only host or active participants can upload
+  const isHost = meeting.hostId === userId;
+  if (!isHost) {
+    const participant = await prisma.participant.findUnique({
+      where: { meetingId_userId: { meetingId, userId } },
+    });
+    if (!participant || participant.leftAt) {
+      throw new AppError("You must be a participant to upload materials", HttpStatus.FORBIDDEN);
+    }
+  }
+
+  const uploaded = await uploadToCloudinary(file.buffer, file.originalname, `speakup/meetings/${meetingId}`);
+
+  const material = await prisma.meetingMaterial.create({
+    data: {
+      meetingId,
+      userId,
+      name: file.originalname,
+      url: uploaded.url,
+      type: file.mimetype,
+      sizeBytes: BigInt(uploaded.bytes || file.size || 0),
+    },
+    include: { user: { select: { id: true, fullName: true, avatar: true } } },
+  });
+
+  emitToMeeting(meetingId, SocketEvents.MEETING_UPDATED, {
+    type: "material.uploaded",
+    material: { ...material, sizeBytes: Number(material.sizeBytes) },
+  });
+
+  log.info("Material uploaded", { meetingId, materialId: material.id, name: file.originalname });
+  return { ...material, sizeBytes: Number(material.sizeBytes) };
+}
+
+export async function getMeetingMaterials(meetingId, userId) {
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
+
+  const materials = await prisma.meetingMaterial.findMany({
+    where: { meetingId },
+    include: { user: { select: { id: true, fullName: true, avatar: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return materials.map((m) => ({ ...m, sizeBytes: Number(m.sizeBytes) }));
+}
+
+export async function getMaterialById(materialId, userId) {
+  const material = await prisma.meetingMaterial.findUnique({
+    where: { id: materialId },
+    include: {
+      user: { select: { id: true, fullName: true, avatar: true } },
+      meeting: { select: { id: true, title: true, hostId: true } },
+    },
+  });
+
+  if (!material) throw new AppError("Material not found", HttpStatus.NOT_FOUND);
+  return { ...material, sizeBytes: Number(material.sizeBytes) };
+}
+
+export async function deleteMaterial(materialId, userId) {
+  const material = await prisma.meetingMaterial.findUnique({
+    where: { id: materialId },
+    include: { meeting: { select: { hostId: true } } },
+  });
+
+  if (!material) throw new AppError("Material not found", HttpStatus.NOT_FOUND);
+
+  // Only uploader or meeting host can delete
+  if (material.userId !== userId && material.meeting.hostId !== userId) {
+    throw new AppError("You can only delete your own materials", HttpStatus.FORBIDDEN);
+  }
+
+  // Delete from Cloudinary
+  try {
+    const publicId = material.url.split("/").slice(-2).join("/").split(".")[0];
+    await deleteFromCloudinary(publicId, "raw");
+  } catch (e) {
+    log.warn("Failed to delete material from Cloudinary", { materialId, error: e });
+  }
+
+  await prisma.meetingMaterial.delete({ where: { id: materialId } });
+
+  emitToMeeting(material.meetingId, SocketEvents.MEETING_UPDATED, {
+    type: "material.deleted",
+    materialId,
+  });
+
+  log.info("Material deleted", { materialId, meetingId: material.meetingId });
 }

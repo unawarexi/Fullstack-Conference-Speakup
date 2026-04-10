@@ -7,6 +7,7 @@ import { Queue, Worker } from "bullmq";
 import { env } from "../config/env.config.js";
 import { BullQueues } from "../config/constants.js";
 import { createLogger } from "../logs/logger.js";
+import { createRetryStrategy } from "../core/network/retry.js";
 
 const log = createLogger("BullMQ");
 
@@ -25,6 +26,8 @@ function getConnection() {
       port: parseInt(url.port, 10) || 6379,
       password: url.password || undefined,
       username: url.username || undefined,
+      maxRetriesPerRequest: null,
+      retryStrategy: createRetryStrategy({ maxRetries: 10, baseDelay: 500, maxDelay: 5000, label: "BullMQ Redis" }),
     };
   }
   return {
@@ -32,6 +35,8 @@ function getConnection() {
     port: env.REDIS_PORT,
     password: env.REDIS_PASSWORD || undefined,
     db: env.REDIS_DB,
+    maxRetriesPerRequest: null,
+    retryStrategy: createRetryStrategy({ maxRetries: 10, baseDelay: 500, maxDelay: 5000, label: "BullMQ Redis" }),
   };
 }
 

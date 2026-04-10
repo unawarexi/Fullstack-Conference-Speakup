@@ -6,6 +6,7 @@
 import Redis from "ioredis";
 import { env } from "../config/env.config.js";
 import { createLogger } from "../logs/logger.js";
+import { createRetryStrategy } from "../core/network/retry.js";
 
 const log = createLogger("Redis");
 
@@ -20,10 +21,7 @@ let isConnected = false;
 function createRedisClient(name = "main") {
   const commonOptions = {
     maxRetriesPerRequest: 3,
-    retryStrategy(times) {
-      if (times > 10) return null;
-      return Math.min(times * 200, 5000);
-    },
+    retryStrategy: createRetryStrategy({ maxRetries: 10, baseDelay: 200, maxDelay: 5000 }),
     lazyConnect: true,
     enableReadyCheck: true,
   };

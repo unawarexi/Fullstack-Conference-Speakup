@@ -38,3 +38,17 @@ export async function deleteNotification(req, res, next) {
     res.json({ success: true, message: "Notification deleted" });
   } catch (error) { next(error); }
 }
+
+export async function getPreferences(req, res, next) {
+  try {
+    const preferences = await notificationService.getNotificationPreference(req.user.id);
+    res.json({ success: true, data: { preferences } });
+  } catch (error) { next(error); }
+}
+
+export async function updatePreferences(req, res, next) {
+  try {
+    const preferences = await notificationService.updateNotificationPreference(req.user.id, req.body);
+    res.json({ success: true, data: { preferences } });
+  } catch (error) { next(error); }
+}

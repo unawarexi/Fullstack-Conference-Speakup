@@ -30,15 +30,18 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  accounts     Account[]
+  accounts       Account[]
   hostedMeetings Meeting[]  @relation("MeetingHost")
-  participants  Participant[]
-  chatMembers   ChatMember[]
-  messages      Message[]
-  recordings    Recording[]
-  notifications Notification[]
+  participants   Participant[]
+  chatMembers    ChatMember[]
+  messages       Message[]
+  recordings     Recording[]
+  notifications  Notification[]
   subscriptions  Subscription?
-  devices       Device[]
+  devices        Device[]
+  meetingInvites MeetingInvite[]
+  materials      MeetingMaterial[]
+  notificationPreference NotificationPreference?
 
   @@index([email])
   @@index([firebaseUid])
@@ -93,10 +96,12 @@ model Meeting {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  host         User          @relation("MeetingHost", fields: [hostId], references: [id])
+  host         User              @relation("MeetingHost", fields: [hostId], references: [id])
   participants Participant[]
   recordings   Recording[]
   chatRoom     ChatRoom?
+  invites      MeetingInvite[]
+  materials    MeetingMaterial[]
 
   @@index([hostId])
   @@index([code])
@@ -195,6 +200,71 @@ model Recording {
   @@index([meetingId])
   @@index([userId])
   @@map("recordings")
+}
+
+// ──────────── MEETING INVITES ────────────
+
+model MeetingInvite {
+  id        String       @id @default(cuid())
+  meetingId String       @map("meeting_id")
+  email     String       // invitee email
+  userId    String?      @map("user_id") // linked user (if registered)
+  status    InviteStatus @default(PENDING)
+  token     String       @unique @default(cuid()) // unique token for email link
+  sentAt    DateTime     @default(now()) @map("sent_at")
+  respondedAt DateTime?  @map("responded_at")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([meetingId, email])
+  @@index([meetingId])
+  @@index([email])
+  @@index([token])
+  @@map("meeting_invites")
+}
+
+// ──────────── MEETING MATERIALS ────────────
+
+model MeetingMaterial {
+  id        String   @id @default(cuid())
+  meetingId String   @map("meeting_id")
+  userId    String   @map("user_id") // who uploaded
+  name      String   // original file name
+  url       String   // Cloudinary / S3 URL
+  type      String   // MIME type
+  sizeBytes BigInt   @default(0) @map("size_bytes")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_materials")
+}
+
+// ──────────── NOTIFICATION PREFERENCES ────────────
+
+model NotificationPreference {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  pushEnabled      Boolean  @default(true)  @map("push_enabled")
+  emailDigest      Boolean  @default(true)  @map("email_digest")
+  calendarSync     Boolean  @default(false) @map("calendar_sync")
+  reminderMinutes  Int[]    @default([15, 5]) @map("reminder_minutes") // minutes before meeting
+  ringtone         String   @default("default")
+  vibration        Boolean  @default(true)
+  meetingInvites   Boolean  @default(true)  @map("meeting_invites")
+  meetingReminders Boolean  @default(true)  @map("meeting_reminders")
+  chatMessages     Boolean  @default(true)  @map("chat_messages")
+  recordingReady   Boolean  @default(true)  @map("recording_ready")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
 
 // ──────────── NOTIFICATIONS ────────────
@@ -298,7 +368,18 @@ enum NotificationType {
   MEETING_STARTED
   CHAT_MESSAGE
   RECORDING_READY
+  MEETING_CANCELLED
+  INVITE_ACCEPTED
+  INVITE_DECLINED
+  MATERIAL_SHARED
   SYSTEM
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
 }
 
 enum SubscriptionPlan {

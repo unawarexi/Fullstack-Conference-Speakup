@@ -105,3 +105,40 @@ async function sendPushToUser(userId, { title, body, data = {} }) {
     }
   } catch (_) { /* FCM failure is non-critical */ }
 }
+
+// ============================================================================
+// NOTIFICATION PREFERENCES
+// ============================================================================
+
+export async function getNotificationPreference(userId) {
+  let pref = await prisma.notificationPreference.findUnique({ where: { userId } });
+  if (!pref) {
+    pref = await prisma.notificationPreference.create({ data: { userId } });
+  }
+  return pref;
+}
+
+export async function updateNotificationPreference(userId, data) {
+  return prisma.notificationPreference.upsert({
+    where: { userId },
+    update: data,
+    create: { userId, ...data },
+  });
+}
+
+/**
+ * Check if a specific notification type is enabled for a user.
+ * Used internally before sending push/email notifications.
+ */
+export async function isNotificationEnabled(userId, type) {
+  const pref = await prisma.notificationPreference.findUnique({ where: { userId } });
+  if (!pref) return true; // default = all enabled
+
+  switch (type) {
+    case "MEETING_INVITE": return pref.meetingInvites;
+    case "MEETING_REMINDER": return pref.meetingReminders;
+    case "CHAT_MESSAGE": return pref.chatMessages;
+    case "RECORDING_READY": return pref.recordingReady;
+    default: return pref.pushEnabled;
+  }
+}

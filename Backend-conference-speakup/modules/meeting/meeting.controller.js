@@ -108,3 +108,50 @@ export async function getLiveKitToken(req, res, next) {
     res.json({ success: true, data });
   } catch (error) { next(error); }
 }
+
+export async function respondToInvite(req, res, next) {
+  try {
+    const result = await meetingService.respondToInvite(req.params.token, req.user?.id, req.body.response);
+    res.json({ success: true, data: result });
+  } catch (error) { next(error); }
+}
+
+export async function getMeetingInvites(req, res, next) {
+  try {
+    const invites = await meetingService.getMeetingInvites(req.params.id, req.user.id);
+    res.json({ success: true, data: { invites } });
+  } catch (error) { next(error); }
+}
+
+// ── Material Controllers ──
+
+export async function uploadMaterial(req, res, next) {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ success: false, message: "No file provided" });
+    }
+    const material = await meetingService.uploadMaterial(req.params.id, req.user.id, req.file);
+    res.status(201).json({ success: true, data: { material } });
+  } catch (error) { next(error); }
+}
+
+export async function getMeetingMaterials(req, res, next) {
+  try {
+    const materials = await meetingService.getMeetingMaterials(req.params.id, req.user.id);
+    res.json({ success: true, data: { materials } });
+  } catch (error) { next(error); }
+}
+
+export async function getMaterial(req, res, next) {
+  try {
+    const material = await meetingService.getMaterialById(req.params.materialId, req.user.id);
+    res.json({ success: true, data: { material } });
+  } catch (error) { next(error); }
+}
+
+export async function deleteMaterial(req, res, next) {
+  try {
+    await meetingService.deleteMaterial(req.params.materialId, req.user.id);
+    res.json({ success: true, message: "Material deleted" });
+  } catch (error) { next(error); }
+}
