@@ -203,7 +203,10 @@ KAFKA_BOOTSTRAP  := localhost:9092
 
 SPEAKUP_TOPICS := speakup.meeting.events speakup.participant.events speakup.chat.messages \
 	speakup.recording.events speakup.notification.events speakup.analytics.events \
-	speakup.user.events
+	speakup.user.events speakup.ai.transcription speakup.ai.live_insights \
+	speakup.ai.emotion_signals speakup.ai.coaching_hints speakup.ai.copilot_suggestions \
+	speakup.ai.meeting_summary speakup.ai.action_items speakup.ai.memory_updates \
+	speakup.ai.cv_analysis speakup.media.audio_chunks speakup.media.video_frames
 
 kafka-init: ## Format KRaft storage (run once on first setup)
 	@echo "$(CYAN)Generating cluster UUID and formatting KRaft storage...$(RESET)"
@@ -217,11 +220,18 @@ kafka-start: ## Start Kafka broker (KRaft mode, background)
 	else \
 		echo "$(CYAN)Starting Kafka (KRaft mode)...$(RESET)"; \
 		$(KAFKA_SERVER) -daemon $(KAFKA_CONFIG); \
-		sleep 5; \
-		if lsof -i :9092 -sTCP:LISTEN -t >/dev/null 2>&1; then \
-			echo "$(GREEN)✓ Kafka running on $(KAFKA_BOOTSTRAP)$(RESET)"; \
-		else \
-			echo "$(RED)✗ Kafka failed to start — check logs: $(KAFKA_LOG_DIR)/server.log$(RESET)"; \
+		TRIES=0; \
+		while [ $$TRIES -lt 12 ]; do \
+			sleep 2; \
+			TRIES=$$((TRIES + 1)); \
+			if lsof -i :9092 -sTCP:LISTEN -t >/dev/null 2>&1; then \
+				echo "$(GREEN)✓ Kafka running on $(KAFKA_BOOTSTRAP) (took $$((TRIES * 2))s)$(RESET)"; \
+				break; \
+			fi; \
+			echo "$(YELLOW)  waiting for Kafka... ($$((TRIES * 2))s)$(RESET)"; \
+		done; \
+		if ! lsof -i :9092 -sTCP:LISTEN -t >/dev/null 2>&1; then \
+			echo "$(RED)✗ Kafka failed to start after 24s — check logs: $(KAFKA_LOG_DIR)/server.log$(RESET)"; \
 		fi \
 	fi
 

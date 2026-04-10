@@ -45,7 +45,20 @@ export async function initKafka() {
   producer = kafka.producer();
   consumer = kafka.consumer({ groupId: env.KAFKA_GROUP_ID });
 
-  await producer.connect();
+  // Retry connection with backoff — group coordinator may not be ready yet
+  const MAX_RETRIES = 5;
+  const BASE_DELAY = 2000;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await producer.connect();
+      break;
+    } catch (err) {
+      if (attempt === MAX_RETRIES) throw err;
+      const delay = BASE_DELAY * attempt;
+      log.warn(`Kafka producer connect attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${delay}ms`, { error: err.message });
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
   isConnected = true;
 
   log.success("Kafka producer connected", { brokers, clientId: env.KAFKA_CLIENT_ID });
