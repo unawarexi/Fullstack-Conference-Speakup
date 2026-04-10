@@ -1909,7 +1909,7 @@ class _OptionToggle extends StatelessWidget {
                   HapticFeedback.selectionClick();
                   onTap();
                 },
-                activeColor: activeColor,
+                activeThumbColor: activeColor,
                 activeTrackColor: activeColor.withOpacity(0.3),
                 inactiveThumbColor: SColors.textDarkTertiary,
                 inactiveTrackColor: SColors.darkElevated,

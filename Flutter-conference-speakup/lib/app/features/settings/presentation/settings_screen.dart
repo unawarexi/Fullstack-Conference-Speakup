@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,12 +10,13 @@ import 'package:flutter_conference_speakup/core/constants/text_strings.dart';
 import 'package:flutter_conference_speakup/app/components/ui/card.dart';
 import 'package:flutter_conference_speakup/app/components/ui/bottom_sheet.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
-import 'package:flutter_conference_speakup/app/components/ui/input.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
 import 'package:flutter_conference_speakup/store/theme_provider.dart';
 import 'package:flutter_conference_speakup/store/settings_provider.dart';
 import 'package:flutter_conference_speakup/store/billing_provider.dart';
 import 'package:flutter_conference_speakup/store/user_provider.dart';
+import 'package:flutter_conference_speakup/app/features/settings/presentation/widgets/settings_section.dart';
+import 'package:flutter_conference_speakup/app/features/settings/presentation/widgets/edit_profile_content.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -29,6 +29,10 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final subscription = ref.watch(subscriptionProvider);
 
+    Future<void> onRefresh() async {
+      await ref.read(currentUserProvider.notifier).fetchProfile();
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -37,9 +41,13 @@ class SettingsScreen extends ConsumerWidget {
           color: isDark ? SColors.textDark : SColors.textLight,
         )),
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 96),
-        children: [
+      body: RefreshIndicator(
+        onRefresh: onRefresh,
+        color: SColors.primary,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 96),
+          children: [
           // ── Profile Card ──
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -135,45 +143,45 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: SSizes.sm),
 
           // ── AI Features ──
-          _SettingsSection(
+          SettingsSection(
             title: 'AI Features',
             children: [
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.auto_awesome_rounded,
                 iconBg: SColors.primary,
                 title: 'AI Copilot',
                 subtitle: 'Smart suggestions during meetings',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.aiCopilotEnabled,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiCopilot(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.subtitles_rounded,
                 iconBg: SColors.info,
                 title: 'Live Transcription',
                 subtitle: 'Real-time captions & transcript',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.aiTranscriptionEnabled,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiTranscription(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.record_voice_over_rounded,
                 iconBg: SColors.screenShare,
                 title: 'Speaking Coach',
                 subtitle: 'Pace, clarity & engagement hints',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.aiCoachingEnabled,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiCoaching(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.mic_rounded,
                 iconBg: SColors.success,
                 title: 'Voice Assistant',
                 subtitle: 'Voice commands in meetings',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.aiVoiceAssistantEnabled,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiVoiceAssistant(),
                 ),
@@ -182,30 +190,30 @@ class SettingsScreen extends ConsumerWidget {
           ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.05, end: 0),
 
           // ── General ──
-          _SettingsSection(
+          SettingsSection(
             title: 'General',
             children: [
-              _SettingsTile(
+              SettingsTile(
                 icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
                 iconBg: isDark ? SColors.blue800 : SColors.warning,
                 title: STexts.darkMode,
                 subtitle: themeMode == ThemeMode.dark ? 'On' : 'Off',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: themeMode == ThemeMode.dark,
                   onChanged: (_) => ref.read(themeModeProvider.notifier).toggleDarkMode(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.notifications_outlined,
                 iconBg: SColors.error,
                 title: STexts.notifications,
                 subtitle: settings.notificationsEnabled ? 'Enabled' : 'Disabled',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.notificationsEnabled,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleNotifications(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.language_rounded,
                 iconBg: SColors.info,
                 title: STexts.language,
@@ -216,35 +224,35 @@ class SettingsScreen extends ConsumerWidget {
           ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(begin: 0.05, end: 0),
 
           // ── Meeting Defaults ──
-          _SettingsSection(
+          SettingsSection(
             title: 'Meeting Defaults',
             children: [
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.videocam_outlined,
                 iconBg: SColors.success,
                 title: 'Camera',
                 subtitle: settings.cameraOnByDefault ? 'On by default' : 'Off by default',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.cameraOnByDefault,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleCameraDefault(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.mic_outlined,
                 iconBg: SColors.primary,
                 title: 'Microphone',
                 subtitle: settings.micOnByDefault ? 'On by default' : 'Off by default',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.micOnByDefault,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleMicDefault(),
                 ),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: SIcons.record,
                 iconBg: SColors.error,
                 title: 'Auto-Record',
                 subtitle: settings.autoRecordEnabled ? 'On' : 'Off',
-                trailing: _ToggleSwitch(
+                trailing: SettingsToggle(
                   value: settings.autoRecordEnabled,
                   onChanged: (_) => ref.read(settingsProvider.notifier).toggleAutoRecord(),
                 ),
@@ -253,16 +261,16 @@ class SettingsScreen extends ConsumerWidget {
           ).animate().fadeIn(duration: 300.ms, delay: 300.ms).slideY(begin: 0.05, end: 0),
 
           // ── Account ──
-          _SettingsSection(
+          SettingsSection(
             title: 'Account',
             children: [
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.security_rounded,
                 iconBg: SColors.screenShare,
                 title: 'Privacy & Security',
                 onTap: () => _showPrivacySheet(context, isDark),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.receipt_long_rounded,
                 iconBg: SColors.warning,
                 title: 'Subscription',
@@ -271,24 +279,24 @@ class SettingsScreen extends ConsumerWidget {
                       ? '${sub.plan.name[0].toUpperCase()}${sub.plan.name.substring(1)} plan'
                       : 'Free plan',
                   loading: () => 'Loading...',
-                  error: (_, __) => 'Free plan',
+                  error: (_, _) => 'Free plan',
                 ),
                 onTap: () => _showSubscriptionSheet(context, ref, isDark),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.info_outline_rounded,
                 iconBg: SColors.info,
                 title: STexts.about,
                 onTap: () => _showAboutDialog(context, isDark),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.delete_outline_rounded,
                 iconBg: SColors.error,
                 title: STexts.deleteAccount,
                 titleColor: SColors.error,
                 onTap: () => _handleDeleteAccount(context, ref, isDark),
               ),
-              _SettingsTile(
+              SettingsTile(
                 icon: Icons.logout_rounded,
                 iconBg: SColors.error,
                 title: STexts.logout,
@@ -314,12 +322,14 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: SSizes.lg),
         ],
       ),
+      ),
     );
   }
 
   Future<bool?> _showLogoutConfirmation(BuildContext context, bool isDark) {
     return showDialog<bool>(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
         shape: RoundedRectangleBorder(
@@ -391,7 +401,7 @@ class SettingsScreen extends ConsumerWidget {
     await SBottomSheet.show(
       context: context,
       title: 'Edit Profile',
-      child: _EditProfileContent(
+      child: EditProfileContent(
         nameController: nameController,
         bioController: bioController,
         onSave: () async {
@@ -427,6 +437,7 @@ class SettingsScreen extends ConsumerWidget {
   void _showLanguageInfo(BuildContext context, bool isDark) {
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
         shape: RoundedRectangleBorder(
@@ -462,19 +473,17 @@ class SettingsScreen extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _SheetActionTile(
+          SheetActionTile(
             icon: Icons.description_outlined,
             title: 'Terms of Service',
-            isDark: isDark,
             onTap: () {
               Navigator.pop(context);
               context.push('/terms');
             },
           ),
-          _SheetActionTile(
+          SheetActionTile(
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy Policy',
-            isDark: isDark,
             onTap: () {
               Navigator.pop(context);
               context.push('/privacy');
@@ -558,7 +567,7 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => Text(
+        error: (_, _) => Text(
           'Unable to load subscription info',
           style: TextStyle(color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary),
         ),
@@ -573,6 +582,7 @@ class SettingsScreen extends ConsumerWidget {
   void _showAboutDialog(BuildContext context, bool isDark) {
     showDialog(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
         shape: RoundedRectangleBorder(
@@ -661,6 +671,7 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref, bool isDark) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
         shape: RoundedRectangleBorder(
@@ -702,235 +713,5 @@ class SettingsScreen extends ConsumerWidget {
         }
       }
     }
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Settings Section
-// ─────────────────────────────────────────────
-class _SettingsSection extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-  const _SettingsSection({required this.title, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            SSizes.pagePadding, SSizes.lg, SSizes.pagePadding, SSizes.sm,
-          ),
-          child: Text(title, style: TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w600,
-            color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-            letterSpacing: 0.3,
-          )),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: SSizes.pagePadding),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? SColors.darkCard : SColors.lightCard,
-              borderRadius: BorderRadius.circular(SSizes.radiusMd),
-              border: Border.all(
-                color: isDark ? SColors.darkBorder : SColors.lightBorder,
-              ),
-            ),
-            child: Column(
-              children: [
-                for (var i = 0; i < children.length; i++) ...[
-                  children[i],
-                  if (i < children.length - 1)
-                    Divider(height: 1,
-                      color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                      indent: 56, endIndent: SSizes.md,
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Settings Tile
-// ─────────────────────────────────────────────
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-  final Color? titleColor;
-
-  const _SettingsTile({
-    required this.icon, required this.iconBg, required this.title,
-    this.subtitle, this.trailing, this.onTap, this.titleColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(SSizes.radiusMd),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: SSizes.md, vertical: SSizes.sm + 4,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: iconBg.withValues(alpha: isDark ? 0.2 : 0.1),
-                borderRadius: BorderRadius.circular(SSizes.radiusSm),
-              ),
-              child: Icon(icon, size: 18, color: iconBg),
-            ),
-            const SizedBox(width: SSizes.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w500,
-                    color: titleColor ?? (isDark ? SColors.textDark : SColors.textLight),
-                  )),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 1),
-                    Text(subtitle!, style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-                    )),
-                  ],
-                ],
-              ),
-            ),
-            trailing ?? Icon(Icons.chevron_right_rounded, size: 20,
-              color: isDark ? SColors.darkMuted : SColors.lightMuted),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Toggle Switch
-// ─────────────────────────────────────────────
-class _ToggleSwitch extends StatelessWidget {
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-  const _ToggleSwitch({required this.value, this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 28,
-      child: Switch.adaptive(
-        value: value,
-        onChanged: (v) {
-          HapticFeedback.lightImpact();
-          onChanged?.call(v);
-        },
-        activeColor: SColors.primary,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Edit Profile Content
-// ─────────────────────────────────────────────
-class _EditProfileContent extends StatefulWidget {
-  final TextEditingController nameController;
-  final TextEditingController bioController;
-  final VoidCallback onSave;
-
-  const _EditProfileContent({
-    required this.nameController,
-    required this.bioController,
-    required this.onSave,
-  });
-
-  @override
-  State<_EditProfileContent> createState() => _EditProfileContentState();
-}
-
-class _EditProfileContentState extends State<_EditProfileContent> {
-  bool _saving = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SInput(
-          controller: widget.nameController,
-          label: 'Full Name',
-          hint: 'Enter your name',
-        ),
-        const SizedBox(height: SSizes.md),
-        SInput(
-          controller: widget.bioController,
-          label: 'Bio',
-          hint: 'Tell us about yourself',
-          maxLines: 3,
-        ),
-        const SizedBox(height: SSizes.lg),
-        SButton(
-          text: _saving ? 'Saving...' : 'Save Changes',
-          onPressed: _saving
-              ? null
-              : () async {
-                  setState(() => _saving = true);
-                  widget.onSave();
-                },
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Sheet Action Tile
-// ─────────────────────────────────────────────
-class _SheetActionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _SheetActionTile({
-    required this.icon,
-    required this.title,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: SColors.primary, size: 22),
-      title: Text(title, style: TextStyle(
-        fontSize: 15, fontWeight: FontWeight.w500,
-        color: isDark ? SColors.textDark : SColors.textLight,
-      )),
-      trailing: Icon(Icons.chevron_right_rounded, size: 20,
-        color: isDark ? SColors.darkMuted : SColors.lightMuted),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(SSizes.radiusMd),
-      ),
-    );
   }
 }

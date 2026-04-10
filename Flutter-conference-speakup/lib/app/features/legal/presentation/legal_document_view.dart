@@ -27,12 +27,28 @@ class LegalDocumentView extends StatelessWidget {
       appBar: SAppBar(title: title, showBack: true),
       body: document.when(
         loading: () => const Center(child: CupertinoActivityIndicator()),
-        error: (error, _) => _ErrorView(
-          message: error.toString(),
-          onRetry: onRetry,
-          isDark: isDark,
+        error: (error, _) => RefreshIndicator(
+          onRefresh: () async { onRetry?.call(); },
+          color: SColors.primary,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: _ErrorView(
+                  message: error.toString(),
+                  onRetry: onRetry,
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
         ),
-        data: (doc) => _DocumentBody(document: doc, isDark: isDark),
+        data: (doc) => RefreshIndicator(
+          onRefresh: () async { onRetry?.call(); },
+          color: SColors.primary,
+          child: _DocumentBody(document: doc, isDark: isDark),
+        ),
       ),
     );
   }

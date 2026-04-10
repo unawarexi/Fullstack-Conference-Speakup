@@ -204,6 +204,10 @@ class _MeetingsList extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final meetingsAsync = ref.watch(meetingsProvider(status));
 
+    Future<void> onRefresh() async {
+      ref.invalidate(meetingsProvider(status));
+    }
+
     return meetingsAsync.when(
       data: (meetings) {
         final filtered = searchQuery.isEmpty
@@ -212,40 +216,74 @@ class _MeetingsList extends ConsumerWidget {
                 m.title.toLowerCase().contains(searchQuery.toLowerCase())).toList();
 
         if (filtered.isEmpty) {
-          return _EmptyMeetings(status: status, isDark: isDark);
+          return RefreshIndicator(
+            onRefresh: onRefresh,
+            color: SColors.primary,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.6,
+                  child: _EmptyMeetings(status: status, isDark: isDark),
+                ),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            SSizes.pagePadding, SSizes.md,
-            SSizes.pagePadding, SSizes.pagePadding + 96,
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          color: SColors.primary,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              SSizes.pagePadding, SSizes.md,
+              SSizes.pagePadding, SSizes.pagePadding + 96,
+            ),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index < filtered.length - 1 ? SSizes.sm : 0,
+                ),
+                child: _MeetingCard(
+                  meeting: filtered[index], isDark: isDark,
+                ).animate()
+                    .fadeIn(duration: 300.ms, delay: (index * 60).ms)
+                    .slideX(begin: 0.03, end: 0),
+              );
+            },
           ),
-          itemCount: filtered.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index < filtered.length - 1 ? SSizes.sm : 0,
-              ),
-              child: _MeetingCard(
-                meeting: filtered[index], isDark: isDark,
-              ).animate()
-                  .fadeIn(duration: 300.ms, delay: (index * 60).ms)
-                  .slideX(begin: 0.03, end: 0),
-            );
-          },
         );
       },
       loading: () => _LoadingSkeleton(isDark: isDark),
-      error: (_, __) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      error: (_, _) => RefreshIndicator(
+        onRefresh: onRefresh,
+        color: SColors.primary,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Icon(Icons.error_outline, size: 48,
-              color: isDark ? SColors.darkMuted : SColors.lightMuted),
-            const SizedBox(height: SSizes.md),
-            Text('Failed to load meetings', style: TextStyle(
-              color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-            )),
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48,
+                      color: isDark ? SColors.darkMuted : SColors.lightMuted),
+                    const SizedBox(height: SSizes.md),
+                    Text('Failed to load meetings', style: TextStyle(
+                      color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                    )),
+                    const SizedBox(height: SSizes.sm),
+                    Text('Pull down to retry', style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
+                    )),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
