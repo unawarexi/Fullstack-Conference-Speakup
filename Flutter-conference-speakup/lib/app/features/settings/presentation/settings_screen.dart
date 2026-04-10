@@ -3,13 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/text_strings.dart';
 import 'package:flutter_conference_speakup/app/components/ui/card.dart';
+import 'package:flutter_conference_speakup/app/components/ui/bottom_sheet.dart';
+import 'package:flutter_conference_speakup/app/components/ui/button.dart';
+import 'package:flutter_conference_speakup/app/components/ui/input.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
 import 'package:flutter_conference_speakup/store/theme_provider.dart';
+import 'package:flutter_conference_speakup/store/settings_provider.dart';
+import 'package:flutter_conference_speakup/store/billing_provider.dart';
+import 'package:flutter_conference_speakup/store/user_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -19,6 +26,8 @@ class SettingsScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = ref.watch(currentUserProvider).valueOrNull;
     final themeMode = ref.watch(themeModeProvider);
+    final settings = ref.watch(settingsProvider);
+    final subscription = ref.watch(subscriptionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,31 +46,53 @@ class SettingsScreen extends ConsumerWidget {
               horizontal: SSizes.pagePadding, vertical: SSizes.sm,
             ),
             child: SCard(
-              onTap: () {},
+              onTap: () => _showEditProfileSheet(context, ref, isDark),
               hasBorder: true,
               child: Row(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: SColors.primary.withValues(alpha: 0.2), width: 2,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: SSizes.avatarLg / 2,
-                      backgroundColor: isDark ? SColors.darkElevated : SColors.primarySurface,
-                      backgroundImage: user?.avatar != null ? NetworkImage(user!.avatar!) : null,
-                      child: user?.avatar == null
-                          ? Text(
-                              user?.fullName.isNotEmpty == true
-                                  ? user!.fullName[0].toUpperCase() : 'U',
-                              style: const TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.w700,
-                                color: SColors.primary,
+                  GestureDetector(
+                    onTap: () => _pickAvatar(context, ref),
+                    child: Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: SColors.primary.withValues(alpha: 0.2), width: 2,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: SSizes.avatarLg / 2,
+                            backgroundColor: isDark ? SColors.darkElevated : SColors.primarySurface,
+                            backgroundImage: user?.avatar != null ? NetworkImage(user!.avatar!) : null,
+                            child: user?.avatar == null
+                                ? Text(
+                                    user?.fullName.isNotEmpty == true
+                                        ? user!.fullName[0].toUpperCase() : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 22, fontWeight: FontWeight.w700,
+                                      color: SColors.primary,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0, right: 0,
+                          child: Container(
+                            width: 22, height: 22,
+                            decoration: BoxDecoration(
+                              color: SColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isDark ? SColors.darkCard : SColors.lightCard,
+                                width: 2,
                               ),
-                            )
-                          : null,
+                            ),
+                            child: const Icon(Icons.camera_alt_rounded, size: 11, color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: SSizes.md),
@@ -112,28 +143,40 @@ class SettingsScreen extends ConsumerWidget {
                 iconBg: SColors.primary,
                 title: 'AI Copilot',
                 subtitle: 'Smart suggestions during meetings',
-                trailing: _ToggleSwitch(value: true, onChanged: (_) {}),
+                trailing: _ToggleSwitch(
+                  value: settings.aiCopilotEnabled,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiCopilot(),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.subtitles_rounded,
                 iconBg: SColors.info,
                 title: 'Live Transcription',
                 subtitle: 'Real-time captions & transcript',
-                trailing: _ToggleSwitch(value: true, onChanged: (_) {}),
+                trailing: _ToggleSwitch(
+                  value: settings.aiTranscriptionEnabled,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiTranscription(),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.record_voice_over_rounded,
                 iconBg: SColors.screenShare,
                 title: 'Speaking Coach',
                 subtitle: 'Pace, clarity & engagement hints',
-                trailing: _ToggleSwitch(value: false, onChanged: (_) {}),
+                trailing: _ToggleSwitch(
+                  value: settings.aiCoachingEnabled,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiCoaching(),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.mic_rounded,
                 iconBg: SColors.success,
                 title: 'Voice Assistant',
                 subtitle: 'Voice commands in meetings',
-                trailing: _ToggleSwitch(value: true, onChanged: (_) {}),
+                trailing: _ToggleSwitch(
+                  value: settings.aiVoiceAssistantEnabled,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleAiVoiceAssistant(),
+                ),
               ),
             ],
           ).animate().fadeIn(duration: 300.ms, delay: 100.ms).slideY(begin: 0.05, end: 0),
@@ -156,15 +199,18 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.notifications_outlined,
                 iconBg: SColors.error,
                 title: STexts.notifications,
-                subtitle: 'Push & in-app notifications',
-                onTap: () {},
+                subtitle: settings.notificationsEnabled ? 'Enabled' : 'Disabled',
+                trailing: _ToggleSwitch(
+                  value: settings.notificationsEnabled,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleNotifications(),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.language_rounded,
                 iconBg: SColors.info,
                 title: STexts.language,
                 subtitle: 'English',
-                onTap: () {},
+                onTap: () => _showLanguageInfo(context, isDark),
               ),
             ],
           ).animate().fadeIn(duration: 300.ms, delay: 200.ms).slideY(begin: 0.05, end: 0),
@@ -177,22 +223,31 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.videocam_outlined,
                 iconBg: SColors.success,
                 title: 'Camera',
-                subtitle: 'On by default',
-                onTap: () {},
+                subtitle: settings.cameraOnByDefault ? 'On by default' : 'Off by default',
+                trailing: _ToggleSwitch(
+                  value: settings.cameraOnByDefault,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleCameraDefault(),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.mic_outlined,
                 iconBg: SColors.primary,
                 title: 'Microphone',
-                subtitle: 'On by default',
-                onTap: () {},
+                subtitle: settings.micOnByDefault ? 'On by default' : 'Off by default',
+                trailing: _ToggleSwitch(
+                  value: settings.micOnByDefault,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleMicDefault(),
+                ),
               ),
               _SettingsTile(
                 icon: SIcons.record,
                 iconBg: SColors.error,
                 title: 'Auto-Record',
-                subtitle: 'Off',
-                trailing: _ToggleSwitch(value: false, onChanged: (_) {}),
+                subtitle: settings.autoRecordEnabled ? 'On' : 'Off',
+                trailing: _ToggleSwitch(
+                  value: settings.autoRecordEnabled,
+                  onChanged: (_) => ref.read(settingsProvider.notifier).toggleAutoRecord(),
+                ),
               ),
             ],
           ).animate().fadeIn(duration: 300.ms, delay: 300.ms).slideY(begin: 0.05, end: 0),
@@ -205,20 +260,33 @@ class SettingsScreen extends ConsumerWidget {
                 icon: Icons.security_rounded,
                 iconBg: SColors.screenShare,
                 title: 'Privacy & Security',
-                onTap: () {},
+                onTap: () => _showPrivacySheet(context, isDark),
               ),
               _SettingsTile(
                 icon: Icons.receipt_long_rounded,
                 iconBg: SColors.warning,
                 title: 'Subscription',
-                subtitle: 'Free plan',
-                onTap: () {},
+                subtitle: subscription.when(
+                  data: (sub) => sub != null
+                      ? '${sub.plan.name[0].toUpperCase()}${sub.plan.name.substring(1)} plan'
+                      : 'Free plan',
+                  loading: () => 'Loading...',
+                  error: (_, __) => 'Free plan',
+                ),
+                onTap: () => _showSubscriptionSheet(context, ref, isDark),
               ),
               _SettingsTile(
                 icon: Icons.info_outline_rounded,
                 iconBg: SColors.info,
                 title: STexts.about,
-                onTap: () {},
+                onTap: () => _showAboutDialog(context, isDark),
+              ),
+              _SettingsTile(
+                icon: Icons.delete_outline_rounded,
+                iconBg: SColors.error,
+                title: STexts.deleteAccount,
+                titleColor: SColors.error,
+                onTap: () => _handleDeleteAccount(context, ref, isDark),
               ),
               _SettingsTile(
                 icon: Icons.logout_rounded,
@@ -266,7 +334,7 @@ class SettingsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(
+            child: Text(STexts.cancel, style: TextStyle(
               color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
             )),
           ),
@@ -277,6 +345,363 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Avatar Picker
+  // ─────────────────────────────────────────────
+
+  Future<void> _pickAvatar(BuildContext context, WidgetRef ref) async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+    if (image == null || !context.mounted) return;
+
+    try {
+      await ref.read(updateAvatarProvider)(image.path);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Avatar updated')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update avatar: $e')),
+        );
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  Edit Profile Sheet
+  // ─────────────────────────────────────────────
+
+  Future<void> _showEditProfileSheet(BuildContext context, WidgetRef ref, bool isDark) async {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user == null) return;
+
+    final nameController = TextEditingController(text: user.fullName);
+    final bioController = TextEditingController(text: user.bio ?? '');
+
+    await SBottomSheet.show(
+      context: context,
+      title: 'Edit Profile',
+      child: _EditProfileContent(
+        nameController: nameController,
+        bioController: bioController,
+        onSave: () async {
+          final name = nameController.text.trim();
+          final bio = bioController.text.trim();
+          if (name.isEmpty) return;
+
+          try {
+            await ref.read(updateProfileProvider)(
+              fullName: name,
+              bio: bio.isNotEmpty ? bio : null,
+            );
+            if (context.mounted) Navigator.pop(context);
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to update: $e')),
+              );
+            }
+          }
+        },
+      ),
+    );
+
+    nameController.dispose();
+    bioController.dispose();
+  }
+
+  // ─────────────────────────────────────────────
+  //  Language Info
+  // ─────────────────────────────────────────────
+
+  void _showLanguageInfo(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusLg),
+        ),
+        title: Text('Language', style: TextStyle(
+          color: isDark ? SColors.textDark : SColors.textLight,
+        )),
+        content: Text(
+          'English is the only supported language at this time. More languages coming soon.',
+          style: TextStyle(
+            color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(STexts.ok, style: TextStyle(color: SColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Privacy & Security Sheet
+  // ─────────────────────────────────────────────
+
+  void _showPrivacySheet(BuildContext context, bool isDark) {
+    SBottomSheet.show(
+      context: context,
+      title: 'Privacy & Security',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SheetActionTile(
+            icon: Icons.description_outlined,
+            title: 'Terms of Service',
+            isDark: isDark,
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/terms');
+            },
+          ),
+          _SheetActionTile(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Privacy Policy',
+            isDark: isDark,
+            onTap: () {
+              Navigator.pop(context);
+              context.push('/privacy');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Subscription Sheet
+  // ─────────────────────────────────────────────
+
+  void _showSubscriptionSheet(BuildContext context, WidgetRef ref, bool isDark) {
+    final subscription = ref.read(subscriptionProvider);
+
+    SBottomSheet.show(
+      context: context,
+      title: 'Subscription',
+      child: subscription.when(
+        data: (sub) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(SSizes.md),
+              decoration: BoxDecoration(
+                color: isDark ? SColors.darkElevated : SColors.lightElevated,
+                borderRadius: BorderRadius.circular(SSizes.radiusMd),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: SColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(SSizes.radiusSm),
+                    ),
+                    child: const Icon(Icons.diamond_rounded, color: SColors.primary),
+                  ),
+                  const SizedBox(width: SSizes.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sub != null
+                              ? '${sub.plan.name[0].toUpperCase()}${sub.plan.name.substring(1)} Plan'
+                              : 'Free Plan',
+                          style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600,
+                            color: isDark ? SColors.textDark : SColors.textLight,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          sub?.isPaid == true ? 'Active subscription' : 'Basic features included',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: SSizes.md),
+            if (sub == null || !sub.isPaid)
+              SButton(
+                text: 'Upgrade to Pro',
+                onPressed: () => Navigator.pop(context),
+              )
+            else
+              SButton(
+                text: 'Manage Subscription',
+                variant: SButtonVariant.outline,
+                onPressed: () => Navigator.pop(context),
+              ),
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => Text(
+          'Unable to load subscription info',
+          style: TextStyle(color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  About Dialog
+  // ─────────────────────────────────────────────
+
+  void _showAboutDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusLg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: SColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(SSizes.radiusSm),
+              ),
+              child: const Icon(Icons.video_chat_rounded, color: SColors.primary, size: 22),
+            ),
+            const SizedBox(width: SSizes.sm),
+            Text(STexts.appName, style: TextStyle(
+              color: isDark ? SColors.textDark : SColors.textLight,
+            )),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(STexts.appTagline, style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w500,
+              color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+            )),
+            const SizedBox(height: SSizes.md),
+            _aboutRow('Version', '1.0.0', isDark),
+            _aboutRow('Platform', 'Flutter', isDark),
+            _aboutRow('Backend', 'Node.js + FastAPI', isDark),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/terms');
+            },
+            child: Text('Terms', style: TextStyle(
+              color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+            )),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/privacy');
+            },
+            child: Text('Privacy', style: TextStyle(
+              color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+            )),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(STexts.ok, style: TextStyle(color: SColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _aboutRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: SSizes.xs),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(
+            fontSize: 13, color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
+          )),
+          Text(value, style: TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w500,
+            color: isDark ? SColors.textDark : SColors.textLight,
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Delete Account
+  // ─────────────────────────────────────────────
+
+  Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref, bool isDark) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusLg),
+        ),
+        title: Text(STexts.deleteAccount, style: TextStyle(
+          color: SColors.error,
+        )),
+        content: Text(
+          'This will permanently delete your account and all associated data. This action cannot be undone.',
+          style: TextStyle(
+            color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(STexts.cancel, style: TextStyle(
+              color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+            )),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(STexts.delete, style: TextStyle(color: SColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(currentUserProvider.notifier).deleteAccount();
+        if (context.mounted) context.go('/login');
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete account: $e')),
+          );
+        }
+      }
+    }
   }
 }
 
@@ -418,6 +843,93 @@ class _ToggleSwitch extends StatelessWidget {
         },
         activeColor: SColors.primary,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Edit Profile Content
+// ─────────────────────────────────────────────
+class _EditProfileContent extends StatefulWidget {
+  final TextEditingController nameController;
+  final TextEditingController bioController;
+  final VoidCallback onSave;
+
+  const _EditProfileContent({
+    required this.nameController,
+    required this.bioController,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditProfileContent> createState() => _EditProfileContentState();
+}
+
+class _EditProfileContentState extends State<_EditProfileContent> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SInput(
+          controller: widget.nameController,
+          label: 'Full Name',
+          hint: 'Enter your name',
+        ),
+        const SizedBox(height: SSizes.md),
+        SInput(
+          controller: widget.bioController,
+          label: 'Bio',
+          hint: 'Tell us about yourself',
+          maxLines: 3,
+        ),
+        const SizedBox(height: SSizes.lg),
+        SButton(
+          text: _saving ? 'Saving...' : 'Save Changes',
+          onPressed: _saving
+              ? null
+              : () async {
+                  setState(() => _saving = true);
+                  widget.onSave();
+                },
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Sheet Action Tile
+// ─────────────────────────────────────────────
+class _SheetActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _SheetActionTile({
+    required this.icon,
+    required this.title,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: SColors.primary, size: 22),
+      title: Text(title, style: TextStyle(
+        fontSize: 15, fontWeight: FontWeight.w500,
+        color: isDark ? SColors.textDark : SColors.textLight,
+      )),
+      trailing: Icon(Icons.chevron_right_rounded, size: 20,
+        color: isDark ? SColors.darkMuted : SColors.lightMuted),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(SSizes.radiusMd),
       ),
     );
   }
