@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
@@ -143,19 +144,7 @@ class _RailItem extends StatelessWidget {
 }
 
 // ═════════════════════════════════════════════
-//  MOBILE: Liquid Glass Island navigation
-//
-//  Layout:
-//    ┌───────────────────┐         ┌──────┐
-//    │  🏠  📹  💬       │  · · ·  │  ⚙️  │
-//    └───────────────────┘         └──────┘
-//       Glass Island (3)        Glass Satellite
-//
-//  The satellite (Settings) magnetically drifts
-//  toward the island when tapped, merges briefly,
-//  then the island absorbs it. When another tab
-//  is picked the satellite floats back out.
-//  Both surfaces use frosted liquid glass.
+//  MOBILE: Liquid Glass Island + Dissolving Satellite
 // ═════════════════════════════════════════════
 class _MobileNavigation extends StatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -167,38 +156,40 @@ class _MobileNavigation extends StatefulWidget {
 
 class _MobileNavigationState extends State<_MobileNavigation>
     with TickerProviderStateMixin {
-  late AnimationController _mergeController;
-  late Animation<double> _mergeAnim;
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnim;
+  // Controls the satellite dissolve/reconstitute
+  late AnimationController _dissolveCtrl;
+  // Controls the island width expansion when settings merges in
+  late AnimationController _expandCtrl;
 
-  bool _isMerged = false;
   late int _currentIndex;
+  late int _previousIndex;
+
+  static const _items = [
+    _NavItemData(SIcons.home, SIcons.homeFilled, 'Home'),
+    _NavItemData(SIcons.meetings, SIcons.meetingsFilled, 'Meetings'),
+    _NavItemData(SIcons.chat, SIcons.chatFilled, 'Chat'),
+  ];
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.navigationShell.currentIndex;
+    _previousIndex = _currentIndex;
 
-    _mergeController = AnimationController(
+    _dissolveCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _mergeAnim = CurvedAnimation(
-      parent: _mergeController,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeInCubic,
+      duration: const Duration(milliseconds: 350),
     );
 
-    _pulseController = AnimationController(
+    _expandCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+      duration: const Duration(milliseconds: 400),
     );
 
-    _syncMergeState(animate: false);
+    if (_currentIndex == 3) {
+      _dissolveCtrl.value = 1.0;
+      _expandCtrl.value = 1.0;
+    }
   }
 
   @override
@@ -206,73 +197,62 @@ class _MobileNavigationState extends State<_MobileNavigation>
     super.didUpdateWidget(old);
     final newIndex = widget.navigationShell.currentIndex;
     if (newIndex != _currentIndex) {
+      _previousIndex = _currentIndex;
       setState(() => _currentIndex = newIndex);
-      _syncMergeState();
+      _animateTransition();
     }
   }
 
-  void _syncMergeState({bool animate = true}) {
-    final isSettingsActive = _currentIndex == 3;
-    if (isSettingsActive && !_isMerged) {
-      _isMerged = true;
-      if (animate) {
-        _mergeController.forward();
-      } else {
-        _mergeController.value = 1.0;
-      }
-      _pulseController.stop();
-      _pulseController.value = 0;
-    } else if (!isSettingsActive && _isMerged) {
-      _isMerged = false;
-      if (animate) {
-        _mergeController.reverse();
-      } else {
-        _mergeController.value = 0.0;
-      }
+  void _animateTransition() {
+    if (_currentIndex == 3) {
+      // Dissolve satellite → expand island
+      _dissolveCtrl.forward().then((_) {
+        if (mounted) _expandCtrl.forward();
+      });
+    } else if (_previousIndex == 3) {
+      // Shrink island → reconstitute satellite
+      _expandCtrl.reverse().then((_) {
+        if (mounted) _dissolveCtrl.reverse();
+      });
     }
   }
 
   void _onTap(int index) {
     if (index == _currentIndex) return;
+    HapticFeedback.selectionClick();
+    _previousIndex = _currentIndex;
     setState(() => _currentIndex = index);
-    _syncMergeState();
+    _animateTransition();
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
     );
   }
 
-  void _onSatelliteLongPress() {
-    _pulseController.forward(from: 0).then((_) {
-      if (mounted) _pulseController.reverse();
-    });
-  }
-
   @override
   void dispose() {
-    _mergeController.dispose();
-    _pulseController.dispose();
+    _dissolveCtrl.dispose();
+    _expandCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Stack(
         children: [
-          // ── Page content ──
           Positioned.fill(child: widget.navigationShell),
 
-          // ── Glass navigation island ──
+          // ── Navigation bar ──
           Positioned(
             left: SSizes.pagePadding,
             right: SSizes.pagePadding,
             bottom: MediaQuery.of(context).padding.bottom + SSizes.md,
             child: AnimatedBuilder(
-              animation: _mergeAnim,
-              builder: (context, _) {
-                return _buildGlassIslandBar(context, _currentIndex);
-              },
+              animation: Listenable.merge([_dissolveCtrl, _expandCtrl]),
+              builder: (context, _) => _buildBar(isDark),
             ),
           ),
         ],
@@ -280,177 +260,265 @@ class _MobileNavigationState extends State<_MobileNavigation>
     );
   }
 
-  Widget _buildGlassIslandBar(BuildContext context, int currentIndex) {
-    final mergeVal = _mergeAnim.value;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildBar(bool isDark) {
+    final dissolve = CurvedAnimation(
+      parent: _dissolveCtrl,
+      curve: Curves.easeOutCubic,
+    ).value;
+    final expand = CurvedAnimation(
+      parent: _expandCtrl,
+      curve: Curves.easeOutCubic,
+    ).value;
 
-    // When merged: gap shrinks to 0, satellite joins the island
-    final gap = 12.0 * (1.0 - mergeVal);
+    // Satellite gap: 12 → 0 as it dissolves
+    final gap = 12.0 * (1.0 - dissolve);
+    // Satellite width: 64 → 0 so island can centre properly
+    final satWidth = 64.0 * (1.0 - dissolve);
+    // Satellite opacity
+    final satOpacity = (1.0 - dissolve).clamp(0.0, 1.0);
+
+    // How many items the island shows (3 base + settings when expanded)
+    final showSettingsInIsland = expand > 0.05;
+    final itemCount = showSettingsInIsland ? 4 : 3;
 
     return Row(
       children: [
-        // ── Main glass island (3 items, expands when merged) ──
+        // ── Main glass island ──
         Expanded(
-          child: GlassContainer(
-            height: 64,
-            shape: LiquidRoundedSuperellipse(borderRadius: SSizes.radiusXl + 8),
-            useOwnLayer: true,
-            quality: GlassQuality.standard,
-            settings: LiquidGlassSettings(
-              thickness: isDark ? 40 : 25,
-              blur: isDark ? 16 : 12,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _GlassIslandItem(
-                  icon: SIcons.home,
-                  activeIcon: SIcons.homeFilled,
-                  label: 'Home',
-                  isActive: currentIndex == 0,
-                  onTap: () => _onTap(0),
-                ),
-                _GlassIslandItem(
-                  icon: SIcons.meetings,
-                  activeIcon: SIcons.meetingsFilled,
-                  label: 'Meetings',
-                  isActive: currentIndex == 1,
-                  onTap: () => _onTap(1),
-                ),
-                _GlassIslandItem(
-                  icon: SIcons.chat,
-                  activeIcon: SIcons.chatFilled,
-                  label: 'Chat',
-                  isActive: currentIndex == 2,
-                  onTap: () => _onTap(2),
-                ),
-                // When merged, settings appears inside the glass island
-                if (mergeVal > 0.5)
-                  _GlassIslandItem(
-                    icon: SIcons.settings,
-                    activeIcon: SIcons.settingsFilled,
-                    label: 'Settings',
-                    isActive: currentIndex == 3,
-                    onTap: () => _onTap(3),
-                  ),
-              ],
-            ),
+          child: _GlassIsland(
+            isDark: isDark,
+            currentIndex: _currentIndex,
+            previousIndex: _previousIndex,
+            itemCount: itemCount,
+            items: _items,
+            showSettings: showSettingsInIsland,
+            settingsOpacity: expand,
+            onTap: _onTap,
           ),
         ),
 
-        // ── Gap ──
+        // ── Gap (animates to 0) ──
         SizedBox(width: gap),
 
-        // ── Glass satellite (Settings) ──
-        if (mergeVal < 0.5)
-          GestureDetector(
-            onTap: () => _onTap(3),
-            onLongPress: _onSatelliteLongPress,
-            child: ScaleTransition(
-              scale: _pulseAnim,
-              child: GlassContainer(
-                width: 64,
-                height: 64,
-                shape: LiquidRoundedSuperellipse(borderRadius: SSizes.radiusXl),
-                useOwnLayer: true,
-                quality: GlassQuality.standard,
-                settings: LiquidGlassSettings(
-                  thickness: currentIndex == 3
-                      ? (isDark ? 55 : 40)
-                      : (isDark ? 40 : 25),
-                  blur: isDark ? 16 : 12,
-                ),
-                child: Center(
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: SSizes.animNormal),
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: currentIndex == 3
-                          ? SColors.primary.withValues(alpha: 0.25)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(SSizes.radiusMd),
-                    ),
-                    child: Icon(
-                      currentIndex == 3 ? SIcons.settingsFilled : SIcons.settings,
-                      color: currentIndex == 3
-                          ? SColors.primary
-                          : (isDark ? SColors.darkMuted : SColors.lightMuted),
-                      size: SSizes.iconMd,
-                    ),
-                  ),
-                ),
+        // ── Satellite (width collapses so island stays centered) ──
+        SizedBox(
+          width: satWidth,
+          height: 64,
+          child: Opacity(
+            opacity: satOpacity,
+            child: IgnorePointer(
+              ignoring: dissolve > 0.5,
+              child: GestureDetector(
+                onTap: () => _onTap(3),
+                child: satWidth > 8
+                    ? GlassContainer(
+                        width: satWidth,
+                        height: 64,
+                        shape: LiquidRoundedSuperellipse(
+                          borderRadius: SSizes.radiusXl,
+                        ),
+                        useOwnLayer: true,
+                        quality: GlassQuality.standard,
+                        settings: LiquidGlassSettings(
+                          thickness: isDark ? 40 : 25,
+                          blur: isDark ? 16 : 12,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            SIcons.settings,
+                            color: isDark
+                                ? SColors.darkMuted
+                                : SColors.lightMuted,
+                            size: SSizes.iconMd,
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ),
           ),
+        ),
       ],
     );
   }
 }
 
 // ─────────────────────────────────────────────
-//  Glass island nav item with active indicator pill
+//  Glass Island with snake-style sliding pill
 // ─────────────────────────────────────────────
-class _GlassIslandItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
+class _GlassIsland extends StatelessWidget {
+  final bool isDark;
+  final int currentIndex;
+  final int previousIndex;
+  final int itemCount;
+  final List<_NavItemData> items;
+  final bool showSettings;
+  final double settingsOpacity;
+  final ValueChanged<int> onTap;
 
-  const _GlassIslandItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isActive,
+  const _GlassIsland({
+    required this.isDark,
+    required this.currentIndex,
+    required this.previousIndex,
+    required this.itemCount,
+    required this.items,
+    required this.showSettings,
+    required this.settingsOpacity,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isActive
-        ? SColors.primary
-        : (isDark ? SColors.darkMuted : SColors.lightMuted);
+    return GlassContainer(
+      height: 64,
+      shape: LiquidRoundedSuperellipse(borderRadius: SSizes.radiusXl + 8),
+      useOwnLayer: true,
+      quality: GlassQuality.standard,
+      settings: LiquidGlassSettings(
+        thickness: isDark ? 40 : 25,
+        blur: isDark ? 16 : 12,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth = constraints.maxWidth;
+          final slotWidth = totalWidth / itemCount;
+          // The active pill index (settings = 3 maps to slot 3)
+          final activeSlot = currentIndex < itemCount ? currentIndex : -1;
+
+          // Pill sizing: fill the slot with small horizontal inset
+          const pillHInset = 6.0;
+          const pillVInset = 6.0;
+          final pillWidth = slotWidth - pillHInset * 2;
+          const pillHeight = 64.0 - pillVInset * 2;
+
+          return Stack(
+            children: [
+              // ── Glassmorphic sliding pill (Apple-style) ──
+              if (activeSlot >= 0)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeOutCubic,
+                  left: slotWidth * activeSlot + pillHInset,
+                  top: pillVInset,
+                  child: GlassContainer(
+                    width: pillWidth,
+                    height: pillHeight,
+                    shape: LiquidRoundedSuperellipse(
+                      borderRadius: SSizes.radiusFull,
+                    ),
+                    useOwnLayer: true,
+                    quality: GlassQuality.standard,
+                    settings: LiquidGlassSettings(
+                      thickness: isDark ? 55 : 35,
+                      blur: isDark ? 14 : 10,
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+
+              // ── Nav items ──
+              Row(
+                children: [
+                  for (int i = 0; i < items.length; i++)
+                    Expanded(
+                      child: _IslandItem(
+                        data: items[i],
+                        isActive: currentIndex == i,
+                        isDark: isDark,
+                        onTap: () => onTap(i),
+                      ),
+                    ),
+                  // Settings slot (animated in/out via opacity)
+                  if (showSettings)
+                    Expanded(
+                      child: Opacity(
+                        opacity: settingsOpacity.clamp(0.0, 1.0),
+                        child: _IslandItem(
+                          data: const _NavItemData(
+                            SIcons.settings,
+                            SIcons.settingsFilled,
+                            'Settings',
+                          ),
+                          isActive: currentIndex == 3,
+                          isDark: isDark,
+                          onTap: () => onTap(3),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Individual nav item (no colored background — the
+//  snake pill slides behind the active one)
+// ─────────────────────────────────────────────
+class _IslandItem extends StatelessWidget {
+  final _NavItemData data;
+  final bool isActive;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _IslandItem({
+    required this.data,
+    required this.isActive,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = isDark ? SColors.textDark : SColors.primary;
+    final inactiveColor = isDark ? SColors.darkMuted : SColors.lightMuted;
+    final color = isActive ? activeColor : inactiveColor;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 56,
         height: 64,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: Duration(milliseconds: SSizes.animNormal),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? SColors.primary.withValues(alpha: isDark ? 0.20 : 0.14)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(SSizes.radiusFull),
-              ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
               child: Icon(
-                isActive ? activeIcon : icon,
+                isActive ? data.activeIcon : data.icon,
+                key: ValueKey(isActive),
                 color: color,
                 size: isActive ? 22 : 20,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             AnimatedDefaultTextStyle(
-              duration: Duration(milliseconds: SSizes.animFast),
+              duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 9,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 color: color,
               ),
-              child: Text(label),
+              child: Text(data.label),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+// ─────────────────────────────────────────────
+//  Nav item data tuple
+// ─────────────────────────────────────────────
+class _NavItemData {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  const _NavItemData(this.icon, this.activeIcon, this.label);
 }
