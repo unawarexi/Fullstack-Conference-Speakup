@@ -10,20 +10,36 @@ import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/app/components/ui/card.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
+import 'package:flutter_conference_speakup/app/components/shapes/shapes.dart';
 import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch fresh profile from backend on home load
+    Future.microtask(() {
+      ref.read(currentUserProvider.notifier).fetchProfile();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isMobile = SResponsive.isMobile(context);
     final navPadding = isMobile ? 96.0 : 0.0;
-    final user = ref.watch(currentUserProvider).valueOrNull;
+    final userAsync = ref.watch(currentUserProvider);
+    final user = userAsync.valueOrNull;
     final upcomingMeetings = ref.watch(meetingsProvider(null));
     final greeting = _greeting();
 
@@ -32,7 +48,7 @@ class HomeScreen extends ConsumerWidget {
         slivers: [
           // ── Collapsing Header ──
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 240,
             floating: false,
             pinned: true,
             automaticallyImplyLeading: false,
@@ -40,11 +56,13 @@ class HomeScreen extends ConsumerWidget {
             surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.parallax,
-              background: _HeaderGradient(
+              background: _HeaderHero(
                 isDark: isDark,
                 greeting: greeting,
-                userName: user?.fullName.split(' ').first ?? 'User',
+                userName: user?.fullName ?? '',
+                email: user?.email ?? '',
                 avatar: user?.avatar,
+                isLoading: userAsync.isLoading,
               ),
             ),
             title: Text(
@@ -203,98 +221,247 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Header Gradient with Avatar & Greeting
+//  Header Hero — layered shapes + orbs + user data
 // ─────────────────────────────────────────────
-class _HeaderGradient extends StatelessWidget {
+class _HeaderHero extends StatelessWidget {
   final bool isDark;
   final String greeting;
   final String userName;
+  final String email;
   final String? avatar;
+  final bool isLoading;
 
-  const _HeaderGradient({
-    required this.isDark, required this.greeting,
-    required this.userName, this.avatar,
+  const _HeaderHero({
+    required this.isDark,
+    required this.greeting,
+    required this.userName,
+    this.email = '',
+    this.avatar,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [SColors.primary.withValues(alpha: 0.15), SColors.darkBg]
-              : [SColors.primary.withValues(alpha: 0.08), SColors.lightBg],
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            SSizes.pagePadding, SSizes.xxl + SSizes.md,
-            SSizes.pagePadding, SSizes.lg,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(greeting, style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                    )),
-                    const SizedBox(height: SSizes.xs),
-                    Text(userName, style: TextStyle(
-                      fontSize: 28, fontWeight: FontWeight.w700,
-                      color: isDark ? SColors.textDark : SColors.textLight,
-                      letterSpacing: -0.5,
-                    )),
-                    const SizedBox(height: SSizes.xs),
-                    Text(
-                      DateFormat('EEEE, MMMM d').format(DateTime.now()),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-                      ),
-                    ),
-                  ],
+    final firstName = userName.isNotEmpty
+        ? userName.split(' ').first
+        : '';
+
+    return ClipPath(
+      clipper: SLiquidClipper(intensity: 1.2),
+      child: Stack(
+        children: [
+          // ── Base gradient ──
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  stops: const [0.0, 0.5, 1.0],
+                  colors: isDark
+                      ? [
+                          SColors.primary.withValues(alpha: 0.18),
+                          SColors.screenShare.withValues(alpha: 0.06),
+                          SColors.darkBg,
+                        ]
+                      : [
+                          SColors.primary.withValues(alpha: 0.10),
+                          SColors.blue50.withValues(alpha: 0.6),
+                          SColors.lightBg,
+                        ],
                 ),
               ),
-              const SizedBox(width: SSizes.md),
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: SColors.primary.withValues(alpha: 0.3), width: 2.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: SColors.primary.withValues(alpha: 0.2),
-                      blurRadius: 20, spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: SSizes.avatarLg / 2,
-                  backgroundColor: isDark ? SColors.darkElevated : SColors.primarySurface,
-                  backgroundImage: avatar != null ? NetworkImage(avatar!) : null,
-                  child: avatar == null
-                      ? Text(
-                          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                          style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w700,
-                            color: SColors.primary,
+            ),
+          ),
+
+          // ── Swoosh accent curves ──
+          Positioned.fill(
+            child: CustomPaint(
+              painter: SSwooshPainter(
+                colors: [SColors.primary, SColors.screenShare],
+                isDark: isDark,
+                intensity: 0.8,
+              ),
+            ),
+          ),
+
+          // ── Floating orbs ──
+          Positioned.fill(
+            child: CustomPaint(
+              painter: SOrbFieldPainter(
+                colors: [
+                  SColors.primary,
+                  SColors.screenShare,
+                  SColors.success,
+                ],
+                orbCount: 4,
+                isDark: isDark,
+                seed: 77,
+              ),
+            ),
+          ),
+
+          // ── Corner arc glow ──
+          Positioned.fill(
+            child: CustomPaint(
+              painter: SCornerArcPainter(
+                color: SColors.primary,
+                radius: 180,
+                corner: CornerPosition.topRight,
+              ),
+            ),
+          ),
+
+          // ── Dot Grid overlay ──
+          Positioned.fill(
+            child: CustomPaint(
+              painter: SDotGridPainter(
+                dotColor: isDark
+                    ? SColors.primary.withValues(alpha: 0.06)
+                    : SColors.primary.withValues(alpha: 0.04),
+                spacing: 28,
+                dotRadius: 0.8,
+              ),
+            ),
+          ),
+
+          // ── Grain texture ──
+          Positioned.fill(
+            child: CustomPaint(
+              painter: SGrainPainter(opacity: isDark ? 0.025 : 0.015),
+            ),
+          ),
+
+          // ── Content ──
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                SSizes.pagePadding, SSizes.xxl + SSizes.md,
+                SSizes.pagePadding, SSizes.lg + 20,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(greeting, style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? SColors.textDarkSecondary
+                              : SColors.textLightSecondary,
+                          letterSpacing: 0.2,
+                        )),
+                        const SizedBox(height: SSizes.xs),
+                        if (isLoading && firstName.isEmpty)
+                          _NameSkeleton(isDark: isDark)
+                        else
+                          Text(
+                            firstName.isNotEmpty ? firstName : 'Welcome',
+                            style: TextStyle(
+                              fontSize: 28, fontWeight: FontWeight.w700,
+                              color: isDark ? SColors.textDark : SColors.textLight,
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                        )
-                      : null,
-                ),
+                        const SizedBox(height: SSizes.xs),
+                        Text(
+                          DateFormat('EEEE, MMMM d').format(DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark
+                                ? SColors.textDarkTertiary
+                                : SColors.textLightTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: SSizes.md),
+                  // Avatar with ripple rings behind it
+                  SizedBox(
+                    width: SSizes.avatarLg + 24,
+                    height: SSizes.avatarLg + 24,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Ripple rings behind avatar
+                        CustomPaint(
+                          size: Size(SSizes.avatarLg + 24, SSizes.avatarLg + 24),
+                          painter: SRippleRingsPainter(
+                            color: SColors.primary,
+                            ringCount: 3,
+                            maxRadius: (SSizes.avatarLg + 24) / 2,
+                            strokeWidth: 0.8,
+                          ),
+                        ),
+                        // Avatar
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: SColors.primary.withValues(alpha: 0.4),
+                              width: 2.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: SColors.primary.withValues(alpha: 0.25),
+                                blurRadius: 24, spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: SSizes.avatarLg / 2,
+                            backgroundColor: isDark
+                                ? SColors.darkElevated
+                                : SColors.primarySurface,
+                            backgroundImage: avatar != null
+                                ? NetworkImage(avatar!)
+                                : null,
+                            child: avatar == null
+                                ? Text(
+                                    firstName.isNotEmpty
+                                        ? firstName[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      fontSize: 22, fontWeight: FontWeight.w700,
+                                      color: SColors.primary,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+}
+
+/// Skeleton placeholder for the user's name while loading.
+class _NameSkeleton extends StatelessWidget {
+  final bool isDark;
+  const _NameSkeleton({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 120, height: 28,
+      decoration: BoxDecoration(
+        color: isDark ? SColors.darkElevated : SColors.lightElevated,
+        borderRadius: BorderRadius.circular(SSizes.radiusSm),
+      ),
+    ).animate(onPlay: (c) => c.repeat()).shimmer(
+      duration: 1200.ms,
+      color: (isDark ? SColors.darkCard : SColors.lightBorder)
+          .withValues(alpha: 0.6),
     );
   }
 }
