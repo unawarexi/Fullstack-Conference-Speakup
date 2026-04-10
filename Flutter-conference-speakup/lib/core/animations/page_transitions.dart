@@ -20,7 +20,7 @@ class SAnimations {
       CustomTransitionPage<T>(
         key: state.pageKey,
         child: child,
-        transitionsBuilder: (_, animation, __, widget) =>
+        transitionsBuilder: (_, animation, _, widget) =>
             FadeTransition(opacity: animation, child: widget),
       );
 
@@ -32,7 +32,7 @@ class SAnimations {
       CustomTransitionPage<T>(
         key: state.pageKey,
         child: child,
-        transitionsBuilder: (_, animation, __, widget) {
+        transitionsBuilder: (_, animation, _, widget) {
           final tween =
               Tween(begin: const Offset(0, 1), end: Offset.zero)
                   .chain(CurveTween(curve: defaultCurve));

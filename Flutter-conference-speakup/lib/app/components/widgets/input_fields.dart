@@ -67,7 +67,7 @@ class _SPasswordFieldState extends State<SPasswordField> {
         ),
         suffixIcon: CupertinoButton(
           padding: const EdgeInsets.only(right: SSizes.sm),
-          minSize: 0,
+          minimumSize: Size.zero,
           onPressed: () => setState(() => _obscure = !_obscure),
           child: Icon(
             _obscure ? CupertinoIcons.eye_slash : CupertinoIcons.eye,

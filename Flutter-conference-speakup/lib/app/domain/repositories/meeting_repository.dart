@@ -1,7 +1,10 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter_conference_speakup/core/network/api_client.dart';
 import 'package:flutter_conference_speakup/core/apis/endpoints.dart';
 import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
 import 'package:flutter_conference_speakup/app/domain/models/participant_model.dart';
+import 'package:flutter_conference_speakup/app/domain/models/material_model.dart';
 
 class MeetingRepository {
   final _api = ApiClient.instance;
@@ -12,7 +15,7 @@ class MeetingRepository {
     int limit = 20,
   }) async {
     final res = await _api.get(ApiEndpoints.meetings, queryParameters: {
-      if (status != null) 'status': status,
+      'status': ?status,
       'page': page,
       'limit': limit,
     });
@@ -44,7 +47,7 @@ class MeetingRepository {
 
   Future<MeetingModel> join(String meetingId, {String? password}) async {
     final res = await _api.post(ApiEndpoints.joinMeeting(meetingId), data: {
-      if (password != null) 'password': password,
+      'password': ?password,
     });
     return MeetingModel.fromJson(res.data['data']);
   }
@@ -75,4 +78,39 @@ class MeetingRepository {
     final res = await _api.get(ApiEndpoints.meetingToken(meetingId));
     return res.data['data']['token'] as String;
   }
+
+  // ──────────── Materials ────────────
+
+  Future<MeetingMaterialModel> uploadMaterial(
+    String meetingId,
+    File file, {
+    void Function(int, int)? onProgress,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+      ),
+    });
+    final res = await _api.upload(
+      ApiEndpoints.meetingMaterials(meetingId),
+      formData: formData,
+      onSendProgress: onProgress,
+    );
+    return MeetingMaterialModel.fromJson(res.data['data']['material']);
+  }
+
+  Future<List<MeetingMaterialModel>> getMaterials(String meetingId) async {
+    final res = await _api.get(ApiEndpoints.meetingMaterials(meetingId));
+    final list = res.data['data']['materials'] as List;
+    return list.map((e) => MeetingMaterialModel.fromJson(e)).toList();
+  }
+
+  Future<MeetingMaterialModel> getMaterialById(String materialId) async {
+    final res = await _api.get(ApiEndpoints.material(materialId));
+    return MeetingMaterialModel.fromJson(res.data['data']['material']);
+  }
+
+  Future<void> deleteMaterial(String materialId) =>
+      _api.delete(ApiEndpoints.material(materialId));
 }

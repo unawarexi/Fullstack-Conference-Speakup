@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -71,7 +72,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage/Photos permission denied: ${storagePermission.message}');
+      debugPrint('Storage/Photos permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -96,7 +97,7 @@ class FilePickerWithPermissions {
     final cameraPermission = await _requestCameraPermission();
 
     if (!cameraPermission.isGranted) {
-      print('Camera permission denied: ${cameraPermission.message}');
+      debugPrint('Camera permission denied: ${cameraPermission.message}');
       if (cameraPermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -120,7 +121,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -155,7 +156,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -177,7 +178,7 @@ class FilePickerWithPermissions {
     final cameraPermission = await _requestCameraPermission();
 
     if (!cameraPermission.isGranted) {
-      print('Camera permission denied: ${cameraPermission.message}');
+      debugPrint('Camera permission denied: ${cameraPermission.message}');
       if (cameraPermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -198,7 +199,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -220,7 +221,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -242,7 +243,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -264,7 +265,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -290,7 +291,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -316,7 +317,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -339,7 +340,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }
@@ -367,7 +368,7 @@ class FilePickerWithPermissions {
     final storagePermission = await _requestStoragePermission();
 
     if (!storagePermission.isGranted) {
-      print('Storage permission denied: ${storagePermission.message}');
+      debugPrint('Storage permission denied: ${storagePermission.message}');
       if (storagePermission.status == PermissionStatus.permanentlyDenied) {
         await openAppSettings();
       }

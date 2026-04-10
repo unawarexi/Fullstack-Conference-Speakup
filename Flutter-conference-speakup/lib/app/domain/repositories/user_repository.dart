@@ -16,8 +16,8 @@ class UserRepository {
     String? bio,
   }) async {
     final res = await _api.put(ApiEndpoints.userProfile, data: {
-      if (fullName != null) 'fullName': fullName,
-      if (bio != null) 'bio': bio,
+      'fullName': ?fullName,
+      'bio': ?bio,
     });
     return UserModel.fromJson(res.data['data']);
   }

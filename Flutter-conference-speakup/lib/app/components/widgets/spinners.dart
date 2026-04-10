@@ -86,7 +86,7 @@ class _STypingIndicatorState extends State<STypingIndicator>
       children: List.generate(3, (i) {
         return AnimatedBuilder(
           listenable: _ctrl,
-          builder: (_, __) {
+          builder: (_, _) {
             final delay = i * 0.2;
             final value = (_ctrl.value - delay).clamp(0.0, 1.0);
             final offset = -4 * (1 - (2 * value - 1).abs());

@@ -14,8 +14,8 @@ class AnalyticsRepository {
     String? endDate,
   }) async {
     final res = await _api.get(ApiEndpoints.analyticsUsage, queryParameters: {
-      if (startDate != null) 'startDate': startDate,
-      if (endDate != null) 'endDate': endDate,
+      'startDate': ?startDate,
+      'endDate': ?endDate,
     });
     return res.data['data'] as Map<String, dynamic>;
   }

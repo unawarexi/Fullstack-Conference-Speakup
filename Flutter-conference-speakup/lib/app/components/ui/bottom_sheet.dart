@@ -13,7 +13,7 @@ class SBottomSheet {
     String? title,
     bool isDismissible = true,
     bool enableDrag = true,
-    bool useRootNavigator = false,
+    bool useRootNavigator = true,
     double? maxHeight,
     bool useBlur = true,
   }) {

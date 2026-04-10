@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Result of permission request operation
@@ -18,7 +19,7 @@ class PermissionResult {
 class PermissionManager {
   /// Request camera permission
   static Future<PermissionResult> requestCamera() async {
-    print('[PermissionManager] requestCamera');
+    debugPrint('[PermissionManager] requestCamera');
     return await _requestSinglePermission(
       Permission.camera,
       'Camera access is required to take photos and videos',
@@ -27,7 +28,7 @@ class PermissionManager {
 
   /// Request microphone permission
   static Future<PermissionResult> requestMicrophone() async {
-    print('[PermissionManager] requestMicrophone');
+    debugPrint('[PermissionManager] requestMicrophone');
     return await _requestSinglePermission(
       Permission.microphone,
       'Microphone access is required to record audio',
@@ -36,7 +37,7 @@ class PermissionManager {
 
   /// Request location permission
   static Future<PermissionResult> requestLocation() async {
-    print('[PermissionManager] requestLocation');
+    debugPrint('[PermissionManager] requestLocation');
     return await _requestSinglePermission(
       Permission.location,
       'Location access is required to provide location-based services',
@@ -45,7 +46,7 @@ class PermissionManager {
 
   /// Request location when in use permission
   static Future<PermissionResult> requestLocationWhenInUse() async {
-    print('[PermissionManager] requestLocationWhenInUse');
+    debugPrint('[PermissionManager] requestLocationWhenInUse');
     return await _requestSinglePermission(
       Permission.locationWhenInUse,
       'Location access is required when using the app',
@@ -54,7 +55,7 @@ class PermissionManager {
 
   /// Request always location permission
   static Future<PermissionResult> requestLocationAlways() async {
-    print('[PermissionManager] requestLocationAlways');
+    debugPrint('[PermissionManager] requestLocationAlways');
     return await _requestSinglePermission(
       Permission.locationAlways,
       'Always location access is required for background location services',
@@ -63,7 +64,7 @@ class PermissionManager {
 
   /// Request storage permission
   static Future<PermissionResult> requestStorage() async {
-    print('[PermissionManager] requestStorage');
+    debugPrint('[PermissionManager] requestStorage');
     return await _requestSinglePermission(
       Permission.storage,
       'Storage access is required to save and read files',
@@ -72,7 +73,7 @@ class PermissionManager {
 
   /// Request photos permission (iOS)
   static Future<PermissionResult> requestPhotos() async {
-    print('[PermissionManager] requestPhotos');
+    debugPrint('[PermissionManager] requestPhotos');
     return await _requestSinglePermission(
       Permission.photos,
       'Photos access is required to select images from gallery',
@@ -81,7 +82,7 @@ class PermissionManager {
 
   /// Request contacts permission
   static Future<PermissionResult> requestContacts() async {
-    print('[PermissionManager] requestContacts');
+    debugPrint('[PermissionManager] requestContacts');
     return await _requestSinglePermission(
       Permission.contacts,
       'Contacts access is required to access your contacts',
@@ -90,16 +91,16 @@ class PermissionManager {
 
   /// Request calendar permission
   static Future<PermissionResult> requestCalendar() async {
-    print('[PermissionManager] requestCalendar');
+    debugPrint('[PermissionManager] requestCalendar');
     return await _requestSinglePermission(
-      Permission.calendar,
+      Permission.calendarFullAccess,
       'Calendar access is required to manage events',
     );
   }
 
   /// Request notification permission
   static Future<PermissionResult> requestNotification() async {
-    print('[PermissionManager] requestNotification');
+    debugPrint('[PermissionManager] requestNotification');
     return await _requestSinglePermission(
       Permission.notification,
       'Notification permission is required to send you updates',
@@ -108,7 +109,7 @@ class PermissionManager {
 
   /// Request phone permission
   static Future<PermissionResult> requestPhone() async {
-    print('[PermissionManager] requestPhone');
+    debugPrint('[PermissionManager] requestPhone');
     return await _requestSinglePermission(
       Permission.phone,
       'Phone access is required to make calls',
@@ -117,7 +118,7 @@ class PermissionManager {
 
   /// Request SMS permission
   static Future<PermissionResult> requestSms() async {
-    print('[PermissionManager] requestSms');
+    debugPrint('[PermissionManager] requestSms');
     return await _requestSinglePermission(
       Permission.sms,
       'SMS access is required to send messages',
@@ -126,7 +127,7 @@ class PermissionManager {
 
   /// Request speech recognition permission
   static Future<PermissionResult> requestSpeech() async {
-    print('[PermissionManager] requestSpeech');
+    debugPrint('[PermissionManager] requestSpeech');
     return await _requestSinglePermission(
       Permission.speech,
       'Speech recognition access is required for voice features',
@@ -135,7 +136,7 @@ class PermissionManager {
 
   /// Request bluetooth permission
   static Future<PermissionResult> requestBluetooth() async {
-    print('[PermissionManager] requestBluetooth');
+    debugPrint('[PermissionManager] requestBluetooth');
     return await _requestSinglePermission(
       Permission.bluetooth,
       'Bluetooth access is required to connect with devices',
@@ -144,7 +145,7 @@ class PermissionManager {
 
   /// Request access media location permission (Android)
   static Future<PermissionResult> requestAccessMediaLocation() async {
-    print('[PermissionManager] requestAccessMediaLocation');
+    debugPrint('[PermissionManager] requestAccessMediaLocation');
     return await _requestSinglePermission(
       Permission.accessMediaLocation,
       'Media location access is required to access media files with location',
@@ -153,7 +154,7 @@ class PermissionManager {
 
   /// Request manage external storage permission (Android)
   static Future<PermissionResult> requestManageExternalStorage() async {
-    print('[PermissionManager] requestManageExternalStorage');
+    debugPrint('[PermissionManager] requestManageExternalStorage');
     return await _requestSinglePermission(
       Permission.manageExternalStorage,
       'External storage management access is required',
@@ -164,7 +165,7 @@ class PermissionManager {
   static Future<Map<Permission, PermissionResult>> requestMultiple(
     List<Permission> permissions,
   ) async {
-    print('[PermissionManager] requestMultiple: $permissions');
+    debugPrint('[PermissionManager] requestMultiple: $permissions');
     final results = <Permission, PermissionResult>{};
 
     try {
@@ -193,9 +194,9 @@ class PermissionManager {
 
   /// Check if permission is granted
   static Future<bool> isPermissionGranted(Permission permission) async {
-    print('[PermissionManager] isPermissionGranted: $permission');
+    debugPrint('[PermissionManager] isPermissionGranted: $permission');
     final status = await permission.status;
-    print('[PermissionManager] $permission status: $status');
+    debugPrint('[PermissionManager] $permission status: $status');
     return status.isGranted;
   }
 
@@ -203,7 +204,7 @@ class PermissionManager {
   static Future<Map<Permission, bool>> checkMultiplePermissions(
     List<Permission> permissions,
   ) async {
-    print('[PermissionManager] checkMultiplePermissions: $permissions');
+    debugPrint('[PermissionManager] checkMultiplePermissions: $permissions');
     final results = <Permission, bool>{};
 
     for (final permission in permissions) {
@@ -215,14 +216,14 @@ class PermissionManager {
 
   /// Open app settings if permission is permanently denied
   static Future<bool> openAppSettings() async {
-    print('[PermissionManager] openAppSettings');
+    debugPrint('[PermissionManager] openAppSettings');
     return await openAppSettings();
   }
 
   /// Request essential app permissions (camera, microphone, storage)
   static Future<Map<Permission, PermissionResult>>
       requestEssentialPermissions() async {
-    print('[PermissionManager] requestEssentialPermissions');
+    debugPrint('[PermissionManager] requestEssentialPermissions');
     return await requestMultiple([
       Permission.camera,
       Permission.microphone,
@@ -234,7 +235,7 @@ class PermissionManager {
   /// Request location-related permissions
   static Future<Map<Permission, PermissionResult>>
       requestLocationPermissions() async {
-    print('[PermissionManager] requestLocationPermissions');
+    debugPrint('[PermissionManager] requestLocationPermissions');
     return await requestMultiple([
       Permission.location,
       Permission.locationWhenInUse,
@@ -244,7 +245,7 @@ class PermissionManager {
   /// Request communication permissions
   static Future<Map<Permission, PermissionResult>>
       requestCommunicationPermissions() async {
-    print('[PermissionManager] requestCommunicationPermissions');
+    debugPrint('[PermissionManager] requestCommunicationPermissions');
     return await requestMultiple([
       Permission.contacts,
       Permission.phone,
@@ -254,7 +255,7 @@ class PermissionManager {
 
   /// Request storage permission (handles Android 11+ manage external storage)
   static Future<PermissionResult> requestStorageSmart() async {
-    print('[PermissionManager] requestStorageSmart');
+    debugPrint('[PermissionManager] requestStorageSmart');
     if (Platform.isAndroid) {
       final androidVersion = int.tryParse(
         (await _getAndroidSdkInt()) ?? '0',
@@ -290,7 +291,7 @@ class PermissionManager {
 
   /// Helper to get Android SDK version
   static Future<String?> _getAndroidSdkInt() async {
-    print('[PermissionManager] _getAndroidSdkInt');
+    debugPrint('[PermissionManager] _getAndroidSdkInt');
     try {
       // Only works if you add 'device_info_plus' or similar package.
       // For now, just return null to fallback.
@@ -305,7 +306,7 @@ class PermissionManager {
     Permission permission,
     String description,
   ) async {
-    print('[PermissionManager] _requestSinglePermission: $permission');
+    debugPrint('[PermissionManager] _requestSinglePermission: $permission');
     try {
       final status = await permission.request();
 
@@ -326,7 +327,7 @@ class PermissionManager {
   /// Get user-friendly message based on permission status
   static String _getPermissionMessage(
       Permission permission, PermissionStatus status) {
-    print('[PermissionManager] _getPermissionMessage: $permission, $status');
+    debugPrint('[PermissionManager] _getPermissionMessage: $permission, $status');
     final permissionName = permission.toString().split('.').last;
 
     switch (status) {
@@ -352,7 +353,7 @@ class PermissionManager {
     Function? onDenied,
     Function? onPermanentlyDenied,
   }) async {
-    print('[PermissionManager] handlePermissionResult: $result');
+    debugPrint('[PermissionManager] handlePermissionResult: $result');
     if (result.isGranted) {
       onGranted?.call();
     } else if (result.status == PermissionStatus.permanentlyDenied) {
@@ -364,7 +365,7 @@ class PermissionManager {
 
   /// Check if device supports permission
   static Future<bool> isPermissionSupported(Permission permission) async {
-    print('[PermissionManager] isPermissionSupported: $permission');
+    debugPrint('[PermissionManager] isPermissionSupported: $permission');
     try {
       await permission.status;
       return true;

@@ -29,6 +29,12 @@ class ApiEndpoints {
   static String kickParticipant(String meetingId, String participantId) =>
       '/meetings/$meetingId/kick/$participantId';
   static String meetingToken(String id) => '/meetings/$id/token';
+  static String meetingInvites(String id) => '/meetings/$id/invites';
+  static String respondToInvite(String token) => '/meetings/invite/$token/respond';
+
+  // ──────────── Meeting Materials ────────────
+  static String meetingMaterials(String meetingId) => '/meetings/$meetingId/materials';
+  static String material(String materialId) => '/meetings/materials/$materialId';
 
   // ──────────── Rooms ────────────
   static const activeRooms = '/rooms/active';
@@ -46,6 +52,7 @@ class ApiEndpoints {
   static const notifications = '/notifications';
   static const notificationUnreadCount = '/notifications/unread-count';
   static const notificationReadAll = '/notifications/read-all';
+  static const notificationPreferences = '/notifications/preferences';
   static String notificationRead(String id) => '/notifications/$id/read';
   static String notificationDelete(String id) => '/notifications/$id';
 

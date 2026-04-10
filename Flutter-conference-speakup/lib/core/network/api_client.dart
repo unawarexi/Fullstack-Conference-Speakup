@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter_conference_speakup/core/config/base_url.dart';
+import 'package:flutter_conference_speakup/core/network/account_guard.dart';
 import 'package:flutter_conference_speakup/core/network/connectivity_service.dart';
 
 final _log = Logger(printer: PrettyPrinter(methodCount: 0));
@@ -161,7 +162,18 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
+    final statusCode = err.response?.statusCode;
+    final errorCode = _extractErrorCode(err.response?.data);
+
+    // Account deleted from DB → backend returns 404 with USER_NOT_FOUND
+    // Account disabled/suspended → backend returns 403 with ACCOUNT_SUSPENDED
+    if ((statusCode == 404 && errorCode == 'E3001') ||
+        (statusCode == 403 && (errorCode == 'E1005' || errorCode == 'E1006'))) {
+      AccountGuard.trigger();
+      return handler.next(err);
+    }
+
+    if (statusCode == 401) {
       // Force refresh the Firebase token and retry once
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -173,11 +185,24 @@ class _AuthInterceptor extends Interceptor {
             return handler.resolve(retryResponse);
           }
         } catch (_) {
-          // Token refresh failed — let the error propagate
+          // Token refresh failed — account likely deleted or disabled
+          AccountGuard.trigger();
+          return handler.next(err);
         }
       }
+      // No Firebase user but got 401 — session is invalid
+      AccountGuard.trigger();
     }
+
     handler.next(err);
+  }
+
+  static String? _extractErrorCode(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final error = data['error'];
+      if (error is Map<String, dynamic>) return error['code'] as String?;
+    }
+    return null;
   }
 }
 

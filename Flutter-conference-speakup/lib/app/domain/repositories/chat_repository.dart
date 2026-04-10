@@ -25,7 +25,7 @@ class ChatRepository {
     final res = await _api.get(
       ApiEndpoints.chatMessages(chatRoomId),
       queryParameters: {
-        if (cursor != null) 'cursor': cursor,
+        'cursor': ?cursor,
         'limit': limit,
       },
     );
@@ -44,7 +44,7 @@ class ChatRepository {
       data: {
         'content': content,
         'type': type,
-        if (replyToId != null) 'replyToId': replyToId,
+        'replyToId': ?replyToId,
       },
     );
     return ChatMessage.fromJson(res.data['data']);
