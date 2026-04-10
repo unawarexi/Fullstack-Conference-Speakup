@@ -102,15 +102,23 @@ class _SplashScreenState extends State<SplashScreen>
     _shimmerController.stop();
     await _exitAnim.forward();
 
-    if (mounted) _navigate();
+    if (mounted) await _navigate();
   }
 
-  void _navigate() {
-    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+  Future<void> _navigate() async {
+    final user = FirebaseAuth.instance.currentUser;
     final hasSeenOnboarding = LocalStorageService.hasSeenOnboarding;
 
-    if (isLoggedIn) {
-      context.go('/home');
+    if (user != null) {
+      // Verify the Firebase session is still valid (catches deleted/disabled users)
+      try {
+        await user.getIdToken(true);
+        if (mounted) context.go('/home');
+      } catch (_) {
+        // Token refresh failed — user deleted or disabled in Firebase
+        await FirebaseAuth.instance.signOut();
+        if (mounted) context.go('/login');
+      }
     } else if (hasSeenOnboarding) {
       context.go('/login');
     } else {

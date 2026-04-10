@@ -14,21 +14,30 @@ import 'package:flutter_conference_speakup/app/features/chat/presentation/chat_r
 import 'package:flutter_conference_speakup/app/features/settings/presentation/settings_screen.dart';
 import 'package:flutter_conference_speakup/app/features/recordings/presentation/recordings_screen.dart';
 import 'package:flutter_conference_speakup/app/features/participant/presentation/participants_screen.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/create_meeting_screen.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/meeting_detail_screen.dart';
+import 'package:flutter_conference_speakup/app/features/search/presentation/search_screen.dart';
+import 'package:flutter_conference_speakup/app/features/notification/presentation/notifications_screen.dart';
+import 'package:flutter_conference_speakup/app/features/analytics/presentation/analytics_dashboard_screen.dart';
+import 'package:flutter_conference_speakup/app/features/billing/presentation/billing_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_assistant_screen.dart';
 import 'package:flutter_conference_speakup/app/features/legal/presentation/terms_of_service_screen.dart';
 import 'package:flutter_conference_speakup/app/features/legal/presentation/privacy_policy_screen.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
-final GlobalKey<NavigatorState> _rootNavigatorKey =
+final GlobalKey<NavigatorState> rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
 
 /// Application router with deep linking support.
 ///
 /// Deep link schemes:
-///   speakup://meeting/:id   → joins a meeting
-///   speakup://chat/:id      → opens a chat
-///   https://speakup.app/meeting/:id  → universal link
+///   speakup://meeting/:id            → joins a meeting by ID
+///   speakup://meet/:code             → joins by SpeakUp code (spk-xxxx-xxxx)
+///   speakup://chat/:id               → opens a chat
+///   https://speakup.app/join/:code   → universal link to join meeting
+///   https://speakup.app/meeting/:id  → universal link to meeting room
 final GoRouter appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/splash',
   debugLogDiagnostics: true,
 
@@ -141,7 +150,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/meeting/:id',
       name: 'meeting-room',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) {
         final meetingId = state.pathParameters['id']!;
         return MeetingRoomScreen(meetingId: meetingId);
@@ -152,15 +161,26 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/join',
       name: 'join-meeting',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const JoinMeetingScreen(),
+    ),
+
+    // Join by code deep link (speakup://meet/:code or https://speakup.app/join/:code)
+    GoRoute(
+      path: '/join/:code',
+      name: 'join-by-code',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) {
+        final code = state.pathParameters['code']!;
+        return JoinMeetingScreen(initialCode: code);
+      },
     ),
 
     // Chat room (deep link: speakup://chat/user-123)
     GoRoute(
       path: '/chat/:id',
       name: 'chat-room',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) {
         final chatId = state.pathParameters['id']!;
         final title = state.uri.queryParameters['name'] ?? 'Chat';
@@ -172,7 +192,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/recordings',
       name: 'recordings',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const RecordingsScreen(),
     ),
 
@@ -180,7 +200,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/meeting/:id/participants',
       name: 'participants',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) {
         final meetingId = state.pathParameters['id']!;
         return ParticipantsScreen(meetingId: meetingId);
@@ -191,14 +211,67 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/terms',
       name: 'terms-of-service',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const TermsOfServiceScreen(),
     ),
     GoRoute(
       path: '/privacy',
       name: 'privacy-policy',
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const PrivacyPolicyScreen(),
+    ),
+
+    // ──────────── Create / Detail ────────────
+    GoRoute(
+      path: '/create-meeting',
+      name: 'create-meeting',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const CreateMeetingScreen(),
+    ),
+    GoRoute(
+      path: '/meeting-detail/:id',
+      name: 'meeting-detail',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) {
+        final meetingId = state.pathParameters['id']!;
+        return MeetingDetailScreen(meetingId: meetingId);
+      },
+    ),
+
+    // ──────────── Search / Notifications ────────────
+    GoRoute(
+      path: '/search',
+      name: 'search',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const SearchScreen(),
+    ),
+    GoRoute(
+      path: '/notifications',
+      name: 'notifications',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+
+    // ──────────── Analytics / Billing ────────────
+    GoRoute(
+      path: '/analytics',
+      name: 'analytics',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const AnalyticsDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/billing',
+      name: 'billing',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const BillingScreen(),
+    ),
+
+    // ──────────── AI Assistant ────────────
+    GoRoute(
+      path: '/ai-assistant',
+      name: 'ai-assistant',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const AIAssistantScreen(),
     ),
   ],
 

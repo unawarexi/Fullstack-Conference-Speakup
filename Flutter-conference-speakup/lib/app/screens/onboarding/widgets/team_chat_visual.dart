@@ -13,7 +13,6 @@ class TeamChatVisual extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final borderColor = theme.colorScheme.outline;
-    final tileColor = isDark ? SColors.participantTile : SColors.participantTileLight;
 
     return Stack(
       children: [

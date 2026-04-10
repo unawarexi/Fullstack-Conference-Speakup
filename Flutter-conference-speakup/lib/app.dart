@@ -25,10 +25,16 @@ class SpeakUpApp extends ConsumerWidget {
       routerConfig: appRouter,
 
       builder: (context, child) {
-        return Column(
-          children: [
-            const ConnectivityToast(),
-            Expanded(child: child ?? const SizedBox.shrink()),
+        return Overlay(
+          initialEntries: [
+            OverlayEntry(
+              builder: (_) => Column(
+                children: [
+                  const ConnectivityToast(),
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                ],
+              ),
+            ),
           ],
         );
       },

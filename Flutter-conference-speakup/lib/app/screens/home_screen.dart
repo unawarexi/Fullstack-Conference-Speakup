@@ -8,10 +8,10 @@ import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
-import 'package:flutter_conference_speakup/app/components/ui/card.dart';
-import 'package:flutter_conference_speakup/app/components/ui/button.dart';
+import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/app/components/shapes/shapes.dart';
 import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
+import 'package:flutter_conference_speakup/app/screens/home/home_widgets.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 
@@ -26,10 +26,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch fresh profile from backend on home load
     Future.microtask(() {
       ref.read(currentUserProvider.notifier).fetchProfile();
     });
+  }
+
+  Future<void> _onRefresh() async {
+    ref.invalidate(meetingsProvider(null));
+    await ref.read(currentUserProvider.notifier).fetchProfile();
   }
 
   @override
@@ -37,177 +41,201 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isMobile = SResponsive.isMobile(context);
-    final navPadding = isMobile ? 96.0 : 0.0;
+    final navPadding = isMobile ? 80.0 : 0.0;
     final userAsync = ref.watch(currentUserProvider);
     final user = userAsync.valueOrNull;
     final upcomingMeetings = ref.watch(meetingsProvider(null));
     final greeting = _greeting();
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // ── Collapsing Header ──
-          SliverAppBar(
-            expandedHeight: 240,
-            floating: false,
-            pinned: true,
-            automaticallyImplyLeading: false,
-            backgroundColor: isDark ? SColors.darkBg : SColors.lightBg,
-            surfaceTintColor: Colors.transparent,
-            flexibleSpace: FlexibleSpaceBar(
-              collapseMode: CollapseMode.parallax,
-              background: _HeaderHero(
-                isDark: isDark,
-                greeting: greeting,
-                userName: user?.fullName ?? '',
-                email: user?.email ?? '',
-                avatar: user?.avatar,
-                isLoading: userAsync.isLoading,
-              ),
-            ),
-            title: Text(
-              'SpeakUp',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: isDark ? SColors.textDark : SColors.textLight,
-              ),
-            ),
-            actions: [
-              _HeaderIconButton(
-                icon: SIcons.search,
-                isDark: isDark,
-                onTap: () {},
-              ),
-              _HeaderIconButton(
-                icon: SIcons.notification,
-                isDark: isDark,
-                badge: true,
-                onTap: () {},
-              ),
-              const SizedBox(width: SSizes.sm),
-            ],
-          ),
-
-          // ── Body ──
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              SSizes.pagePadding, SSizes.md,
-              SSizes.pagePadding, SSizes.pagePadding + navPadding,
-            ),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // ── Quick Actions ──
-                _QuickActionsRow(isDark: isDark)
-                    .animate().fadeIn(duration: 400.ms, delay: 100.ms)
-                    .slideY(begin: 0.1, end: 0),
-                const SizedBox(height: SSizes.sectionSpacing),
-
-                // ── AI Insights Banner ──
-                _AIInsightsBanner(isDark: isDark)
-                    .animate().fadeIn(duration: 400.ms, delay: 200.ms)
-                    .slideY(begin: 0.1, end: 0),
-                const SizedBox(height: SSizes.sectionSpacing),
-
-                // ── Upcoming Meetings ──
-                _SectionHeader(
-                  title: 'Upcoming Meetings',
-                  actionLabel: 'See all',
-                  onAction: () => context.go('/meetings'),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: SColors.primary,
+        child: CustomScrollView(
+          slivers: [
+            // ── Collapsing Header ──
+            SliverAppBar(
+              expandedHeight: 200,
+              floating: false,
+              pinned: true,
+              automaticallyImplyLeading: false,
+              backgroundColor: isDark ? SColors.darkBg : SColors.lightBg,
+              surfaceTintColor: Colors.transparent,
+              flexibleSpace: FlexibleSpaceBar(
+                collapseMode: CollapseMode.parallax,
+                background: _HeaderHero(
+                  isDark: isDark,
+                  greeting: greeting,
+                  userName: user?.fullName ?? '',
+                  email: user?.email ?? '',
+                  avatar: user?.avatar,
+                  isLoading: userAsync.isLoading,
                 ),
-                const SizedBox(height: SSizes.sm),
-                upcomingMeetings.when(
-                  data: (meetings) {
-                    final upcoming = meetings
-                        .where((m) =>
-                            m.status == MeetingStatus.scheduled ||
-                            m.status == MeetingStatus.live)
-                        .take(3).toList();
-                    if (upcoming.isEmpty) {
-                      return _EmptyState(
-                        icon: SIcons.calendar,
-                        message: 'No upcoming meetings',
-                        subMessage: 'Your schedule is clear!',
-                        isDark: isDark,
-                      ).animate().fadeIn(duration: 300.ms);
-                    }
-                    return Column(
-                      children: [
-                        for (var i = 0; i < upcoming.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i < upcoming.length - 1 ? SSizes.sm : 0,
-                            ),
-                            child: _MeetingTile(
-                              meeting: upcoming[i],
-                              isDark: isDark,
-                              onTap: () => context.push('/meeting/${upcoming[i].id}'),
-                            ).animate()
-                                .fadeIn(duration: 400.ms, delay: (300 + i * 80).ms)
-                                .slideX(begin: 0.05, end: 0),
-                          ),
-                      ],
-                    );
-                  },
-                  loading: () => _MeetingsSkeleton(isDark: isDark),
-                  error: (_, __) => _EmptyState(
-                    icon: SIcons.calendar,
-                    message: 'Unable to load meetings',
-                    subMessage: 'Pull to refresh',
-                    isDark: isDark,
+              ),
+              title: Text(
+                'SpeakUp',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? SColors.textDark : SColors.textLight,
+                ),
+              ),
+              actions: [
+                _HeaderIconButton(
+                  icon: SIcons.search,
+                  isDark: isDark,
+                  onTap: () => context.push('/search'),
+                ),
+                _HeaderIconButton(
+                  icon: SIcons.notification,
+                  isDark: isDark,
+                  badge: true,
+                  onTap: () => context.push('/notifications'),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ),
+
+            // ── Body ──
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 16 + navPadding),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // ── Quick Actions ──
+                  QuickActionGrid(isDark: isDark)
+                      .animate()
+                      .fadeIn(duration: 350.ms, delay: 80.ms)
+                      .slideY(begin: 0.08, end: 0),
+                  const SizedBox(height: 16),
+
+                  // ── AI Insights Banner ──
+                  AIInsightsBanner(isDark: isDark)
+                      .animate()
+                      .fadeIn(duration: 350.ms, delay: 150.ms)
+                      .slideY(begin: 0.08, end: 0),
+                  const SizedBox(height: 20),
+
+                  // ── Upcoming Meetings ──
+                  SectionHeader(
+                    title: 'Upcoming',
+                    actionLabel: 'See all',
+                    onAction: () => context.go('/meetings'),
                   ),
-                ),
-                const SizedBox(height: SSizes.sectionSpacing),
-
-                // ── Quick Stats ──
-                _SectionHeader(title: 'This Week'),
-                const SizedBox(height: SSizes.sm),
-                _WeeklyStats(isDark: isDark)
-                    .animate().fadeIn(duration: 400.ms, delay: 500.ms)
-                    .slideY(begin: 0.1, end: 0),
-                const SizedBox(height: SSizes.sectionSpacing),
-
-                // ── Recent Activity ──
-                _SectionHeader(
-                  title: 'Recent Activity',
-                  actionLabel: 'View all',
-                  onAction: () => context.go('/meetings'),
-                ),
-                const SizedBox(height: SSizes.sm),
-                upcomingMeetings.when(
-                  data: (meetings) {
-                    final past = meetings
-                        .where((m) => m.status == MeetingStatus.ended)
-                        .take(3).toList();
-                    if (past.isEmpty) {
-                      return _EmptyState(
-                        icon: SIcons.meetings,
-                        message: 'No recent activity',
-                        subMessage: 'Start your first meeting!',
-                        isDark: isDark,
-                      ).animate().fadeIn(duration: 300.ms);
-                    }
-                    return Column(
-                      children: [
-                        for (var i = 0; i < past.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i < past.length - 1 ? SSizes.sm : 0,
+                  upcomingMeetings.when(
+                    data: (meetings) {
+                      final upcoming = meetings
+                          .where((m) =>
+                              m.status == MeetingStatus.scheduled ||
+                              m.status == MeetingStatus.live)
+                          .take(3)
+                          .toList();
+                      if (upcoming.isEmpty) {
+                        return CompactEmptyState(
+                          icon: SIcons.calendar,
+                          message: 'No upcoming meetings',
+                          subMessage: 'Your schedule is clear!',
+                          isDark: isDark,
+                          actionLabel: 'Create one',
+                          onAction: () => context.push('/create-meeting'),
+                        ).animate().fadeIn(duration: 250.ms);
+                      }
+                      return Column(
+                        children: [
+                          for (var i = 0; i < upcoming.length; i++)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                  bottom:
+                                      i < upcoming.length - 1 ? 6 : 0),
+                              child: CompactMeetingTile(
+                                meeting: upcoming[i],
+                                isDark: isDark,
+                                onTap: () => context.push(
+                                    '/meeting-detail/${upcoming[i].id}'),
+                              )
+                                  .animate()
+                                  .fadeIn(
+                                      duration: 350.ms,
+                                      delay: (200 + i * 60).ms)
+                                  .slideX(begin: 0.04, end: 0),
                             ),
-                            child: _RecentActivityTile(
-                              meeting: past[i], isDark: isDark,
-                            ),
+                        ],
+                      );
+                    },
+                    loading: () => MeetingsSkeleton(isDark: isDark),
+                    error: (_, __) => CompactEmptyState(
+                      icon: SIcons.calendar,
+                      message: 'Unable to load meetings',
+                      subMessage: 'Pull to refresh',
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ── This Week Stats ──
+                  SectionHeader(title: 'This Week'),
+                  WeeklyStatsRow(isDark: isDark)
+                      .animate()
+                      .fadeIn(duration: 350.ms, delay: 350.ms)
+                      .slideY(begin: 0.08, end: 0),
+                  const SizedBox(height: 20),
+
+                  // ── Recent Activity ──
+                  SectionHeader(
+                    title: 'Recent Activity',
+                    actionLabel: 'View all',
+                    onAction: () => context.go('/meetings'),
+                  ),
+                  upcomingMeetings.when(
+                    data: (meetings) {
+                      final past = meetings
+                          .where((m) => m.status == MeetingStatus.ended)
+                          .take(4)
+                          .toList();
+                      if (past.isEmpty) {
+                        return CompactEmptyState(
+                          icon: SIcons.meetings,
+                          message: 'No recent activity',
+                          subMessage: 'Start your first meeting!',
+                          isDark: isDark,
+                          actionLabel: 'New meeting',
+                          onAction: () => context.push('/create-meeting'),
+                        ).animate().fadeIn(duration: 250.ms);
+                      }
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? SColors.darkCard
+                              : SColors.lightCard,
+                          borderRadius:
+                              BorderRadius.circular(SSizes.radiusMd),
+                          border: Border.all(
+                            color: isDark
+                                ? SColors.darkBorder
+                                : SColors.lightBorder,
+                            width: 0.5,
                           ),
-                      ],
-                    );
-                  },
-                  loading: () => _MeetingsSkeleton(isDark: isDark),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-              ]),
+                        ),
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < past.length; i++)
+                              RecentActivityTile(
+                                meeting: past[i],
+                                isDark: isDark,
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                    loading: () => MeetingsSkeleton(isDark: isDark),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ]),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -336,40 +364,39 @@ class _HeaderHero extends StatelessWidget {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                SSizes.pagePadding, SSizes.xxl + SSizes.md,
-                SSizes.pagePadding, SSizes.lg + 20,
+                16, SSizes.xl + 4, 16, SSizes.xl + 4,
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(greeting, style: TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w500,
+                          fontSize: 12, fontWeight: FontWeight.w500,
                           color: isDark
                               ? SColors.textDarkSecondary
                               : SColors.textLightSecondary,
                           letterSpacing: 0.2,
                         )),
-                        const SizedBox(height: SSizes.xs),
+                        const SizedBox(height: 3),
                         if (isLoading && firstName.isEmpty)
                           _NameSkeleton(isDark: isDark)
                         else
                           Text(
                             firstName.isNotEmpty ? firstName : 'Welcome',
                             style: TextStyle(
-                              fontSize: 28, fontWeight: FontWeight.w700,
+                              fontSize: 24, fontWeight: FontWeight.w700,
                               color: isDark ? SColors.textDark : SColors.textLight,
                               letterSpacing: -0.5,
                             ),
                           ),
-                        const SizedBox(height: SSizes.xs),
+                        const SizedBox(height: 3),
                         Text(
-                          DateFormat('EEEE, MMMM d').format(DateTime.now()),
+                          DateFormat('EEE, MMM d').format(DateTime.now()),
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: isDark
                                 ? SColors.textDarkTertiary
                                 : SColors.textLightTertiary,
@@ -378,22 +405,22 @@ class _HeaderHero extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: SSizes.md),
+                  const SizedBox(width: 12),
                   // Avatar with ripple rings behind it
                   SizedBox(
-                    width: SSizes.avatarLg + 24,
-                    height: SSizes.avatarLg + 24,
+                    width: SSizes.avatarMd + 20,
+                    height: SSizes.avatarMd + 20,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         // Ripple rings behind avatar
                         CustomPaint(
-                          size: Size(SSizes.avatarLg + 24, SSizes.avatarLg + 24),
+                          size: Size(SSizes.avatarMd + 20, SSizes.avatarMd + 20),
                           painter: SRippleRingsPainter(
                             color: SColors.primary,
-                            ringCount: 3,
-                            maxRadius: (SSizes.avatarLg + 24) / 2,
-                            strokeWidth: 0.8,
+                            ringCount: 2,
+                            maxRadius: (SSizes.avatarMd + 20) / 2,
+                            strokeWidth: 0.6,
                           ),
                         ),
                         // Avatar
@@ -401,18 +428,18 @@ class _HeaderHero extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: SColors.primary.withValues(alpha: 0.4),
-                              width: 2.5,
+                              color: SColors.primary.withValues(alpha: 0.35),
+                              width: 2,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: SColors.primary.withValues(alpha: 0.25),
-                                blurRadius: 24, spreadRadius: 2,
+                                color: SColors.primary.withValues(alpha: 0.2),
+                                blurRadius: 16, spreadRadius: 1,
                               ),
                             ],
                           ),
                           child: CircleAvatar(
-                            radius: SSizes.avatarLg / 2,
+                            radius: SSizes.avatarMd / 2,
                             backgroundColor: isDark
                                 ? SColors.darkElevated
                                 : SColors.primarySurface,
@@ -425,7 +452,7 @@ class _HeaderHero extends StatelessWidget {
                                         ? firstName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
-                                      fontSize: 22, fontWeight: FontWeight.w700,
+                                      fontSize: 16, fontWeight: FontWeight.w700,
                                       color: SColors.primary,
                                     ),
                                   )
@@ -453,7 +480,7 @@ class _NameSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 120, height: 28,
+      width: 100, height: 24,
       decoration: BoxDecoration(
         color: isDark ? SColors.darkElevated : SColors.lightElevated,
         borderRadius: BorderRadius.circular(SSizes.radiusSm),
@@ -485,8 +512,8 @@ class _HeaderIconButton extends StatelessWidget {
     return GestureDetector(
       onTap: () { HapticFeedback.lightImpact(); onTap?.call(); },
       child: Container(
-        width: 40, height: 40,
-        margin: const EdgeInsets.only(right: SSizes.xs),
+        width: 36, height: 36,
+        margin: const EdgeInsets.only(right: 4),
         decoration: BoxDecoration(
           color: isDark
               ? SColors.darkCard.withValues(alpha: 0.8)
@@ -495,12 +522,12 @@ class _HeaderIconButton extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            Center(child: Icon(icon, size: 20,
+            Center(child: Icon(icon, size: 18,
               color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
             )),
             if (badge)
-              Positioned(top: 8, right: 8, child: Container(
-                width: 8, height: 8,
+              Positioned(top: 6, right: 6, child: Container(
+                width: 7, height: 7,
                 decoration: const BoxDecoration(
                   color: SColors.error, shape: BoxShape.circle,
                 ),
@@ -512,486 +539,4 @@ class _HeaderIconButton extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Quick Actions Row
-// ─────────────────────────────────────────────
-class _QuickActionsRow extends StatelessWidget {
-  final bool isDark;
-  const _QuickActionsRow({required this.isDark});
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _ActionChip(
-          icon: Icons.videocam_rounded, label: 'New Meeting',
-          gradient: SColors.primaryGradient,
-          textColor: Colors.white,
-          onTap: () => context.push('/join'),
-        ),
-        const SizedBox(width: SSizes.sm + 2),
-        _ActionChip(
-          icon: Icons.login_rounded, label: 'Join',
-          color: isDark ? SColors.darkCard : SColors.lightCard,
-          borderColor: isDark ? SColors.darkBorder : SColors.lightBorder,
-          textColor: isDark ? SColors.textDark : SColors.textLight,
-          iconColor: SColors.primary,
-          onTap: () => context.push('/join'),
-        ),
-        const SizedBox(width: SSizes.sm + 2),
-        _ActionChip(
-          icon: Icons.calendar_today_rounded, label: 'Schedule',
-          color: isDark ? SColors.darkCard : SColors.lightCard,
-          borderColor: isDark ? SColors.darkBorder : SColors.lightBorder,
-          textColor: isDark ? SColors.textDark : SColors.textLight,
-          iconColor: SColors.screenShare,
-          onTap: () {},
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionChip extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final Gradient? gradient;
-  final Color? color;
-  final Color? borderColor;
-  final Color textColor;
-  final Color? iconColor;
-  final VoidCallback? onTap;
-
-  const _ActionChip({
-    required this.icon, required this.label,
-    this.gradient, this.color, this.borderColor,
-    required this.textColor, this.iconColor, this.onTap,
-  });
-
-  @override
-  State<_ActionChip> createState() => _ActionChipState();
-}
-
-class _ActionChipState extends State<_ActionChip> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) {
-          setState(() => _pressed = false);
-          HapticFeedback.lightImpact();
-          widget.onTap?.call();
-        },
-        onTapCancel: () => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.95 : 1.0,
-          duration: const Duration(milliseconds: 100),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: SSizes.md + 2, horizontal: SSizes.sm),
-            decoration: BoxDecoration(
-              gradient: widget.gradient,
-              color: widget.gradient == null ? widget.color : null,
-              borderRadius: BorderRadius.circular(SSizes.radiusLg),
-              border: widget.borderColor != null
-                  ? Border.all(color: widget.borderColor!) : null,
-              boxShadow: widget.gradient != null
-                  ? [BoxShadow(
-                      color: SColors.primary.withValues(alpha: 0.3),
-                      blurRadius: 16, offset: const Offset(0, 4),
-                    )]
-                  : null,
-            ),
-            child: Column(
-              children: [
-                Icon(widget.icon, color: widget.iconColor ?? widget.textColor, size: SSizes.iconLg),
-                const SizedBox(height: SSizes.sm),
-                Text(widget.label, style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600, color: widget.textColor,
-                ), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  AI Insights Banner
-// ─────────────────────────────────────────────
-class _AIInsightsBanner extends StatelessWidget {
-  final bool isDark;
-  const _AIInsightsBanner({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(SSizes.md),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: isDark
-              ? [const Color(0xFF1A1A35), const Color(0xFF0F1A2E)]
-              : [const Color(0xFFEEF2FF), const Color(0xFFF0F7FF)],
-        ),
-        borderRadius: BorderRadius.circular(SSizes.radiusLg),
-        border: Border.all(
-          color: SColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              gradient: SColors.accentGradient,
-              borderRadius: BorderRadius.circular(SSizes.radiusMd),
-            ),
-            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: SSizes.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('AI Meeting Assistant', style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700,
-                  color: isDark ? SColors.textDark : SColors.textLight,
-                )),
-                const SizedBox(height: 2),
-                Text('Real-time transcription, smart suggestions & coaching',
-                  style: TextStyle(fontSize: 12,
-                    color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded,
-            color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Section Header
-// ─────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  const _SectionHeader({required this.title, this.actionLabel, this.onAction});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(title, style: TextStyle(
-          fontSize: 17, fontWeight: FontWeight.w700,
-          color: isDark ? SColors.textDark : SColors.textLight,
-          letterSpacing: -0.3,
-        )),
-        if (actionLabel != null)
-          GestureDetector(
-            onTap: onAction,
-            child: Text(actionLabel!, style: const TextStyle(
-              fontSize: 13, fontWeight: FontWeight.w500, color: SColors.primary,
-            )),
-          ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Meeting Tile
-// ─────────────────────────────────────────────
-class _MeetingTile extends StatelessWidget {
-  final MeetingModel meeting;
-  final bool isDark;
-  final VoidCallback? onTap;
-
-  const _MeetingTile({required this.meeting, required this.isDark, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final timeStr = meeting.scheduledAt != null
-        ? DateFormat('h:mm a').format(meeting.scheduledAt!) : 'Now';
-
-    return SCard(
-      onTap: onTap, hasBorder: true,
-      padding: const EdgeInsets.all(SSizes.cardPadding),
-      child: Row(
-        children: [
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              color: meeting.isLive
-                  ? SColors.success.withValues(alpha: 0.12)
-                  : SColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
-              borderRadius: BorderRadius.circular(SSizes.radiusMd),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (meeting.isLive)
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(
-                    color: SColors.success, shape: BoxShape.circle,
-                  ))
-                else
-                  Icon(SIcons.clock, size: 18,
-                    color: meeting.isLive ? SColors.success : SColors.primary,
-                  ),
-                const SizedBox(height: 2),
-                Text(
-                  meeting.isLive ? 'LIVE' : timeStr,
-                  style: TextStyle(
-                    fontSize: meeting.isLive ? 9 : 10,
-                    fontWeight: FontWeight.w700,
-                    color: meeting.isLive ? SColors.success : SColors.primary,
-                    letterSpacing: meeting.isLive ? 0.5 : 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: SSizes.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(meeting.title, style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600,
-                  color: isDark ? SColors.textDark : SColors.textLight,
-                ), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: SSizes.xs),
-                Row(children: [
-                  if (meeting.hostName != null) ...[
-                    Icon(SIcons.profile, size: 12,
-                      color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary),
-                    const SizedBox(width: 4),
-                    Text(meeting.hostName!, style: TextStyle(fontSize: 12,
-                      color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary)),
-                    const SizedBox(width: SSizes.sm),
-                  ],
-                  Icon(Icons.people_outline_rounded, size: 12,
-                    color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary),
-                  const SizedBox(width: 4),
-                  Text('${meeting.participantCount}', style: TextStyle(fontSize: 12,
-                    color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary)),
-                ]),
-              ],
-            ),
-          ),
-          if (meeting.isLive)
-            SButton(
-              text: 'Join', variant: SButtonVariant.primary,
-              size: SButtonSize.sm, isFullWidth: false,
-              onPressed: onTap,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Weekly Stats
-// ─────────────────────────────────────────────
-class _WeeklyStats extends StatelessWidget {
-  final bool isDark;
-  const _WeeklyStats({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _StatCard(label: 'Meetings', value: '—', icon: SIcons.meetings,
-          color: SColors.primary, isDark: isDark),
-        const SizedBox(width: SSizes.sm + 2),
-        _StatCard(label: 'Hours', value: '—', icon: SIcons.clock,
-          color: SColors.screenShare, isDark: isDark),
-        const SizedBox(width: SSizes.sm + 2),
-        _StatCard(label: 'AI Insights', value: '—', icon: Icons.auto_awesome_outlined,
-          color: SColors.success, isDark: isDark),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final bool isDark;
-
-  const _StatCard({
-    required this.label, required this.value,
-    required this.icon, required this.color, required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: SCard(
-        hasBorder: true,
-        padding: const EdgeInsets.all(SSizes.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(SSizes.radiusSm),
-              ),
-              child: Icon(icon, color: color, size: 18),
-            ),
-            const SizedBox(height: SSizes.sm + 2),
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
-              color: isDark ? SColors.textDark : SColors.textLight)),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 11,
-              color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Recent Activity Tile
-// ─────────────────────────────────────────────
-class _RecentActivityTile extends StatelessWidget {
-  final MeetingModel meeting;
-  final bool isDark;
-  const _RecentActivityTile({required this.meeting, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final date = meeting.endedAt ?? meeting.createdAt;
-    return SCard(
-      hasBorder: true,
-      padding: const EdgeInsets.symmetric(horizontal: SSizes.cardPadding, vertical: SSizes.sm + 4),
-      child: Row(
-        children: [
-          Container(
-            width: 40, height: 40,
-            decoration: BoxDecoration(
-              color: isDark ? SColors.darkElevated : SColors.lightElevated,
-              borderRadius: BorderRadius.circular(SSizes.radiusSm),
-            ),
-            child: Icon(SIcons.meetings, size: 18,
-              color: isDark ? SColors.darkMuted : SColors.lightMuted),
-          ),
-          const SizedBox(width: SSizes.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(meeting.title, style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w500,
-                  color: isDark ? SColors.textDark : SColors.textLight,
-                ), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(DateFormat('MMM d, h:mm a').format(date), style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-                )),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right_rounded, size: 20,
-            color: isDark ? SColors.darkMuted : SColors.lightMuted),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Skeleton Loading
-// ─────────────────────────────────────────────
-class _MeetingsSkeleton extends StatelessWidget {
-  final bool isDark;
-  const _MeetingsSkeleton({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(2, (i) => Padding(
-        padding: EdgeInsets.only(bottom: i < 1 ? SSizes.sm : 0),
-        child: Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: isDark ? SColors.darkCard : SColors.lightCard,
-            borderRadius: BorderRadius.circular(SSizes.radiusMd),
-            border: Border.all(color: isDark ? SColors.darkBorder : SColors.lightBorder),
-          ),
-        ).animate(onPlay: (c) => c.repeat()).shimmer(
-          duration: 1200.ms,
-          color: (isDark ? SColors.darkElevated : SColors.lightElevated).withValues(alpha: 0.5),
-        ),
-      )),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Empty State
-// ─────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  final String subMessage;
-  final bool isDark;
-
-  const _EmptyState({
-    required this.icon, required this.message,
-    required this.subMessage, required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SCard(
-      hasBorder: true,
-      padding: const EdgeInsets.symmetric(vertical: SSizes.xl, horizontal: SSizes.md),
-      child: Center(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(SSizes.md),
-              decoration: BoxDecoration(
-                color: isDark ? SColors.darkElevated : SColors.lightElevated,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 28,
-                color: isDark ? SColors.darkMuted : SColors.lightMuted),
-            ),
-            const SizedBox(height: SSizes.md),
-            Text(message, style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600,
-              color: isDark ? SColors.textDark : SColors.textLight,
-            )),
-            const SizedBox(height: SSizes.xs),
-            Text(subMessage, style: TextStyle(
-              fontSize: 13,
-              color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
-            )),
-          ],
-        ),
-      ),
-    );
-  }
-}

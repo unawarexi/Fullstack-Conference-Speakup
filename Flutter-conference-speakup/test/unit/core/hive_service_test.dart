@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 /// Tests for Hive caching patterns — uses raw Hive (no initFlutter) so
 /// path_provider is not needed and tests run as pure Dart.

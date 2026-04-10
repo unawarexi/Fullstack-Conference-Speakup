@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_conference_speakup/app/domain/models/user_model.dart';
 import 'package:flutter_conference_speakup/app/domain/repositories/auth_repository.dart';
+import 'package:flutter_conference_speakup/core/network/account_guard.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
 /// Auth repository singleton provider.
@@ -67,6 +69,12 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       final user = await _ref.read(authRepositoryProvider).getMe();
       state = AsyncValue.data(user);
     } catch (e, st) {
+      // 404 from /auth/me means the account was deleted from the backend
+      if (e is DioException && e.response?.statusCode == 404) {
+        state = const AsyncValue.data(null);
+        AccountGuard.trigger();
+        return;
+      }
       // If fetch fails but we have cached data, keep it
       if (state.valueOrNull == null) {
         state = AsyncValue.error(e, st);
