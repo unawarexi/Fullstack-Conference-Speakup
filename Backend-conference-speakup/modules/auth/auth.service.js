@@ -96,7 +96,7 @@ function sanitizeUser(user) {
   const { firebaseUid, ...rest } = user;
   return {
     ...rest,
-    accounts: rest.accounts?.map(({ id, provider, email, createdAt }) => ({ id, provider, email, createdAt })),
+    accounts: rest.accounts?.map(({ id, provider, createdAt }) => ({ id, provider, createdAt })),
     subscription: rest.subscriptions || null,
     subscriptions: undefined,
   };

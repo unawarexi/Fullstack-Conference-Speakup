@@ -11,7 +11,7 @@ import { createLogger } from "../logs/logger.js";
 const log = createLogger("Auth");
 
 // ============================================================================
-// AUTHENTICATE — Verify Firebase token, upsert user in DB
+// AUTHENTICATE — Verify Firebase token, require existing user in DB
 // ============================================================================
 
 export async function authenticate(req, res, next) {
@@ -26,37 +26,23 @@ export async function authenticate(req, res, next) {
 
     const idToken = authHeader.split("Bearer ")[1];
 
-    // Verify the Firebase ID token
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    // Verify the Firebase ID token (checkRevoked catches deleted/disabled users)
+    const decodedToken = await admin.auth().verifyIdToken(idToken, true);
 
-    // Find or create user in PostgreSQL
-    let user = await prisma.user.findUnique({
+    // Find user in PostgreSQL — do NOT auto-create
+    const user = await prisma.user.findUnique({
       where: { firebaseUid: decodedToken.uid },
       include: { accounts: true },
     });
 
     if (!user) {
-      // First-time login — create user + account
-      const provider = decodedToken.firebase?.sign_in_provider === "github.com" ? "GITHUB" : "GOOGLE";
-
-      user = await prisma.user.create({
-        data: {
-          firebaseUid: decodedToken.uid,
-          email: decodedToken.email,
-          fullName: decodedToken.name || decodedToken.email?.split("@")[0] || "User",
-          avatar: decodedToken.picture || null,
-          accounts: {
-            create: {
-              provider,
-              providerId: decodedToken.uid,
-              email: decodedToken.email,
-            },
-          },
+      return res.status(HttpStatus.NOT_FOUND).json({
+        success: false,
+        error: {
+          code: ErrorCodes.USER_NOT_FOUND,
+          message: "Account not found. It may have been suspended or deleted. Please contact support or sign up again.",
         },
-        include: { accounts: true },
       });
-
-      log.info("New user created from Firebase", { userId: user.id, provider });
     }
 
     // Attach user to request
@@ -79,6 +65,13 @@ export async function authenticate(req, res, next) {
       });
     }
 
+    if (error.code === "auth/user-disabled") {
+      return res.status(HttpStatus.FORBIDDEN).json({
+        success: false,
+        error: { code: ErrorCodes.ACCOUNT_SUSPENDED, message: "Account has been disabled. Contact support." },
+      });
+    }
+
     if (error.code?.startsWith("auth/")) {
       return res.status(HttpStatus.UNAUTHORIZED).json({
         success: false,
@@ -87,6 +80,59 @@ export async function authenticate(req, res, next) {
     }
 
     log.error("Auth middleware error", { error });
+    next(error);
+  }
+}
+
+// ============================================================================
+// VERIFY FIREBASE TOKEN — Only verifies token, no DB lookup (for sign-in)
+// ============================================================================
+
+export async function verifyFirebaseToken(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        success: false,
+        error: { code: ErrorCodes.UNAUTHORIZED, message: "Missing or invalid authorization header" },
+      });
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    const decodedToken = await admin.auth().verifyIdToken(idToken, true);
+
+    req.firebaseUser = decodedToken;
+    next();
+  } catch (error) {
+    if (error.code === "auth/id-token-expired") {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        success: false,
+        error: { code: ErrorCodes.TOKEN_EXPIRED, message: "Token expired. Please sign in again." },
+      });
+    }
+
+    if (error.code === "auth/id-token-revoked") {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        success: false,
+        error: { code: ErrorCodes.TOKEN_INVALID, message: "Token revoked. Please sign in again." },
+      });
+    }
+
+    if (error.code === "auth/user-disabled") {
+      return res.status(HttpStatus.FORBIDDEN).json({
+        success: false,
+        error: { code: ErrorCodes.ACCOUNT_SUSPENDED, message: "Account has been disabled. Contact support." },
+      });
+    }
+
+    if (error.code?.startsWith("auth/")) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        success: false,
+        error: { code: ErrorCodes.FIREBASE_AUTH_FAILED, message: "Authentication failed" },
+      });
+    }
+
+    log.error("verifyFirebaseToken error", { error });
     next(error);
   }
 }

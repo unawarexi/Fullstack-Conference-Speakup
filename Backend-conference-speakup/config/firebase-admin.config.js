@@ -29,7 +29,7 @@ function getServiceAccount() {
   // 2. Fall back to local JSON file (development)
   try {
     const require = createRequire(import.meta.url);
-    return require("./flutter-video-conference-d6300-firebase-adminsdk-ndaaw-3f09ca186e.json");
+    return require("./flutter-conference-speakup-firebase-adminsdk-fbsvc-de3b8343b6.json");
   } catch {
     throw new Error(
       "Firebase service account not found. " +
