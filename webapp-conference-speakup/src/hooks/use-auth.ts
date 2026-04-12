@@ -11,29 +11,41 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 function getAuth() {
   if (!auth) throw new Error("Firebase auth not initialized");
   return auth;
 }
 
+/** Store Firebase token as a cookie so middleware can gate protected routes */
+async function setSessionCookie() {
+  const user = auth?.currentUser;
+  if (!user) return;
+  const token = await user.getIdToken();
+  document.cookie = `__session=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
+
 // ─── Firebase OAuth ───
 export function useGoogleSignIn() {
   const qc = useQueryClient();
+  const router = useRouter();
   return useMutation({
     mutationFn: async () => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(getAuth(), provider);
       const token = await result.user.getIdToken();
-      const { data } = await api.post<ApiResponse<User>>(endpoints.auth.signIn, {
+      const { data } = await api.post<ApiResponse<{ user: User }>>(endpoints.auth.signIn, {
         firebaseToken: token,
         provider: "google",
       });
-      return data.data;
+      return data.data.user;
     },
-    onSuccess: (user) => {
+    onSuccess: async (user) => {
       qc.setQueryData(["auth", "me"], user);
-      toast.success(`Welcome, ${user.fullName}!`);
+      await setSessionCookie();
+      toast.success(`Welcome, ${user.fullName || user.email}!`);
+      router.replace("/home");
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -41,6 +53,7 @@ export function useGoogleSignIn() {
 
 export function useGithubSignIn() {
   const qc = useQueryClient();
+  const router = useRouter();
   return useMutation({
     mutationFn: async () => {
       const provider = new GithubAuthProvider();
@@ -48,15 +61,17 @@ export function useGithubSignIn() {
       provider.addScope("user:email");
       const result = await signInWithPopup(getAuth(), provider);
       const token = await result.user.getIdToken();
-      const { data } = await api.post<ApiResponse<User>>(endpoints.auth.signIn, {
+      const { data } = await api.post<ApiResponse<{ user: User }>>(endpoints.auth.signIn, {
         firebaseToken: token,
         provider: "github",
       });
-      return data.data;
+      return data.data.user;
     },
-    onSuccess: (user) => {
+    onSuccess: async (user) => {
       qc.setQueryData(["auth", "me"], user);
-      toast.success(`Welcome, ${user.fullName}!`);
+      await setSessionCookie();
+      toast.success(`Welcome, ${user.fullName || user.email}!`);
+      router.replace("/home");
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -64,14 +79,18 @@ export function useGithubSignIn() {
 
 export function useSignOut() {
   const qc = useQueryClient();
+  const router = useRouter();
   return useMutation({
     mutationFn: async () => {
       await api.post(endpoints.auth.signOut);
       await firebaseSignOut(getAuth());
     },
     onSuccess: () => {
+      // Clear session cookie
+      document.cookie = "__session=; path=/; max-age=0";
       qc.clear();
       toast.success("Signed out");
+      router.replace("/login");
     },
   });
 }
