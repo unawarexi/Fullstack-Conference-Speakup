@@ -23,6 +23,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${poppins.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Inline script prevents FOUC by applying theme before paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("speakup-theme")||"{}").state?.theme||"system";var d=document.documentElement;d.classList.remove("light","dark");if(t==="system"){d.classList.add(window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light")}else{d.classList.add(t)}d.style.colorScheme=d.classList.contains("dark")?"dark":"light"}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <Providers>{children}</Providers>
       </body>

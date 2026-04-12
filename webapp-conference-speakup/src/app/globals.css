@@ -85,6 +85,14 @@
   --color-hover: var(--hover);
   --color-muted: var(--muted);
 
+  /* Aliases for legacy class names (textPrimary, surfaceLight, etc.) */
+  --color-textPrimary: var(--text-primary);
+  --color-textSecondary: var(--text-secondary);
+  --color-textTertiary: var(--text-tertiary);
+  --color-surfaceLight: var(--elevated);
+  --color-bg-primary: var(--background);
+  --color-bg-secondary: var(--elevated);
+
   --color-primary: var(--primary);
   --color-primary-light: var(--primary-light);
   --color-primary-dark: var(--primary-dark);
@@ -147,4 +155,23 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
+}
+
+/* ─── Performance: GPU-accelerated transforms ─── */
+html {
+  scroll-behavior: auto; /* Lenis handles smooth scroll */
+}
+
+canvas {
+  will-change: contents;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

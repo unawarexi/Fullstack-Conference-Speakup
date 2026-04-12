@@ -8,8 +8,18 @@ export function ThemeInitializer() {
   const setTheme = useThemeStore((s) => s.setTheme);
 
   useEffect(() => {
-    // Re-apply on mount to ensure DOM matches stored preference
+    // Apply persisted theme on mount
     setTheme(theme);
+
+    // Listen for system preference changes when in "system" mode
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      if (useThemeStore.getState().theme === "system") {
+        setTheme("system");
+      }
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   return null;

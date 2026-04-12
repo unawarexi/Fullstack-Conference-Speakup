@@ -28,7 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
         richColors
         closeButton
         toastOptions={{
-          className: "!rounded-xl !border-border !bg-card !text-textPrimary",
+          className: "!rounded-xl !border-border !bg-card !text-text-primary",
         }}
       />
     </QueryClientProvider>
