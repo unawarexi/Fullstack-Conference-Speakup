@@ -20,38 +20,40 @@ class PermissionResult {
 /// Enhanced file picker with permission handling
 class FilePickerWithPermissions {
   /// Request storage permission based on platform and Android version
+  /// Note: On iOS, ImagePicker and FilePicker use PHPickerViewController
+  /// which does NOT require photo library permission. Skip permission
+  /// request on iOS to avoid blocking the system picker.
   static Future<PermissionResult> _requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      // For Android 13+ (API 33+), we need different permissions
-      final storageResult = await Permission.storage.request();
-      if (storageResult.isGranted) {
-        return PermissionResult(
-          isGranted: true,
-          status: storageResult,
-          message: 'Storage permission granted',
-        );
-      }
-
-      // Try manage external storage for older Android versions
-      final manageResult = await Permission.manageExternalStorage.request();
+    if (Platform.isIOS) {
+      // iOS system pickers (PHPickerViewController) handle their own
+      // permissions — no need to request Permission.photos upfront.
       return PermissionResult(
-        isGranted: manageResult.isGranted,
-        status: manageResult,
-        message: manageResult.isGranted
-            ? 'Storage permission granted'
-            : 'Storage permission denied',
-      );
-    } else {
-      // iOS - request photos permission
-      final photosResult = await Permission.photos.request();
-      return PermissionResult(
-        isGranted: photosResult.isGranted,
-        status: photosResult,
-        message: photosResult.isGranted
-            ? 'Photos permission granted'
-            : 'Photos permission denied',
+        isGranted: true,
+        status: PermissionStatus.granted,
+        message: 'iOS uses system picker — no explicit permission needed',
       );
     }
+
+    // Android
+    // For Android 13+ (API 33+), we need different permissions
+    final storageResult = await Permission.storage.request();
+    if (storageResult.isGranted) {
+      return PermissionResult(
+        isGranted: true,
+        status: storageResult,
+        message: 'Storage permission granted',
+      );
+    }
+
+    // Try manage external storage for older Android versions
+    final manageResult = await Permission.manageExternalStorage.request();
+    return PermissionResult(
+      isGranted: manageResult.isGranted,
+      status: manageResult,
+      message: manageResult.isGranted
+          ? 'Storage permission granted'
+          : 'Storage permission denied',
+    );
   }
 
   /// Request camera permission
@@ -388,14 +390,14 @@ class FilePickerWithPermissions {
 
   /// Check if required permissions are granted
   static Future<bool> checkPermissions() async {
-    if (Platform.isAndroid) {
-      final storageStatus = await Permission.storage.status;
-      final manageStorageStatus = await Permission.manageExternalStorage.status;
-      return storageStatus.isGranted || manageStorageStatus.isGranted;
-    } else {
-      final photosStatus = await Permission.photos.status;
-      return photosStatus.isGranted;
+    if (Platform.isIOS) {
+      // iOS system pickers handle their own permissions
+      return true;
     }
+    // Android
+    final storageStatus = await Permission.storage.status;
+    final manageStorageStatus = await Permission.manageExternalStorage.status;
+    return storageStatus.isGranted || manageStorageStatus.isGranted;
   }
 
   /// Request all essential permissions at once

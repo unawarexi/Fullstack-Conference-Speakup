@@ -215,7 +215,7 @@ class PermissionManager {
   }
 
   /// Open app settings if permission is permanently denied
-  static Future<bool> openAppSettings() async {
+  static Future<bool> openSettings() async {
     debugPrint('[PermissionManager] openAppSettings');
     return await openAppSettings();
   }

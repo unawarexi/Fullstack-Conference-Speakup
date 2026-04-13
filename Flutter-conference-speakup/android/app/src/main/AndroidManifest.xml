@@ -107,7 +107,7 @@
 
     
     <application
-        android:label="flutter_conference_speakup"
+        android:label="SpeakUp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

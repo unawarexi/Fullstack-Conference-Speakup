@@ -1,287 +1,141 @@
-liquid_glass_widgets 0.7.3 copy "liquid_glass_widgets: ^0.7.3" to clipboard
-Published 33 hours ago
-SDKFlutterPlatformAndroidiOSLinuxmacOSwebWindows
-67
 Readme
 Changelog
 Example
 Installing
 Versions
 Scores
-Liquid Glass Widgets 
-Bring Apple's iOS 26 Liquid Glass to your Flutter app — 36 glass widgets with real shader-based blur, physics-driven jelly animations, and dynamic lighting. Works on every platform out of the box.
+Flutter Launcher Icons 
+Flutter Community: flutter_launcher_icons
 
-pub package License: MIT
+pub package
 
-https://github.com/user-attachments/assets/2fe28f46-96ad-459d-b816-e6d6001d90de
+A command-line tool which simplifies the task of updating your Flutter app's launcher icon. Fully flexible, allowing you to choose what platform you wish to update the launcher icon for and if you want, the option to keep your old launcher icon in case you want to revert back sometime in the future.
 
-Wanderlust — a luxury travel showcase built entirely with liquid_glass_widgets
+📖 Guide 
+1. Setup the config file 
+Run the following command to create a new config automatically:
 
-Features 
-36 glass widgets — containers, interactive controls, inputs, feedback, overlays, and navigation surfaces
-Real frosted glass — native two-pass Gaussian blur + shader refraction on Impeller; lightweight shader on Skia/Web
-Just works everywhere — iOS, Android, macOS, Web, Windows, Linux; rendering path chosen automatically
-Zero dependencies — no third-party runtime libraries, just the Flutter SDK
-One-line setup — LiquidGlassWidgets.wrap() handles all performance optimization
-Gyroscope lighting — GlassMotionScope drives specular highlights from any Stream<double>
-WCAG-compliant by default — Reduce Motion and Reduce Transparency are respected automatically; no setup required
-Examples 
-Wanderlust — Luxury Travel Showcase 
-A premium app demonstrating liquid_glass_widgets in a real-world production context — full-bleed imagery, parallax scroll, hero transitions, and a concierge chat interface. This is the app shown in the video above.
+dart run flutter_launcher_icons:generate
+This will create a new file called flutter_launcher_icons.yaml in your flutter project's root directory.
 
-cd example/showcase && flutter pub get && flutter run
-Widget Showcase — Full Component Library 
-A complete catalogue of all 36 widgets organized by category. Use it to explore every component, try live settings, and copy patterns directly into your app.
+If you want to override the default location or name of the config file, use the -f flag:
 
-cd example && flutter pub get && flutter run
-Widget Showcase
-Widget Categories 
-Containers 
-GlassCard · GlassPanel · GlassContainer · GlassDivider · GlassListTile · GlassStepper · GlassWizard
+dart run flutter_launcher_icons:generate -f <your config file name here>
+To override an existing config file, use the -o flag:
 
-Interactive 
-GlassButton · GlassIconButton · GlassChip · GlassSwitch · GlassSlider · GlassSegmentedControl · GlassPullDownButton · GlassButtonGroup · GlassBadge
+dart run flutter_launcher_icons:generate -o
+OR
 
-Input 
-GlassTextField · GlassTextArea · GlassPasswordField · GlassSearchBar · GlassPicker · GlassFormField
+Add your Flutter Launcher Icons configuration to your pubspec.yaml.
+An example is shown below. More complex examples can be found in the example projects.
 
-Feedback 
-GlassProgressIndicator · GlassToast · GlassSnackBar
+dev_dependencies:
+  flutter_launcher_icons: "^0.14.4"
 
-Overlays 
-GlassDialog · GlassSheet · GlassActionSheet · GlassMenu · GlassMenuItem
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "path/to/image.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "path/to/image.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "path/to/image.png"
+2. Run the package 
+After setting up the configuration, all that is left to do is run the package.
 
-Surfaces 
-GlassAppBar · GlassBottomBar · GlassTabBar · GlassSideBar · GlassToolbar
-
-Installation 
-dependencies:
-  liquid_glass_widgets: ^0.7.3
 flutter pub get
-Quick Start 
-Initialize the library once in main.dart. This pre-caches shaders (eliminates first-render flash) and activates GPU backdrop sharing for multi-glass screens:
+dart run flutter_launcher_icons
+If you name your configuration file something other than flutter_launcher_icons.yaml or pubspec.yaml you will need to specify the name of the file when running the package.
 
-import 'package:flutter/material.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+flutter pub get
+dart run flutter_launcher_icons -f <your config file name here>
+Note: If you are not using the existing pubspec.yaml ensure that your config file is located in the same directory as it.
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await LiquidGlassWidgets.initialize();
+If you encounter any issues please report them here.
 
-  // wrap() ensures all glass surfaces share one GPU backdrop capture on Impeller.
-  // Safe to use on all platforms — no-op on Skia/Web.
-  runApp(LiquidGlassWidgets.wrap(const MyApp()));
-}
-Accessibility is on by default. The library automatically reads the device's Reduce Motion and Reduce Transparency settings — no extra setup required. See Accessibility for details.
+In the above configuration, the package is setup to replace the existing launcher icons in both the Android and iOS project with the icon located in the image path specified above and given the name "launcher_icon" in the Android project and "Example-Icon" in the iOS project.
 
-Then add any glass widget to your tree:
+🔍 Attributes 
+Shown below is the full list of attributes which you can specify within your Flutter Launcher Icons configuration.
 
-Scaffold(
-  appBar: GlassAppBar(title: const Text('My App')),
-  bottomNavigationBar: GlassBottomBar(
-    tabs: [
-      GlassBottomBarTab(label: 'Home', icon: const Icon(Icons.home)),
-      GlassBottomBarTab(label: 'Profile', icon: const Icon(Icons.person)),
-    ],
-    selectedIndex: 0,
-    onTabSelected: (i) {},
-  ),
-  body: const Center(child: GlassCard(child: Text('Hello, Glass!'))),
-)
-Platform Support 
-Platform	Renderer	Notes
-iOS	Impeller (Metal)	Full shader pipeline, chromatic aberration
-Android	Impeller (Vulkan)	Full shader pipeline, chromatic aberration
-macOS	Impeller (Metal)	Full shader pipeline, chromatic aberration
-Web	CanvasKit	Lightweight fragment shader
-Windows	Skia	Lightweight fragment shader
-Linux	Skia	Lightweight fragment shader
-Platform detection is automatic — no configuration required.
+Global 
+image_path: The location of the icon image file which you want to use as the app launcher icon.
+Android 
+android
 
-Glass Quality Modes 
-Standard — Default, Recommended 
-The right choice for 95% of use cases. Works on every platform with iOS 26-accurate glass effects.
+true: Override the default existing Flutter launcher icon for the platform specified
+false: Ignore making launcher icons for this platform
+icon/path/here.png: This will generate a new launcher icons for the platform with the name you specify, without removing the old default existing Flutter launcher icon.
+image_path_android: The location of the icon image file specific for Android platform (optional - if not defined then the image_path is used)
 
-GlassContainer(
-  quality: GlassQuality.standard, // this is the default
-  child: const Text('Great for scrollable content'),
-)
-Premium — Impeller Only 
-Enables the full Impeller shader pipeline with texture capture and chromatic aberration. On Skia/Web, automatically falls back to Standard.
+min_sdk_android: Specify android min sdk value The next two attributes are only used when generating Android launcher icon
 
-GlassAppBar(
-  quality: GlassQuality.premium,
-  title: const Text('Static header'),
-)
-Use Premium only for static, non-scrolling surfaces (app bars, bottom bars, hero sections). It may not render correctly inside ListView or CustomScrollView on Impeller.
+adaptive_icon_background: The color (E.g. "#ffffff") or image asset (E.g. "assets/images/christmas-background.png") which will be used to fill out the background of the adaptive icon.
 
-Theming 
-All widgets automatically inherit from GlassTheme and adapt to light/dark mode:
+adaptive_icon_foreground: The image asset which will be used for the icon foreground of the adaptive icon Note: Adaptive Icons will only be generated when both adaptive_icon_background and adaptive_icon_foreground are specified. (the image_path is not automatically taken as foreground)
 
-GlassTheme(
-  data: GlassThemeData(
-    light: GlassThemeVariant(
-      settings: LiquidGlassSettings(thickness: 30, blur: 12),
-      quality: GlassQuality.standard,
-    ),
-    dark: GlassThemeVariant(
-      settings: LiquidGlassSettings(thickness: 50, blur: 18),
-      quality: GlassQuality.premium,
-    ),
-  ),
-  child: MaterialApp(home: MyHomePage()),
-)
-Access the current theme variant programmatically:
+adaptive_icon_foreground_inset: This is used to add padding (in %) to the foreground icon when generating an adaptive icon. The default value is 16.
 
-final variant = GlassThemeData.of(context).variantFor(context);
-Specular Sharpness 
-Control the tightness of the specular highlight on any glass surface via LiquidGlassSettings.specularSharpness:
+adaptive_icon_monochrome: The image asset which will be used for the icon foreground of the Android 13+ themed icon. For more information see Android Adaptive Icons
 
-GlassCard(
-  settings: LiquidGlassSettings(
-    specularSharpness: GlassSpecularSharpness.sharp, // tight, mirror-like
-  ),
-  child: ...,
-)
-Value	Look
-GlassSpecularSharpness.soft	Wide, diffuse — frosted / matte glass
-GlassSpecularSharpness.medium	Default — matches iOS 26
-GlassSpecularSharpness.sharp	Tight, polished — mirror-like surface
-Each value maps to a fixed power-of-2 exponent. The GPU uses a zero-transcendental multiply chain for each — no pow() overhead.
+IOS 
+ios
+true: Override the default existing Flutter launcher icon for the platform specified
+false: Ignore making launcher icons for this platform
+icon/path/here.png: This will generate a new launcher icons for the platform with the name you specify, without removing the old default existing Flutter launcher icon.
+image_path_ios: The location of the icon image file specific for iOS platform (optional - if not defined then the image_path is used)
+remove_alpha_ios: Removes alpha channel for IOS icons
+image_path_ios_dark_transparent: The location of the dark mode icon image file specific for iOS 18+ platform. Note: Apple recommends this icon to be transparent. For more information see Apple Human Interface Guidelines for App Icons
+image_path_ios_tinted_grayscale: The location of the tinted mode icon image file specific for iOS 18+ platform. Note: This icon should be an grayscale image. Use desaturate_tinted_to_grayscale_ios: true to automatically desaturate the image provided here.
+desaturate_tinted_to_grayscale_ios: Automatically desaturates tinted mode icon image to grayscale, defaults to false
+background_color_ios: The color (in the format "#RRGGBB") to be used as the background when removing the alpha channel. It is used only when the remove_alpha_ios property is set to true. (optional - if not defined then #ffffff is used)
+Web 
+web: Add web related configs
+generate: Specifies whether to generate icons for this platform or not
+image_path: Path to web icon.png
+background_color: Updates background_color in web/manifest.json
+theme_color: Updates theme_color in web/manifest.json
+Windows 
+windows: Add Windows related configs
+generate: Specifies whether to generate icons for Windows platform or not
+image_path: Path to windows icon.png
+icon_size: Windows app icon size. Icon size should be within this constrains 48<=icon_size<=256, defaults to 48
+MacOS 
+macos: Add MacOS related configs
+generate: Specifies whether to generate icons for MacOS platform or not
+image_path: Path to macos icon.png file
+Note: iOS icons should fill the entire image and not contain transparent borders.
 
-Performance Tips 
-LiquidGlassWidgets.initialize() at startup — pre-caches shaders, eliminates the white flash on first render
-LiquidGlassWidgets.wrap() in main.dart — all glass surfaces inside automatically share one GPU backdrop capture on Impeller (equivalent to wrapping with GlassBackdropScope directly, which also remains available for explicit scope control)
-Standard quality for scrollable content — lists, forms, interactive widgets
-Premium quality for fixed surfaces — app bars, bottom bars, and hero sections
-Accessibility fallbacks are zero-cost — when Reduce Transparency is active, the glass shader is bypassed entirely; BackdropFilter blur runs in Flutter's own paint layer with no custom shader overhead
-Custom Refraction for Interactive Indicators 
-On Skia and Web, interactive widgets like GlassSegmentedControl can display true liquid glass refraction. Use GlassRefractionSource to mark the capture surface (or use the LiquidGlassScope.stack() shorthand for the common wallpaper-behind-content pattern):
+Flavor support 
+Create a Flutter Launcher Icons configuration file for your flavor. The config file is called flutter_launcher_icons-<flavor>.yaml by replacing <flavor> by the name of your desired flavor.
 
-// Shorthand — wallpaper behind your Scaffold:
-LiquidGlassScope.stack(
-  background: Image.asset('assets/wallpaper.jpg', fit: BoxFit.cover),
-  content: Scaffold(
-    body: Center(
-      child: GlassSegmentedControl(
-        segments: const ['Option A', 'Option B', 'Option C'],
-        selectedIndex: 0,
-        onSegmentSelected: (i) {},
-        quality: GlassQuality.standard,
-      ),
-    ),
-  ),
-)
+The configuration file format is the same.
 
-// Manual — granular control over which surface is sampled:
-LiquidGlassScope(
-  child: Stack(
-    children: [
-      Positioned.fill(
-        child: GlassRefractionSource(
-          child: Image.asset('assets/wallpaper.jpg'),
-        ),
-      ),
-      Center(child: GlassSegmentedControl(...)),
-    ],
-  ),
-)
-On Impeller, GlassQuality.premium uses the native scene graph — no LiquidGlassScope needed.
+An example project with flavor support enabled has been added to the examples.
 
-Migration note (0.7.0): LiquidGlassBackground was renamed to GlassRefractionSource. The old name still compiles (deprecated typedef) and will be removed in 1.0.0.
+❓ Troubleshooting 
+Listed a couple common issues with solutions for them
 
-When	Recommendation
-Skia / Web	LiquidGlassScope.stack with GlassQuality.standard
-iOS / macOS (Impeller)	GlassQuality.premium — native scene graph
-Multiple isolated sections	Separate LiquidGlassScope per section
-Gyroscope Lighting 
-GlassMotionScope drives the specular highlight angle from any Stream<double>, including a device gyroscope via sensors_plus:
+Generated icon color is different from the original icon 
+Caused by an update to the image dependency which is used by Flutter Launcher Icons.
 
-GlassMotionScope(
-  stream: gyroscopeEvents.map((e) => e.y * 0.5),
-  child: Scaffold(
-    appBar: GlassAppBar(title: const Text('My App')),
-    body: ...,
-  ),
-)
-No new dependencies required — connect any stream source (scroll position, mouse, gyroscope).
+Use #AARRGGBB for colors instead of #AABBGGRR, to be compatible with Flutter image class.
+Related issue
 
-Accessibility 
-Every glass widget in this package respects the user's system accessibility preferences automatically — no setup required.
+Dependency incompatible 
+You may receive a message similar to the following
 
-System Setting	Effect on glass widgets
-Reduce Motion (iOS/macOS/Android)	All spring/jelly animations snap instantly to their target
-Reduce Transparency / High Contrast	Glass shader replaced with a plain frosted BackdropFilter panel — zero GPU shader cost
-No setup needed 
-Just ship your app. If the user has Reduce Motion on, your widgets snap. If they have Reduce Transparency on, they get a solid frosted fallback. Nothing to configure.
-
-Optional: GlassAccessibilityScope 
-Place GlassAccessibilityScope in your tree to override system defaults — useful for testing, showcases, or per-subtree customisation:
-
-// In your app (optional — place inside MaterialApp.builder for full coverage)
-MaterialApp(
-  builder: (context, child) => GlassAccessibilityScope(
-    child: child!, // reads system flags automatically
-  ),
-)
-
-// Force a specific state (e.g. demo frosted fallback in a settings screen)
-GlassAccessibilityScope(
-  reduceTransparency: true,
-  child: GlassSettingsPreview(),
-)
-GlassAccessibilityScope always wins over the system flag — it's the highest-priority override.
-
-Opting out globally 
-For experiences where full glass fidelity is intentional (games, creative tools):
-
-await LiquidGlassWidgets.initialize(
-  respectSystemAccessibility: false, // ignores system Reduce Motion / Reduce Transparency
-);
-This disables only the automatic system-flag bridge. An explicit GlassAccessibilityScope in the widget tree still works regardless.
-
-Priority order (highest wins) 
-GlassAccessibilityScope in the widget tree — explicit developer override
-System MediaQuery flags — automatic, respects user's OS setting
-initialize(respectSystemAccessibility: false) — disables (2) globally
-Architecture 
-On Impeller, every GlassQuality.premium surface uses a two-pass pipeline:
-
-Blur pass — BackdropFilterLayer(ImageFilter.blur), clipped to the exact widget shape. Shared across all surfaces inside a GlassBackdropScope (injected automatically by LiquidGlassWidgets.wrap()).
-Shader pass — BackdropFilterLayer(ImageFilter.shader) — refraction, edge lighting, glass tint, and chromatic aberration.
-On Skia/Web, lightweight_glass.frag runs as a single pass with no backdrop capture.
-
-Content-Adaptive Glass Strength (0.7.0) 
-Both render paths automatically adapt glass strength to background brightness:
-
-Dark backgrounds → richer, more opaque glass (1.2× strength, brighter Fresnel rim)
-Light backgrounds → subtler, more translucent glass (0.8× strength)
-On Impeller, backdrop luminance is sampled directly from the refracted texture (zero extra reads). On Skia/Web, MediaQuery.platformBrightnessOf provides a lightweight proxy.
-
-Testing 
-# All tests
-flutter test
-
-# Exclude golden tests
-flutter test --exclude-tags golden
-
-# macOS golden tests (require Impeller)
-flutter test --tags golden
-Dependencies 
-Zero third-party runtime dependencies beyond the Flutter SDK.
-
-The glass rendering pipeline builds on the open-source work of whynotmake-it. Their liquid_glass_renderer (MIT) has been vendored and extended with bug fixes, performance improvements, and shader optimisations.
-
-Contributing 
-Contributions are welcome. For major changes, open an issue first to discuss your proposal.
-
-License 
-MIT — see the LICENSE file for details.
-
-Credits 
-Special thanks to the whynotmake-it team for their liquid_glass_renderer (MIT), whose shader pipeline, texture capture, and chromatic aberration work forms the foundation of the rendering engine in this library.
-
-Links 
-pub.dev
-Repository
-Issue Tracker
+Because flutter_launcher_icons >=0.9.0 depends on args 2.0.0 and flutter_native_splash 1.2.0 depends on args ^2.1.1, flutter_launcher_icons >=0.9.0 is incompatible with flutter_native_splash 1.2.0.
+And because no versions of flutter_native_splash match >1.2.0 <2.0.0, flutter_launcher_icons >=0.9.0 is incompatible with flutter_native_splash ^1.2.0.
+So, because enstack depends on both flutter_native_splash ^1.2.0 and flutter_launcher_icons ^0.9.0, version solving failed.
+pub get failed (1; So, because enstack depends on both flutter_native_splash ^1.2.0 and flutter_launcher_icons ^0.9.0, version solving failed.)
+For a quick fix, you can temporarily override all references to a dependency: See here for an example.
