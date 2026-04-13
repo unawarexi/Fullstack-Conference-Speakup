@@ -101,7 +101,7 @@ const getResourceType = (filename) => {
 export const uploadToCloudinary = async (
   fileBuffer,
   originalName,
-  folder = "/projects/brainbox",
+  folder = "/projects/speakup",
 ) => {
   try {
     const resourceType = getResourceType(originalName);
