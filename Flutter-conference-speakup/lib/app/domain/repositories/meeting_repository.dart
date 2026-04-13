@@ -19,37 +19,38 @@ class MeetingRepository {
       'page': page,
       'limit': limit,
     });
-    final list = res.data['data'] as List;
+    final list = res.data['data']['meetings'] as List;
     return list.map((e) => MeetingModel.fromJson(e)).toList();
   }
 
   Future<MeetingModel> create(Map<String, dynamic> data) async {
     final res = await _api.post(ApiEndpoints.meetings, data: data);
-    return MeetingModel.fromJson(res.data['data']);
+    return MeetingModel.fromJson(res.data['data']['meeting']);
   }
 
   Future<MeetingModel> getById(String id) async {
     final res = await _api.get(ApiEndpoints.meeting(id));
-    return MeetingModel.fromJson(res.data['data']);
+    return MeetingModel.fromJson(res.data['data']['meeting']);
   }
 
   Future<MeetingModel> update(String id, Map<String, dynamic> data) async {
     final res = await _api.put(ApiEndpoints.meeting(id), data: data);
-    return MeetingModel.fromJson(res.data['data']);
+    return MeetingModel.fromJson(res.data['data']['meeting']);
   }
 
   Future<void> delete(String id) => _api.delete(ApiEndpoints.meeting(id));
 
   Future<MeetingModel> joinByCode(String code) async {
     final res = await _api.get(ApiEndpoints.joinByCode(code));
-    return MeetingModel.fromJson(res.data['data']);
+    return MeetingModel.fromJson(res.data['data']['meeting']);
   }
 
   Future<MeetingModel> join(String meetingId, {String? password}) async {
-    final res = await _api.post(ApiEndpoints.joinMeeting(meetingId), data: {
+    // POST join returns participant, not meeting — so join then fetch meeting
+    await _api.post(ApiEndpoints.joinMeeting(meetingId), data: {
       'password': ?password,
     });
-    return MeetingModel.fromJson(res.data['data']);
+    return getById(meetingId);
   }
 
   Future<void> leave(String meetingId) =>
@@ -66,7 +67,7 @@ class MeetingRepository {
 
   Future<List<Participant>> getParticipants(String meetingId) async {
     final res = await _api.get(ApiEndpoints.meetingParticipants(meetingId));
-    final list = res.data['data'] as List;
+    final list = res.data['data']['participants'] as List;
     return list.map((e) => Participant.fromJson(e)).toList();
   }
 

@@ -14,9 +14,11 @@ import 'package:flutter_conference_speakup/core/utils/file_picker.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/usecases/meeting_utils.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/create_meeting_widgets.dart';
 
 class CreateMeetingScreen extends ConsumerStatefulWidget {
-  const CreateMeetingScreen({super.key});
+  const CreateMeetingScreen({super.key}); 
 
   @override
   ConsumerState<CreateMeetingScreen> createState() =>
@@ -84,21 +86,21 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
             SectionHeader(title: 'Meeting Type'),
             Row(
               children: [
-                _TypeChip(
+                CreateMeetingTypeChip(
                   label: 'Instant',
                   icon: Icons.bolt_rounded,
                   selected: _meetingType == 'INSTANT',
                   onTap: () => setState(() => _meetingType = 'INSTANT'),
                 ),
                 const SizedBox(width: 8),
-                _TypeChip(
+                CreateMeetingTypeChip(
                   label: 'Scheduled',
                   icon: SIcons.calendar,
                   selected: _meetingType == 'SCHEDULED',
                   onTap: () => setState(() => _meetingType = 'SCHEDULED'),
                 ),
                 const SizedBox(width: 8),
-                _TypeChip(
+                CreateMeetingTypeChip(
                   label: 'Recurring',
                   icon: Icons.repeat_rounded,
                   selected: _meetingType == 'RECURRING',
@@ -109,7 +111,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
             const SizedBox(height: SSizes.lg),
 
             // Title
-            _InputField(
+            CreateMeetingInputField(
               controller: _titleCtrl,
               label: 'Meeting Title',
               hint: 'e.g. Sprint Review Q4',
@@ -119,7 +121,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
             const SizedBox(height: SSizes.md),
 
             // Description
-            _InputField(
+            CreateMeetingInputField(
               controller: _descCtrl,
               focusNode: _descFocusNode,
               label: 'Description (optional)',
@@ -309,9 +311,9 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
                           child: Row(
                             children: [
                               Icon(
-                                _fileIcon(ext),
+                                fileTypeIcon(ext),
                                 size: 18,
-                                color: _fileIconColor(ext),
+                                color: fileTypeColor(ext),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -383,7 +385,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _PickerTile(
+                    child: CreateMeetingPickerTile(
                       icon: SIcons.calendar,
                       label: _scheduledDate != null
                           ? DateFormat('MMM d, y').format(_scheduledDate!)
@@ -394,7 +396,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: _PickerTile(
+                    child: CreateMeetingPickerTile(
                       icon: SIcons.clock,
                       label: _scheduledTime != null
                           ? _scheduledTime!.format(context)
@@ -433,7 +435,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 4),
-                      child: _InputField(
+                      child: CreateMeetingInputField(
                         controller: _passwordCtrl,
                         label: '',
                         hint: 'Enter meeting password',
@@ -647,8 +649,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
     final email = _emailCtrl.text.trim().toLowerCase();
     if (email.isEmpty) return;
     // Basic email validation
-    final emailRegex = RegExp(r'^[\w\.\+\-]+@[\w\-]+\.[\w\-\.]+$');
-    if (!emailRegex.hasMatch(email)) {
+    if (!isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email')),
       );
@@ -685,55 +686,6 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
     if (valid.isNotEmpty) {
       setState(() => _attachments.addAll(valid));
     }
-  }
-
-  IconData _fileIcon(String ext) {
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].contains(ext)) {
-      return Icons.image_rounded;
-    }
-    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].contains(ext)) {
-      return Icons.videocam_rounded;
-    }
-    if (['mp3', 'wav', 'aac', 'ogg', 'flac'].contains(ext)) {
-      return Icons.audiotrack_rounded;
-    }
-    if (['pdf'].contains(ext)) return Icons.picture_as_pdf_rounded;
-    if (['doc', 'docx', 'txt', 'rtf', 'odt'].contains(ext)) {
-      return Icons.description_rounded;
-    }
-    if (['xls', 'xlsx', 'csv', 'ods'].contains(ext)) {
-      return Icons.table_chart_rounded;
-    }
-    if (['ppt', 'pptx', 'odp'].contains(ext)) {
-      return Icons.slideshow_rounded;
-    }
-    if (['zip', 'rar', '7z', 'tar', 'gz'].contains(ext)) {
-      return Icons.folder_zip_rounded;
-    }
-    return Icons.insert_drive_file_rounded;
-  }
-
-  Color _fileIconColor(String ext) {
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].contains(ext)) {
-      return Colors.pink;
-    }
-    if (['mp4', 'mov', 'avi', 'mkv', 'webm'].contains(ext)) {
-      return Colors.purple;
-    }
-    if (['mp3', 'wav', 'aac', 'ogg', 'flac'].contains(ext)) {
-      return Colors.orange;
-    }
-    if (['pdf'].contains(ext)) return Colors.red;
-    if (['doc', 'docx', 'txt', 'rtf', 'odt'].contains(ext)) {
-      return Colors.blue;
-    }
-    if (['xls', 'xlsx', 'csv', 'ods'].contains(ext)) {
-      return Colors.green;
-    }
-    if (['ppt', 'pptx', 'odp'].contains(ext)) {
-      return Colors.deepOrange;
-    }
-    return Colors.grey;
   }
 
   void _showMeetingCreatedDialog(dynamic meeting) {
@@ -853,211 +805,6 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
               ],
             ),
             const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TypeChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: selected
-                ? SColors.primary.withValues(alpha: 0.12)
-                : (isDark ? SColors.darkCard : SColors.lightCard),
-            borderRadius: BorderRadius.circular(SSizes.radiusSm),
-            border: Border.all(
-              color: selected
-                  ? SColors.primary.withValues(alpha: 0.4)
-                  : (isDark ? SColors.darkBorder : SColors.lightBorder),
-              width: selected ? 1.5 : 0.5,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(icon,
-                  size: 20,
-                  color: selected
-                      ? SColors.primary
-                      : (isDark
-                          ? SColors.textDarkSecondary
-                          : SColors.textLightSecondary)),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                  color: selected
-                      ? SColors.primary
-                      : (isDark
-                          ? SColors.textDarkSecondary
-                          : SColors.textLightSecondary),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final IconData icon;
-  final bool isDark;
-  final int maxLines;
-  final bool isPassword;
-  final FocusNode? focusNode;
-  final TextInputAction? textInputAction;
-
-  const _InputField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    required this.icon,
-    required this.isDark,
-    this.maxLines = 1,
-    this.isPassword = false,
-    this.focusNode,
-    this.textInputAction,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label.isNotEmpty) ...[
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-        ],
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? SColors.darkCard : SColors.lightCard,
-            borderRadius: BorderRadius.circular(SSizes.radiusSm),
-            border: Border.all(
-              color: isDark ? SColors.darkBorder : SColors.lightBorder,
-              width: 0.5,
-            ),
-          ),
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            maxLines: maxLines,
-            minLines: maxLines > 1 ? 1 : null,
-            obscureText: isPassword,
-            keyboardType: maxLines > 1 ? TextInputType.multiline : TextInputType.text,
-            textInputAction: textInputAction ?? (maxLines > 1 ? TextInputAction.newline : TextInputAction.next),
-            style: TextStyle(
-              fontSize: 14,
-              color: isDark ? SColors.textDark : SColors.textLight,
-            ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(
-                fontSize: 14,
-                color: isDark
-                    ? SColors.textDarkTertiary
-                    : SColors.textLightTertiary,
-              ),
-              prefixIcon:
-                  Icon(icon, size: 18, color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary),
-              prefixIconConstraints:
-                  const BoxConstraints(minWidth: 42, minHeight: 42),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 12),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PickerTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _PickerTile({
-    required this.icon,
-    required this.label,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? SColors.darkCard : SColors.lightCard,
-          borderRadius: BorderRadius.circular(SSizes.radiusSm),
-          border: Border.all(
-            color: isDark ? SColors.darkBorder : SColors.lightBorder,
-            width: 0.5,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 17,
-                color: isDark
-                    ? SColors.textDarkSecondary
-                    : SColors.textLightSecondary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? SColors.textDark : SColors.textLight,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
           ],
         ),
       ),

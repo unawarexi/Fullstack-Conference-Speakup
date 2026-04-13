@@ -10,6 +10,8 @@ import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/usecases/join_meeting_usecase.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/join_meeting_widgets.dart';
 
 class JoinMeetingScreen extends ConsumerStatefulWidget {
   final String? initialCode;
@@ -25,32 +27,6 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
   bool _muteVideo = false;
   bool _isCreating = false;
   bool _isJoining = false;
-
-  /// Regex for SpeakUp meeting codes: spk-xxxx-xxxx
-  static final _speakUpCodeRegex = RegExp(r'^spk-[a-z0-9]{4}-[a-z0-9]{4}$');
-
-  /// Extract meeting code from various input formats
-  String? _extractCode(String input) {
-    final trimmed = input.trim().toLowerCase();
-
-    // Full link: https://speakup.app/join/spk-xxxx-xxxx
-    final urlMatch = RegExp(r'speakup\.app/(?:join|meeting)/([a-z0-9-]+)')
-        .firstMatch(trimmed);
-    if (urlMatch != null) return urlMatch.group(1);
-
-    // Deep link: speakup://meet/spk-xxxx-xxxx
-    final deepMatch =
-        RegExp(r'speakup://meet/([a-z0-9-]+)').firstMatch(trimmed);
-    if (deepMatch != null) return deepMatch.group(1);
-
-    // Plain code
-    if (_speakUpCodeRegex.hasMatch(trimmed)) return trimmed;
-
-    // Legacy cuid fallback (alphanumeric, 20+ chars)
-    if (RegExp(r'^[a-z0-9]{8,}$').hasMatch(trimmed)) return trimmed;
-
-    return trimmed.isNotEmpty ? trimmed : null;
-  }
 
   @override
   void initState() {
@@ -94,7 +70,7 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
   }
 
   Future<void> _joinWithCode() async {
-    final code = _extractCode(_meetingIdCtrl.text);
+    final code = extractMeetingCode(_meetingIdCtrl.text);
     if (code == null || code.isEmpty) return;
 
     setState(() => _isJoining = true);
@@ -153,7 +129,7 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _ActionCard(
+                  child: JoinActionCard(
                     icon: Icons.bolt_rounded,
                     label: 'Instant Meeting',
                     subtitle: 'Start now',
@@ -165,7 +141,7 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _ActionCard(
+                  child: JoinActionCard(
                     icon: SIcons.calendar,
                     label: 'Schedule',
                     subtitle: 'Plan ahead',
@@ -254,7 +230,7 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
                   // Media toggles
                   Row(
                     children: [
-                      _CompactToggle(
+                      JoinCompactToggle(
                         icon: _muteAudio
                             ? SIcons.micOff
                             : SIcons.micOn,
@@ -265,7 +241,7 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
                             setState(() => _muteAudio = !_muteAudio),
                       ),
                       const SizedBox(width: 10),
-                      _CompactToggle(
+                      JoinCompactToggle(
                         icon: _muteVideo
                             ? SIcons.cameraOff
                             : SIcons.cameraOn,
@@ -334,180 +310,3 @@ class _JoinMeetingScreenState extends ConsumerState<JoinMeetingScreen> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Action Card — compact hero action
-// ─────────────────────────────────────────────
-class _ActionCard extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Gradient? gradient;
-  final Color? color;
-  final Color? borderColor;
-  final Color textColor;
-  final Color? iconColor;
-  final bool isLoading;
-  final VoidCallback? onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    this.gradient,
-    this.color,
-    this.borderColor,
-    required this.textColor,
-    this.iconColor,
-    this.isLoading = false,
-    this.onTap,
-  });
-
-  @override
-  State<_ActionCard> createState() => _ActionCardState();
-}
-
-class _ActionCardState extends State<_ActionCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        HapticFeedback.lightImpact();
-        widget.onTap?.call();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.95 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: widget.gradient,
-            color: widget.gradient == null ? widget.color : null,
-            borderRadius: BorderRadius.circular(SSizes.radiusMd),
-            border: widget.borderColor != null
-                ? Border.all(color: widget.borderColor!, width: 0.5)
-                : null,
-            boxShadow: widget.gradient != null
-                ? [
-                    BoxShadow(
-                      color: SColors.primary.withValues(alpha: 0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 3),
-                    )
-                  ]
-                : null,
-          ),
-          child: widget.isLoading
-              ? SizedBox(
-                  height: 44,
-                  child: Center(
-                    child: CupertinoActivityIndicator(
-                      color: widget.textColor,
-                    ),
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(widget.icon,
-                        color: widget.iconColor ?? widget.textColor,
-                        size: 24),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: widget.textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: widget.textColor.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Compact Toggle — mic/cam toggle chip
-// ─────────────────────────────────────────────
-class _CompactToggle extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isActive;
-  final bool isDark;
-  final VoidCallback? onTap;
-
-  const _CompactToggle({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-    required this.isDark,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap?.call();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-          decoration: BoxDecoration(
-            color: isActive
-                ? SColors.primary.withValues(alpha: 0.1)
-                : (isDark ? SColors.darkElevated : SColors.lightElevated),
-            borderRadius: BorderRadius.circular(SSizes.radiusSm),
-            border: Border.all(
-              color: isActive
-                  ? SColors.primary.withValues(alpha: 0.3)
-                  : Colors.transparent,
-              width: 0.5,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 16,
-                  color: isActive
-                      ? SColors.primary
-                      : (isDark
-                          ? SColors.textDarkTertiary
-                          : SColors.textLightTertiary)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isActive
-                      ? SColors.primary
-                      : (isDark
-                          ? SColors.textDarkSecondary
-                          : SColors.textLightSecondary),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

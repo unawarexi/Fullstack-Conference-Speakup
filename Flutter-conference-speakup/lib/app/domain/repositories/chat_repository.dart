@@ -13,7 +13,7 @@ class ChatRepository {
 
   Future<ChatRoom> getOrCreateMeetingChat(String meetingId) async {
     final res = await _api.get(ApiEndpoints.meetingChat(meetingId));
-    return ChatRoom.fromJson(res.data['data']);
+    return ChatRoom.fromJson(res.data['data']['chatRoom']);
   }
 
   /// Get messages with cursor-based pagination.
@@ -47,7 +47,7 @@ class ChatRepository {
         'replyToId': ?replyToId,
       },
     );
-    return ChatMessage.fromJson(res.data['data']);
+    return ChatMessage.fromJson(res.data['data']['message']);
   }
 
   Future<void> deleteMessage(String messageId) =>
