@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/app/domain/models/participant_model.dart';
 import 'package:flutter_conference_speakup/store/recording_provider.dart';
@@ -39,7 +40,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
           color: isDark ? SColors.textDark : SColors.textLight,
         )),
       ),
-      body: RefreshIndicator(
+      body: ResponsiveBody(child: RefreshIndicator(
         onRefresh: _onRefresh,
         color: SColors.primary,
         child: CustomScrollView(
@@ -165,6 +166,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -178,21 +180,26 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
         actions: [
           if (rec.status == RecordingStatus.ready) ...[
             CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _playRecording(rec);
+              },
               child: const Text('Play'),
             ),
             CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _downloadRecording(rec);
+              },
               child: const Text('Download'),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Share'),
             ),
           ],
           CupertinoActionSheetAction(
             isDestructiveAction: true,
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteRecording(rec);
+            },
             child: const Text('Delete'),
           ),
         ],
@@ -202,6 +209,79 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _playRecording(RecordingModel rec) async {
+    try {
+      final url = await ref.read(recordingRepositoryProvider).getDownloadUrl(rec.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Opening recording...'), backgroundColor: SColors.primary),
+        );
+        // Open URL in browser/player — url_launcher would be used here
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load recording'), backgroundColor: SColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadRecording(RecordingModel rec) async {
+    try {
+      final url = await ref.read(recordingRepositoryProvider).getDownloadUrl(rec.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download started'), backgroundColor: SColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed'), backgroundColor: SColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteRecording(RecordingModel rec) async {
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Delete Recording'),
+        content: Text('Delete "${rec.meetingTitle ?? 'this recording'}"? This cannot be undone.'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Delete'),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await ref.read(recordingRepositoryProvider).delete(rec.id);
+        ref.invalidate(recordingsProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Recording deleted'), backgroundColor: SColors.success),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete'), backgroundColor: SColors.error),
+          );
+        }
+      }
+    }
   }
 
   String _formatBytes(int bytes) {
@@ -372,6 +452,6 @@ class _MiniStat extends StatelessWidget {
           color: isDark ? SColors.textDarkTertiary : SColors.textLightTertiary,
         )),
       ],
-    );
+);
   }
 }

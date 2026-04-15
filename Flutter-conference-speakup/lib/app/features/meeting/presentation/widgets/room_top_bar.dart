@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/store/ai_provider.dart';
 
 class RoomTopBar extends StatelessWidget {
@@ -35,141 +36,125 @@ class RoomTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chipBg = isDark
-        ? SColors.darkCard.withOpacity(0.8)
-        : Colors.white.withOpacity(0.75);
-    final chipBorder =
-        isDark ? SColors.darkBorder : Colors.white.withOpacity(0.3);
-    final textPrimary = isDark ? SColors.textDark : SColors.textLight;
-    final textSecondary =
-        isDark ? SColors.textDarkSecondary : SColors.textLightSecondary;
+        ? Colors.black.withOpacity(0.4)
+        : Colors.white.withOpacity(0.65);
+    final textPrimary = isDark ? Colors.white : SColors.textLight;
+    final textSecondary = isDark
+        ? Colors.white.withOpacity(0.7)
+        : SColors.textLightSecondary;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + SSizes.xs,
-            left: SSizes.md,
-            right: SSizes.sm,
-            bottom: SSizes.sm,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDark
-                  ? [SColors.darkBg.withOpacity(0.7), Colors.transparent]
-                  : [Colors.white.withOpacity(0.6), Colors.transparent],
+    return Container(
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + SResponsive.sp(context, SSizes.xs, tabletSize: SSizes.sm),
+        left: SResponsive.pagePadding(context),
+        right: SResponsive.sp(context, SSizes.sm, tabletSize: SSizes.md),
+        bottom: SResponsive.sp(context, SSizes.sm, tabletSize: SSizes.md),
+      ),
+      child: Row(
+        children: [
+          // Encrypted badge
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(SSizes.radiusFull),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline,
+                    color: SColors.success, size: 12),
+                const SizedBox(width: 4),
+                Text(
+                  meetingId.length > 8
+                      ? '${meetingId.substring(0, 8)}…'
+                      : meetingId,
+                  style: TextStyle(
+                    color: textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              // Encrypted badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: chipBg,
-                  borderRadius: BorderRadius.circular(SSizes.radiusFull),
-                  border: Border.all(color: chipBorder, width: 0.5),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.lock_outline,
-                        color: SColors.success, size: 12),
-                    const SizedBox(width: 4),
-                    Text(
-                      meetingId.length > 8
-                          ? '${meetingId.substring(0, 8)}…'
-                          : meetingId,
-                      style: TextStyle(
-                        color: textSecondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.3,
-                      ),
+
+          const SizedBox(width: SSizes.sm),
+
+          // Duration
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(SSizes.radiusFull),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isRecording) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: SColors.error,
+                      shape: BoxShape.circle,
                     ),
-                  ],
+                  )
+                      .animate(onPlay: (c) => c.repeat())
+                      .fadeIn(duration: 600.ms)
+                      .then()
+                      .fadeOut(duration: 600.ms),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  formatDuration(elapsed),
+                  style: TextStyle(
+                    color: isRecording ? SColors.error : textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
-
-              const SizedBox(width: SSizes.sm),
-
-              // Duration
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: chipBg,
-                  borderRadius: BorderRadius.circular(SSizes.radiusFull),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isRecording) ...[
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: SColors.error,
-                          shape: BoxShape.circle,
-                        ),
-                      )
-                          .animate(onPlay: (c) => c.repeat())
-                          .fadeIn(duration: 600.ms)
-                          .then()
-                          .fadeOut(duration: 600.ms),
-                      const SizedBox(width: 6),
-                    ],
-                    Text(
-                      formatDuration(elapsed),
-                      style: TextStyle(
-                        color: isRecording ? SColors.error : textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(),
-
-              // AI active indicators
-              if (aiState.isCopilotEnabled)
-                const RoomTopBarChip(
-                  icon: Iconsax.cpu,
-                  label: 'AI',
-                  color: SColors.screenShare,
-                ),
-
-              if (aiState.isTranscriptionEnabled)
-                const RoomTopBarChip(
-                  icon: Iconsax.subtitle,
-                  label: 'CC',
-                  color: SColors.info,
-                ),
-
-              // Participants
-              RoomTopBarIconButton(
-                icon: Iconsax.people,
-                badge:
-                    participantCount > 0 ? '$participantCount' : null,
-                iconColor: textPrimary,
-                onTap: onTapParticipants,
-              ),
-
-              // Chat
-              RoomTopBarIconButton(
-                icon: Iconsax.message,
-                iconColor: textPrimary,
-                onTap: onTapChat,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          const Spacer(),
+
+          // AI active indicators
+          if (aiState.isCopilotEnabled)
+            const RoomTopBarChip(
+              icon: Iconsax.cpu,
+              label: 'AI',
+              color: SColors.screenShare,
+            ),
+
+          if (aiState.isTranscriptionEnabled)
+            const RoomTopBarChip(
+              icon: Iconsax.subtitle,
+              label: 'CC',
+              color: SColors.info,
+            ),
+
+          // Participants
+          RoomTopBarIconButton(
+            icon: Iconsax.people,
+            badge:
+                participantCount > 0 ? '$participantCount' : null,
+            iconColor: textPrimary,
+            onTap: onTapParticipants,
+          ),
+
+          // Chat
+          RoomTopBarIconButton(
+            icon: Iconsax.message,
+            iconColor: textPrimary,
+            onTap: onTapChat,
+          ),
+        ],
       ),
     );
   }
@@ -223,7 +208,7 @@ class RoomTopBarIconButton extends StatelessWidget {
     super.key,
     required this.icon,
     this.badge,
-    this.iconColor = SColors.textDark,
+    this.iconColor = SColors.textLight,
     required this.onTap,
   });
 

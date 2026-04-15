@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
@@ -33,7 +34,7 @@ class _MeetingLobbyScreenState extends ConsumerState<MeetingLobbyScreen> {
 
     return Scaffold(
       backgroundColor: isDark ? SColors.darkBg : SColors.lightBg,
-      body: SafeArea(
+      body: ResponsiveBody(child: SafeArea(
         child: Column(
           children: [
             // Top bar
@@ -252,6 +253,7 @@ class _MeetingLobbyScreenState extends ConsumerState<MeetingLobbyScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

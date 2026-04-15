@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
+import 'package:flutter_conference_speakup/store/analytics_provider.dart';
+import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 
 class AnalyticsDashboardScreen extends ConsumerWidget {
   const AnalyticsDashboardScreen({super.key});
@@ -12,13 +15,7 @@ class AnalyticsDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // TODO: Replace with real analytics data
-    final stats = [
-      {'label': 'Meetings', 'value': '42', 'icon': Icons.video_call, 'color': SColors.primary, 'change': '+12%', 'isPositive': true},
-      {'label': 'Minutes', 'value': '1.2k', 'icon': Icons.timer, 'color': SColors.success, 'change': '+8%', 'isPositive': true},
-      {'label': 'Participants', 'value': '320', 'icon': Icons.people, 'color': SColors.info, 'change': '-2%', 'isPositive': false},
-      {'label': 'Recordings', 'value': '18', 'icon': Icons.fiber_smart_record, 'color': SColors.error, 'change': '+3%', 'isPositive': true},
-    ];
+    final dashboardAsync = ref.watch(analyticsDashboardProvider);
 
     return Scaffold(
       backgroundColor: isDark ? SColors.darkBg : SColors.lightBg,
@@ -28,50 +25,107 @@ class AnalyticsDashboardScreen extends ConsumerWidget {
           color: isDark ? SColors.textDark : SColors.textLight,
         )),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          SectionHeader(title: 'Overview'),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: stats.map((s) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: StatCard(
-                  label: s['label'] as String,
-                  value: s['value'] as String,
-                  icon: s['icon'] as IconData,
-                  color: s['color'] as Color,
-                  change: s['change'] as String?,
-                  isPositive: s['isPositive'] as bool,
+      body: ResponsiveBody(child: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(analyticsDashboardProvider);
+          ref.invalidate(meetingsProvider(null));
+        },
+        color: SColors.primary,
+        child: dashboardAsync.when(
+          data: (dashboard) {
+            final totalMeetings = dashboard['totalMeetings'] ?? 0;
+            final totalMinutes = dashboard['totalMinutes'] ?? 0;
+            final totalParticipants = dashboard['totalParticipants'] ?? 0;
+            final totalRecordings = dashboard['totalRecordings'] ?? 0;
+            final meetingChange = dashboard['meetingChange'] as String? ?? '+0%';
+            final minuteChange = dashboard['minuteChange'] as String? ?? '+0%';
+            final participantChange = dashboard['participantChange'] as String? ?? '+0%';
+            final recordingChange = dashboard['recordingChange'] as String? ?? '+0%';
+            final recentMeetings =
+                (dashboard['recentMeetings'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+
+            final stats = [
+              {'label': 'Meetings', 'value': '$totalMeetings', 'icon': Icons.video_call, 'color': SColors.primary, 'change': meetingChange, 'isPositive': !meetingChange.startsWith('-')},
+              {'label': 'Minutes', 'value': _formatNumber(totalMinutes), 'icon': Icons.timer, 'color': SColors.success, 'change': minuteChange, 'isPositive': !minuteChange.startsWith('-')},
+              {'label': 'Participants', 'value': '$totalParticipants', 'icon': Icons.people, 'color': SColors.info, 'change': participantChange, 'isPositive': !participantChange.startsWith('-')},
+              {'label': 'Recordings', 'value': '$totalRecordings', 'icon': Icons.fiber_smart_record, 'color': SColors.error, 'change': recordingChange, 'isPositive': !recordingChange.startsWith('-')},
+            ];
+
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                SectionHeader(title: 'Overview'),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: stats.map((s) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: StatCard(
+                        label: s['label'] as String,
+                        value: s['value'] as String,
+                        icon: s['icon'] as IconData,
+                        color: s['color'] as Color,
+                        change: s['change'] as String?,
+                        isPositive: s['isPositive'] as bool,
+                      ),
+                    ),
+                  )).toList(),
                 ),
+                const SizedBox(height: 24),
+                SectionHeader(title: 'Recent Activity'),
+                if (recentMeetings.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: Text('No recent activity',
+                        style: TextStyle(color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary))),
+                  )
+                else
+                  ...recentMeetings.take(10).map((m) {
+                    final title = m['title'] as String? ?? 'Untitled Meeting';
+                    final status = m['status'] as String? ?? 'ended';
+                    final date = m['endedAt'] != null
+                        ? DateFormat.yMMMd().format(DateTime.parse(m['endedAt'] as String))
+                        : m['scheduledAt'] != null
+                            ? DateFormat.yMMMd().format(DateTime.parse(m['scheduledAt'] as String))
+                            : '';
+
+                    return DenseTile(
+                      icon: Icons.event,
+                      title: title,
+                      subtitle: date,
+                      trailing: StatusBadge(
+                        label: status[0].toUpperCase() + status.substring(1),
+                        color: status == 'active' ? SColors.success : SColors.darkMuted,
+                      ),
+                      onTap: () {},
+                    );
+                  }),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Failed to load analytics',
+                  style: TextStyle(color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary)),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => ref.invalidate(analyticsDashboardProvider),
+                child: const Text('Retry'),
               ),
-            )).toList(),
-          ),
-          const SizedBox(height: 24),
-          SectionHeader(title: 'Usage Trends'),
-          Container(
-            height: 180,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? SColors.darkCard : SColors.lightCard,
-              borderRadius: BorderRadius.circular(SSizes.radiusMd),
-            ),
-            child: const Center(child: Text('TODO: Add charts')), // Placeholder
-          ),
-          const SizedBox(height: 24),
-          SectionHeader(title: 'Recent Activity'),
-          ...List.generate(5, (i) => DenseTile(
-            icon: Icons.event,
-            title: 'Meeting #${i + 1}',
-            subtitle: DateFormat.yMMMd().format(DateTime.now().subtract(Duration(days: i))),
-            trailing: StatusBadge(label: 'Ended', color: SColors.darkMuted),
-            onTap: () {},
-            hasDivider: i < 4,
+            ],
           )),
-        ],
+        ),
       ),
-    );
+    ),
+);
+  }
+
+  String _formatNumber(dynamic n) {
+    if (n is int && n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    return '$n';
   }
 }

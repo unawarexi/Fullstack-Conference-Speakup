@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_conference_speakup/app/domain/models/legal_model.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/widgets/app_bar.dart';
 
 /// Reusable legal document viewer — renders sections, items, subsections.
@@ -25,7 +26,7 @@ class LegalDocumentView extends StatelessWidget {
 
     return Scaffold(
       appBar: SAppBar(title: title, showBack: true),
-      body: document.when(
+      body: ResponsiveBody(child: document.when(
         loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (error, _) => RefreshIndicator(
           onRefresh: () async { onRetry?.call(); },
@@ -50,6 +51,7 @@ class LegalDocumentView extends StatelessWidget {
           child: _DocumentBody(document: doc, isDark: isDark),
         ),
       ),
+    ),
     );
   }
 }

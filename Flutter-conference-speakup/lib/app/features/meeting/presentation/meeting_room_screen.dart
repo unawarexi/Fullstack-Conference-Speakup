@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 import 'package:flutter_conference_speakup/store/ai_provider.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
@@ -153,9 +154,14 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
     final isHost = meetingState.meeting?.hostId == currentUser?.id;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final topPad = MediaQuery.of(context).padding.top;
+    // Responsive inset so controls/top bar aren't glued to screen edges
+    final controlsBottom = bottomPad + SResponsive.sp(context, 12, tabletSize: 20, desktopSize: 24);
+    final controlsBarH = SResponsive.sp(context, 72, tabletSize: 80, desktopSize: 84);
 
     return Scaffold(
       backgroundColor: isDark ? SColors.darkBg : SColors.lightBg,
+      resizeToAvoidBottomInset: false,
       body: GestureDetector(
         onTap: () => setState(() => _topBarVisible = !_topBarVisible),
         child: Stack(
@@ -172,13 +178,17 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
             ),
 
             // ── Top bar overlay (gradient fade on top of video) ──
-            AnimatedSlide(
-              offset: _topBarVisible ? Offset.zero : const Offset(0, -1),
-              duration: const Duration(milliseconds: 200),
-              child: AnimatedOpacity(
-                opacity: _topBarVisible ? 1.0 : 0.0,
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: AnimatedSlide(
+                offset: _topBarVisible ? Offset.zero : const Offset(0, -1),
                 duration: const Duration(milliseconds: 200),
-                child: RoomTopBar(
+                child: AnimatedOpacity(
+                  opacity: _topBarVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: RoomTopBar(
                   meetingId: widget.meetingId,
                   elapsed: meetingState.elapsed,
                   participantCount: meetingState.participants.length,
@@ -219,31 +229,32 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
                   },
                 ),
               ),
+              ),
             ),
 
             // ── Coaching hint banner (below top bar area) ──
             if (aiState.isCoachingEnabled && aiState.coachingHints.isNotEmpty)
               Positioned(
-                top: MediaQuery.of(context).padding.top + 60,
+                top: topPad + SResponsive.sp(context, 60, tabletSize: 72),
                 left: 0,
                 right: 0,
                 child: RoomCoachingBanner(hint: aiState.coachingHints.last, isDark: isDark),
               ),
 
-            // ── Transcription overlay (above controls) ──
+            // ── Transcription overlay (above controls, like movie subtitles) ──
             if (aiState.isTranscriptionEnabled && aiState.transcription.isNotEmpty)
               Positioned(
-                left: 0,
-                right: 0,
-                bottom: SSizes.controlBarHeight + bottomPad + SSizes.sm,
+                left: SResponsive.pagePadding(context),
+                right: SResponsive.pagePadding(context),
+                bottom: controlsBottom + controlsBarH + SSizes.sm,
                 child: RoomTranscriptionOverlay(segments: aiState.transcription, isDark: isDark),
               ),
 
-            // ── Controls bar (bottom, glassmorphism overlay) ──
+            // ── Controls bar (floating glass pill) ──
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
+              left: SResponsive.sp(context, SSizes.cardPadding, tabletSize: SSizes.lg, desktopSize: SSizes.xl),
+              right: SResponsive.sp(context, SSizes.cardPadding, tabletSize: SSizes.lg, desktopSize: SSizes.xl),
+              bottom: controlsBottom,
               child: RoomControlsBar(
                 meetingState: meetingState,
                 aiState: aiState,
@@ -268,9 +279,9 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
             if (_showCopilotPanel)
               Positioned(
                 right: 0,
-                top: 0,
-                bottom: SSizes.controlBarHeight + bottomPad,
-                width: MediaQuery.of(context).size.width * 0.85,
+                top: topPad,
+                bottom: controlsBarH + controlsBottom + SSizes.md,
+                width: SResponsive.value(context, mobile: MediaQuery.of(context).size.width * 0.85, tablet: 360.0, desktop: 400.0),
                 child: SlideTransition(
                   position: Tween<Offset>(
                     begin: const Offset(1, 0),
@@ -295,9 +306,9 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
             // ── Voice command assistant overlay ──
             if (_showVoiceAssistant)
               Positioned(
-                left: SSizes.md,
-                right: SSizes.md,
-                bottom: SSizes.controlBarHeight + bottomPad + SSizes.md,
+                left: SResponsive.pagePadding(context),
+                right: SResponsive.pagePadding(context),
+                bottom: controlsBarH + controlsBottom + SSizes.md + SSizes.sm,
                 child: SlideTransition(
                   position: Tween<Offset>(
                     begin: const Offset(0, 1),
@@ -326,7 +337,8 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
 
             // ── More options bottom sheet ──
             if (_showMoreOptions)
-              RoomMoreOptionsOverlay(
+              Positioned.fill(
+                child: RoomMoreOptionsOverlay(
                 meetingState: meetingState,
                 aiState: aiState,
                 isHost: isHost,
@@ -410,6 +422,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
                         );
                       }
                     : null,
+              ),
               ),
           ],
         ),

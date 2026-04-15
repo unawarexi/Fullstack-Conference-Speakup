@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/core/utils/file_picker.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
@@ -77,7 +78,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: ResponsiveBody(child: SingleChildScrollView(
         padding: const EdgeInsets.all(SSizes.pagePadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,6 +558,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/domain/models/ai_models.dart';
 import 'package:flutter_conference_speakup/app/domain/models/participant_model.dart';
 
@@ -25,23 +26,40 @@ class RoomVideoGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalParticipants = participants.length + 1; // +1 for self
-    final crossAxisCount = totalParticipants <= 1
-        ? 1
-        : totalParticipants <= 4
-            ? 2
-            : 3;
+    final bg = isDark ? SColors.darkBg : SColors.lightBg;
+
+    // Single participant → fill entire screen, no GridView constraints
+    if (totalParticipants == 1) {
+      return Container(
+        color: bg,
+        child: RoomParticipantTile(
+          name: 'You',
+          isSelf: true,
+          isCameraOn: isCameraOn,
+          isMicOn: isMicOn,
+          emotion: null,
+          isDark: isDark,
+        ),
+      );
+    }
+
+    final crossAxisCount = SResponsive.meetingGridColumns(context, totalParticipants);
+    final aspectRatio = SResponsive.value<double>(context,
+      mobile: 4 / 3,
+      tablet: 16 / 10,
+      desktop: 16 / 9,
+    );
 
     return Container(
-      color: isDark ? SColors.darkBg : SColors.lightBg,
-      padding: const EdgeInsets.symmetric(
-          horizontal: SSizes.sm, vertical: SSizes.xs),
+      color: bg,
       child: GridView.builder(
+        padding: EdgeInsets.zero,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          mainAxisSpacing: SSizes.sm,
-          crossAxisSpacing: SSizes.sm,
-          childAspectRatio: totalParticipants <= 1 ? 0.56 : 4 / 3,
+          mainAxisSpacing: 2,
+          crossAxisSpacing: 2,
+          childAspectRatio: aspectRatio,
         ),
         itemCount: totalParticipants,
         itemBuilder: (context, index) {
@@ -99,15 +117,11 @@ class RoomParticipantTile extends StatelessWidget {
     final textPrimary = isDark ? SColors.textDark : SColors.textLight;
     final textTertiary =
         isDark ? SColors.textDarkTertiary : SColors.textLightTertiary;
+    final avatarRadius = SResponsive.sp(context, 28, tabletSize: 34, desktopSize: 40);
 
     return Container(
       decoration: BoxDecoration(
         color: tileBg,
-        borderRadius: BorderRadius.circular(SSizes.tileRadius),
-        border: isSelf
-            ? Border.all(
-                color: SColors.primary.withOpacity(0.3), width: 1.5)
-            : null,
       ),
       child: Stack(
         children: [
@@ -117,12 +131,10 @@ class RoomParticipantTile extends StatelessWidget {
                 ? Container(
                     decoration: BoxDecoration(
                       color: avatarBg,
-                      borderRadius:
-                          BorderRadius.circular(SSizes.tileRadius),
                     ),
                     child: Center(
                       child: CircleAvatar(
-                        radius: 28,
+                        radius: avatarRadius,
                         backgroundColor:
                             SColors.primary.withOpacity(0.2),
                         backgroundImage: avatarUrl != null
@@ -147,7 +159,7 @@ class RoomParticipantTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       CircleAvatar(
-                        radius: 28,
+                        radius: avatarRadius,
                         backgroundColor: avatarBg,
                         child: Text(
                           name.isNotEmpty

@@ -88,18 +88,32 @@ class ApiEndpoints {
   static const legalAll = '/legal/all';
 
   // ──────────── AI / Intelligence ────────────
-  static String aiTranscript(String meetingId) => '/ai/transcript/$meetingId';
+  static String aiTranscript(String meetingId) => '/ai/speech/transcript/$meetingId';
+  static const aiSpeechAnalyze = '/ai/speech/analyze';
   static const aiCopilotSuggestions = '/ai/copilot/suggestions';
   static const aiCoachingReport = '/ai/copilot/coaching-report';
   static const aiPredictOutcome = '/ai/copilot/predict-outcome';
+  static const aiKnowledgeGaps = '/ai/copilot/knowledge-gaps';
   static const aiMeetingSummary = '/ai/memory/summary';
+  static const aiMemoryStore = '/ai/memory/store';
   static const aiMemoryQuery = '/ai/memory/query';
+  static const aiMemoryReplay = '/ai/memory/replay';
+  static String aiRelationship(String userId, String targetId) =>
+      '/ai/memory/relationship/$userId/$targetId';
   static String aiMeetingEmotions(String meetingId) => '/ai/emotion/meeting/$meetingId';
+  static const aiEmotionAnalyze = '/ai/emotion/analyze';
   static const aiVoiceCommand = '/ai/assistant/voice-command';
   static const aiVoiceCommandConfirm = '/ai/assistant/voice-command/confirm';
+  static const aiMeetingContext = '/ai/assistant/meeting-context';
   static const aiToolsSchema = '/ai/tools/schema';
-  static const aiToolExecute = '/ai/tools/execute';
+  static const aiToolsExecute = '/ai/tools/execute';
+  static const aiToolsExecuteMultiple = '/ai/tools/execute-multiple';
   static const aiWorkflowPostMeeting = '/ai/workflow/post-meeting';
   static const aiWorkflowPreMeeting = '/ai/workflow/pre-meeting';
   static String aiWorkflowStatus(String workflowId) => '/ai/workflow/status/$workflowId';
+  static const aiWorkflowActive = '/ai/workflow/active';
+  static const aiLiveAnalysis = '/ai/agents/live-analysis';
+  static const aiPostMeetingAgent = '/ai/agents/post-meeting';
+  static String aiAgentState(String sessionId) => '/ai/agents/state/$sessionId';
+  static const aiToolExecute = '/ai/tools/execute';
 }

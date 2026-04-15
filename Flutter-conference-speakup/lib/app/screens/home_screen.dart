@@ -14,6 +14,7 @@ import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart'
 import 'package:flutter_conference_speakup/app/screens/home/home_widgets.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
+import 'package:flutter_conference_speakup/store/notification_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -108,14 +109,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       .slideY(begin: 0.08, end: 0),
                   const SizedBox(height: 16),
 
-                  // ── AI Insights Banner ──
-                  AIInsightsBanner(isDark: isDark)
+                  // ── AI Suggestions — reasons to start a meeting ──
+                  AISuggestionsSection(isDark: isDark)
                       .animate()
                       .fadeIn(duration: 350.ms, delay: 150.ms)
                       .slideY(begin: 0.08, end: 0),
                   const SizedBox(height: 20),
 
-                  // ── Upcoming Meetings ──
+                  // ── Ongoing / Live Meetings (instant + live) ──
+                  upcomingMeetings.when(
+                    data: (meetings) {
+                      final ongoing = meetings
+                          .where((m) =>
+                              m.status == MeetingStatus.live ||
+                              (m.type == MeetingType.instant &&
+                                  m.status != MeetingStatus.ended &&
+                                  m.status != MeetingStatus.cancelled))
+                          .take(3)
+                          .toList();
+                      if (ongoing.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        children: [
+                          SectionHeader(
+                            title: 'Ongoing',
+                            actionLabel: 'View all',
+                            onAction: () => context.go('/meetings'),
+                          ),
+                          for (var i = 0; i < ongoing.length; i++)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                  bottom:
+                                      i < ongoing.length - 1 ? 6 : 0),
+                              child: CompactMeetingTile(
+                                meeting: ongoing[i],
+                                isDark: isDark,
+                                onTap: () => context.push(
+                                    '/meeting/${ongoing[i].id}'),
+                              )
+                                  .animate()
+                                  .fadeIn(
+                                      duration: 350.ms,
+                                      delay: (200 + i * 60).ms)
+                                  .slideX(begin: 0.04, end: 0),
+                            ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+
+                  // ── Upcoming Meetings (scheduled + recurring only) ──
                   SectionHeader(
                     title: 'Upcoming',
                     actionLabel: 'See all',
@@ -125,8 +170,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     data: (meetings) {
                       final upcoming = meetings
                           .where((m) =>
-                              m.status == MeetingStatus.scheduled ||
-                              m.status == MeetingStatus.live)
+                              (m.type == MeetingType.scheduled ||
+                                  m.type == MeetingType.recurring) &&
+                              (m.status == MeetingStatus.scheduled ||
+                                  m.status == MeetingStatus.live))
                           .take(3)
                           .toList();
                       if (upcoming.isEmpty) {
@@ -135,8 +182,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           message: 'No upcoming meetings',
                           subMessage: 'Your schedule is clear!',
                           isDark: isDark,
-                          actionLabel: 'Create one',
-                          onAction: () => context.push('/create-meeting'),
+                          actionLabel: 'Schedule one',
+                          onAction: () => context.push('/create-meeting?type=scheduled'),
                         ).animate().fadeIn(duration: 250.ms);
                       }
                       return Column(
@@ -179,16 +226,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       .slideY(begin: 0.08, end: 0),
                   const SizedBox(height: 20),
 
-                  // ── Recent Activity ──
+                  // ── Recent Activity (ended + instant past) ──
                   SectionHeader(
                     title: 'Recent Activity',
                     actionLabel: 'View all',
-                    onAction: () => context.go('/meetings'),
+                    onAction: () => context.push('/meeting-history'),
                   ),
                   upcomingMeetings.when(
                     data: (meetings) {
                       final past = meetings
-                          .where((m) => m.status == MeetingStatus.ended)
+                          .where((m) =>
+                              m.status == MeetingStatus.ended ||
+                              m.status == MeetingStatus.cancelled)
                           .take(4)
                           .toList();
                       if (past.isEmpty) {
@@ -274,8 +323,113 @@ class _HeaderHero extends StatelessWidget {
         ? userName.split(' ').first
         : '';
 
-    return ClipPath(
-      clipper: SLiquidClipper(intensity: 1.2),
+    return SLiquidShape(
+      intensity: 1.2,
+      blendBase: true,
+      isDark: isDark,
+      foreground: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16, SSizes.xl + 4, 16, SSizes.xl + 4,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(greeting, style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? SColors.textDarkSecondary
+                          : SColors.textLightSecondary,
+                      letterSpacing: 0.2,
+                    )),
+                    const SizedBox(height: 3),
+                    if (isLoading && firstName.isEmpty)
+                      _NameSkeleton(isDark: isDark)
+                    else
+                      Text(
+                        firstName.isNotEmpty ? firstName : 'Welcome',
+                        style: TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.w700,
+                          color: isDark ? SColors.textDark : SColors.textLight,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    const SizedBox(height: 3),
+                    Text(
+                      DateFormat('EEE, MMM d').format(DateTime.now()),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? SColors.textDarkTertiary
+                            : SColors.textLightTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Avatar with ripple rings behind it
+              SizedBox(
+                width: SSizes.avatarMd + 20,
+                height: SSizes.avatarMd + 20,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      size: Size(SSizes.avatarMd + 20, SSizes.avatarMd + 20),
+                      painter: SRippleRingsPainter(
+                        color: SColors.primary,
+                        ringCount: 2,
+                        maxRadius: (SSizes.avatarMd + 20) / 2,
+                        strokeWidth: 0.6,
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: SColors.primary.withValues(alpha: 0.35),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: SColors.primary.withValues(alpha: 0.2),
+                            blurRadius: 16, spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: SSizes.avatarMd / 2,
+                        backgroundColor: isDark
+                            ? SColors.darkElevated
+                            : SColors.primarySurface,
+                        backgroundImage: avatar != null
+                            ? NetworkImage(avatar!)
+                            : null,
+                        child: avatar == null
+                            ? Text(
+                                firstName.isNotEmpty
+                                    ? firstName[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700,
+                                  color: SColors.primary,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       child: Stack(
         children: [
           // ── Base gradient ──
@@ -293,9 +447,9 @@ class _HeaderHero extends StatelessWidget {
                           SColors.darkBg,
                         ]
                       : [
-                          SColors.primary.withValues(alpha: 0.10),
-                          SColors.blue50.withValues(alpha: 0.6),
-                          SColors.lightBg,
+                          SColors.primary.withValues(alpha: 0.32),
+                          SColors.screenShare.withValues(alpha: 0.18),
+                          SColors.blue100,
                         ],
                 ),
               ),
@@ -357,113 +511,6 @@ class _HeaderHero extends StatelessWidget {
           Positioned.fill(
             child: CustomPaint(
               painter: SGrainPainter(opacity: isDark ? 0.025 : 0.015),
-            ),
-          ),
-
-          // ── Content ──
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                16, SSizes.xl + 4, 16, SSizes.xl + 4,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(greeting, style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w500,
-                          color: isDark
-                              ? SColors.textDarkSecondary
-                              : SColors.textLightSecondary,
-                          letterSpacing: 0.2,
-                        )),
-                        const SizedBox(height: 3),
-                        if (isLoading && firstName.isEmpty)
-                          _NameSkeleton(isDark: isDark)
-                        else
-                          Text(
-                            firstName.isNotEmpty ? firstName : 'Welcome',
-                            style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.w700,
-                              color: isDark ? SColors.textDark : SColors.textLight,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        const SizedBox(height: 3),
-                        Text(
-                          DateFormat('EEE, MMM d').format(DateTime.now()),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark
-                                ? SColors.textDarkTertiary
-                                : SColors.textLightTertiary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Avatar with ripple rings behind it
-                  SizedBox(
-                    width: SSizes.avatarMd + 20,
-                    height: SSizes.avatarMd + 20,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Ripple rings behind avatar
-                        CustomPaint(
-                          size: Size(SSizes.avatarMd + 20, SSizes.avatarMd + 20),
-                          painter: SRippleRingsPainter(
-                            color: SColors.primary,
-                            ringCount: 2,
-                            maxRadius: (SSizes.avatarMd + 20) / 2,
-                            strokeWidth: 0.6,
-                          ),
-                        ),
-                        // Avatar
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: SColors.primary.withValues(alpha: 0.35),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: SColors.primary.withValues(alpha: 0.2),
-                                blurRadius: 16, spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                          child: CircleAvatar(
-                            radius: SSizes.avatarMd / 2,
-                            backgroundColor: isDark
-                                ? SColors.darkElevated
-                                : SColors.primarySurface,
-                            backgroundImage: avatar != null
-                                ? NetworkImage(avatar!)
-                                : null,
-                            child: avatar == null
-                                ? Text(
-                                    firstName.isNotEmpty
-                                        ? firstName[0].toUpperCase()
-                                        : '?',
-                                    style: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.w700,
-                                      color: SColors.primary,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

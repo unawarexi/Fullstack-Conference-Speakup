@@ -54,9 +54,9 @@ class RoomMoreOptionsOverlay extends StatelessWidget {
             onTap: () {}, // absorb taps
             child: Container(
               margin: EdgeInsets.only(
-                bottom: SSizes.controlBarHeight +
+                bottom: 72 +
                     MediaQuery.of(context).padding.bottom +
-                    SSizes.sm,
+                    SSizes.md + SSizes.sm,
               ),
               padding: const EdgeInsets.all(SSizes.md),
               width: MediaQuery.of(context).size.width - SSizes.xl,

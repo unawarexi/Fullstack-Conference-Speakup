@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/app/domain/models/chat_model.dart';
 import 'package:flutter_conference_speakup/store/chat_provider.dart';
@@ -109,7 +110,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: ResponsiveBody(child: Column(
         children: [
           // Messages area
           Expanded(
@@ -161,6 +162,7 @@ class _ChatRoomScreenState extends ConsumerState<ChatRoomScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 

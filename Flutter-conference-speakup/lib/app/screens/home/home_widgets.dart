@@ -150,59 +150,151 @@ class _QuickActionState extends State<_QuickAction> {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  AI INSIGHTS BANNER — compact tap-navigable banner
+//  AI SUGGESTIONS SECTION — scrollable list of AI reasons to meet
 // ═══════════════════════════════════════════════════════════════════
-class AIInsightsBanner extends StatefulWidget {
+class AISuggestionsSection extends StatelessWidget {
   final bool isDark;
-  const AIInsightsBanner({super.key, required this.isDark});
+  const AISuggestionsSection({super.key, required this.isDark});
+
+  static const _suggestions = [
+    _AISuggestion(
+      icon: Icons.trending_up_rounded,
+      title: 'Weekly Team Sync',
+      subtitle: 'AI detected 3 unresolved items from last meeting',
+      gradient: SColors.primaryGradient,
+      route: '/create-meeting?type=scheduled',
+    ),
+    _AISuggestion(
+      icon: Icons.psychology_rounded,
+      title: 'Practice Presentation',
+      subtitle: 'Your speaking pace was high last session — rehearse with AI coach',
+      gradient: SColors.accentGradient,
+      route: '/ai-coach',
+    ),
+    _AISuggestion(
+      icon: Icons.people_outline_rounded,
+      title: 'Follow Up: Design Review',
+      subtitle: '2 action items pending from Apr 10 meeting',
+      gradient: LinearGradient(
+        colors: [Color(0xFF10B981), Color(0xFF34D399)],
+      ),
+      route: '/ai-action-items',
+    ),
+    _AISuggestion(
+      icon: Icons.auto_awesome_rounded,
+      title: 'Meeting Prep Available',
+      subtitle: 'AI prepared talking points for your 3pm call',
+      gradient: LinearGradient(
+        colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+      ),
+      route: '/ai-insights/meeting-prep',
+    ),
+    _AISuggestion(
+      icon: Icons.hub_rounded,
+      title: 'Relationship Insight',
+      subtitle: 'You haven\'t connected with 4 key contacts in 2 weeks',
+      gradient: LinearGradient(
+        colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+      ),
+      route: '/ai-insights/relationships',
+    ),
+  ];
 
   @override
-  State<AIInsightsBanner> createState() => _AIInsightsBannerState();
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'AI Suggestions',
+          actionLabel: 'View all',
+          onAction: () => context.push('/ai-insights'),
+        ),
+        SizedBox(
+          height: 88,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _suggestions.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final s = _suggestions[index];
+              return _AISuggestionCard(
+                suggestion: s,
+                isDark: isDark,
+                onTap: () => context.push(s.route),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _AIInsightsBannerState extends State<AIInsightsBanner> {
+class _AISuggestion {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Gradient gradient;
+  final String route;
+  const _AISuggestion({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.gradient,
+    required this.route,
+  });
+}
+
+class _AISuggestionCard extends StatefulWidget {
+  final _AISuggestion suggestion;
+  final bool isDark;
+  final VoidCallback? onTap;
+  const _AISuggestionCard({required this.suggestion, required this.isDark, this.onTap});
+
+  @override
+  State<_AISuggestionCard> createState() => _AISuggestionCardState();
+}
+
+class _AISuggestionCardState extends State<_AISuggestionCard> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
+    final s = widget.suggestion;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
         setState(() => _pressed = false);
         HapticFeedback.lightImpact();
-        context.push('/ai-assistant');
+        widget.onTap?.call();
       },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
+        scale: _pressed ? 0.96 : 1.0,
         duration: const Duration(milliseconds: 100),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          width: 220,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: widget.isDark
-                  ? [const Color(0xFF1A1A35), const Color(0xFF0F1A2E)]
-                  : [const Color(0xFFEEF2FF), const Color(0xFFF0F7FF)],
-            ),
+            color: widget.isDark ? SColors.darkCard : SColors.lightCard,
             borderRadius: BorderRadius.circular(SSizes.radiusMd),
             border: Border.all(
-              color: SColors.primary
-                  .withValues(alpha: widget.isDark ? 0.2 : 0.1),
+              color: widget.isDark ? SColors.darkBorder : SColors.lightBorder,
+              width: 0.5,
             ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  gradient: SColors.accentGradient,
-                  borderRadius: BorderRadius.circular(10),
+                  gradient: s.gradient,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    color: Colors.white, size: 18),
+                child: Icon(s.icon, color: Colors.white, size: 16),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -210,33 +302,30 @@ class _AIInsightsBannerState extends State<AIInsightsBanner> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'AI Meeting Assistant',
+                      s.title,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: widget.isDark
-                            ? SColors.textDark
-                            : SColors.textLight,
+                        color: widget.isDark ? SColors.textDark : SColors.textLight,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 3),
                     Text(
-                      'Transcription, coaching & smart suggestions',
+                      s.subtitle,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         color: widget.isDark
                             ? SColors.textDarkSecondary
                             : SColors.textLightSecondary,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              Icon(CupertinoIcons.chevron_right,
-                  size: 14,
-                  color: widget.isDark
-                      ? SColors.textDarkTertiary
-                      : SColors.textLightTertiary),
             ],
           ),
         ),

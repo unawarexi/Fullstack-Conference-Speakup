@@ -1,10 +1,11 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 import 'package:flutter_conference_speakup/store/ai_provider.dart';
 
@@ -40,120 +41,108 @@ class RoomControlsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surfaceColor = isDark ? SColors.darkSurface : SColors.lightSurface;
-    final borderColor = isDark ? SColors.darkBorder : SColors.lightBorder;
-    final elevatedColor = isDark ? SColors.darkElevated : SColors.lightElevated;
-    final textTertiary =
-        isDark ? SColors.textDarkTertiary : SColors.textLightTertiary;
+    final elevatedColor = isDark
+        ? Colors.white.withOpacity(0.12)
+        : Colors.black.withOpacity(0.08);
+    final textTertiary = isDark
+        ? Colors.white.withOpacity(0.5)
+        : Colors.black.withOpacity(0.45);
+    final inactiveIcon = isDark
+        ? Colors.white.withOpacity(0.6)
+        : Colors.black.withOpacity(0.5);
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: EdgeInsets.only(
-            left: SSizes.md,
-            right: SSizes.md,
-            top: SSizes.sm + 4,
-            bottom: MediaQuery.of(context).padding.bottom + SSizes.sm,
-          ),
-          decoration: BoxDecoration(
-            color: surfaceColor.withOpacity(isDark ? 0.85 : 0.9),
-            border: Border(
-                top: BorderSide(color: borderColor.withOpacity(0.5))),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              RoomControlBtn(
-                icon: meetingState.isMicOn
-                    ? SIcons.micOn
-                    : SIcons.micOff,
-                label: meetingState.isMicOn ? 'Mute' : 'Unmute',
-                isActive: meetingState.isMicOn,
-                activeColor: SColors.micOn,
-                inactiveColor: SColors.micOff,
-                elevatedColor: elevatedColor,
-                textTertiary: textTertiary,
-                surfaceColor: surfaceColor,
-                onTap: onToggleMic,
-              ),
-              RoomControlBtn(
-                icon: meetingState.isCameraOn
-                    ? SIcons.cameraOn
-                    : SIcons.cameraOff,
-                label: 'Camera',
-                isActive: meetingState.isCameraOn,
-                activeColor: SColors.cameraOn,
-                inactiveColor: SColors.cameraOff,
-                elevatedColor: elevatedColor,
-                textTertiary: textTertiary,
-                surfaceColor: surfaceColor,
-                onTap: onToggleCamera,
-              ),
-              RoomControlBtn(
-                icon: meetingState.isScreenSharing
-                    ? SIcons.stopScreenShare
-                    : SIcons.screenShare,
-                label: 'Share',
-                isActive: meetingState.isScreenSharing,
-                activeColor: SColors.screenShare,
-                elevatedColor: elevatedColor,
-                textTertiary: textTertiary,
-                surfaceColor: surfaceColor,
-                onTap: onToggleScreenShare,
-              ),
-              RoomControlBtn(
-                icon: Iconsax.cpu,
-                label: 'Copilot',
-                isActive: showCopilot,
-                activeColor: SColors.screenShare,
-                hasDot: aiState.suggestions
-                    .where((s) => !s.isDismissed)
-                    .isNotEmpty,
-                elevatedColor: elevatedColor,
-                textTertiary: textTertiary,
-                surfaceColor: surfaceColor,
-                onTap: onToggleCopilot,
-              ),
-              RoomControlBtn(
-                icon: Iconsax.microphone_2,
-                label: 'Voice',
-                isActive: aiState.isVoiceAssistantActive,
-                activeColor: SColors.warning,
-                elevatedColor: elevatedColor,
-                textTertiary: textTertiary,
-                surfaceColor: surfaceColor,
-                onTap: onToggleVoiceAssistant,
-              ),
-              RoomControlBtn(
-                icon: SIcons.moreOptions,
-                label: 'More',
-                isActive: false,
-                elevatedColor: elevatedColor,
-                textTertiary: textTertiary,
-                surfaceColor: surfaceColor,
-                onTap: onMore,
-              ),
-              // Leave button
-              GestureDetector(
-                onTap: onLeave,
-                child: Container(
-                  width: 52,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: SColors.callEnd,
-                    borderRadius:
-                        BorderRadius.circular(SSizes.radiusMd),
-                  ),
-                  child: const Icon(
-                    SIcons.callEnd,
-                    color: Colors.white,
-                    size: 20,
-                  ),
+    return GlassContainer(
+      height: SResponsive.sp(context, 72, tabletSize: 80, desktopSize: 84),
+      shape: LiquidRoundedSuperellipse(
+        borderRadius: SSizes.radiusXl + 8,
+      ),
+      useOwnLayer: true,
+      quality: GlassQuality.standard,
+      settings: LiquidGlassSettings(
+        thickness: isDark ? 40 : 25,
+        blur: isDark ? 16 : 12,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: SSizes.sm),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            RoomControlBtn(
+              icon: meetingState.isMicOn ? SIcons.micOn : SIcons.micOff,
+              label: meetingState.isMicOn ? 'Mute' : 'Unmute',
+              isActive: meetingState.isMicOn,
+              activeColor: SColors.micOn,
+              inactiveColor: meetingState.isMicOn ? inactiveIcon : SColors.micOff,
+              elevatedColor: elevatedColor,
+              textTertiary: textTertiary,
+              onTap: onToggleMic,
+            ),
+            RoomControlBtn(
+              icon: meetingState.isCameraOn ? SIcons.cameraOn : SIcons.cameraOff,
+              label: 'Camera',
+              isActive: meetingState.isCameraOn,
+              activeColor: SColors.cameraOn,
+              inactiveColor: meetingState.isCameraOn ? inactiveIcon : SColors.cameraOff,
+              elevatedColor: elevatedColor,
+              textTertiary: textTertiary,
+              onTap: onToggleCamera,
+            ),
+            RoomControlBtn(
+              icon: meetingState.isScreenSharing
+                  ? SIcons.stopScreenShare
+                  : SIcons.screenShare,
+              label: 'Share',
+              isActive: meetingState.isScreenSharing,
+              activeColor: SColors.screenShare,
+              inactiveColor: inactiveIcon,
+              elevatedColor: elevatedColor,
+              textTertiary: textTertiary,
+              onTap: onToggleScreenShare,
+            ),
+            RoomControlBtn(
+              icon: Iconsax.cpu,
+              label: 'Copilot',
+              isActive: showCopilot,
+              activeColor: SColors.screenShare,
+              inactiveColor: inactiveIcon,
+              hasDot: aiState.suggestions.where((s) => !s.isDismissed).isNotEmpty,
+              elevatedColor: elevatedColor,
+              textTertiary: textTertiary,
+              onTap: onToggleCopilot,
+            ),
+            RoomControlBtn(
+              icon: Iconsax.microphone_2,
+              label: 'Voice',
+              isActive: aiState.isVoiceAssistantActive,
+              activeColor: SColors.warning,
+              inactiveColor: inactiveIcon,
+              elevatedColor: elevatedColor,
+              textTertiary: textTertiary,
+              onTap: onToggleVoiceAssistant,
+            ),
+            RoomControlBtn(
+              icon: SIcons.moreOptions,
+              label: 'More',
+              isActive: false,
+              inactiveColor: inactiveIcon,
+              elevatedColor: elevatedColor,
+              textTertiary: textTertiary,
+              onTap: onMore,
+            ),
+            // Leave button
+            GestureDetector(
+              onTap: onLeave,
+              child: Container(
+                width: SResponsive.sp(context, 48, tabletSize: 52),
+                height: SResponsive.sp(context, 36, tabletSize: 40),
+                decoration: BoxDecoration(
+                  color: SColors.callEnd,
+                  borderRadius: BorderRadius.circular(SSizes.radiusMd),
                 ),
+                child: const Icon(SIcons.callEnd, color: Colors.white, size: 18),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -181,7 +170,7 @@ class RoomControlBtn extends StatelessWidget {
     this.inactiveColor = SColors.textDarkTertiary,
     this.elevatedColor = SColors.darkElevated,
     this.textTertiary = SColors.textDarkTertiary,
-    this.surfaceColor = SColors.darkSurface,
+    this.surfaceColor = Colors.transparent,
     this.hasDot = false,
     required this.onTap,
   });
@@ -195,7 +184,7 @@ class RoomControlBtn extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 48,
+        width: SResponsive.sp(context, 48, tabletSize: 56, desktopSize: 60),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -203,8 +192,8 @@ class RoomControlBtn extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: SResponsive.sp(context, 40, tabletSize: 44, desktopSize: 48),
+                  height: SResponsive.sp(context, 40, tabletSize: 44, desktopSize: 48),
                   decoration: BoxDecoration(
                     color: isActive
                         ? activeColor.withOpacity(0.15)

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_conference_speakup/app/domain/models/ai_models.dart';
+import 'package:flutter_conference_speakup/app/domain/repositories/ai_repository.dart';
 import 'package:flutter_conference_speakup/core/services/websocket.dart';
 
 // ============================================================================
@@ -319,3 +320,92 @@ class MeetingAINotifier extends StateNotifier<MeetingAIState> {
     super.dispose();
   }
 }
+
+// ============================================================================
+// REST-BASED AI PROVIDERS — for historical / on-demand data
+// ============================================================================
+
+final aiRepositoryProvider = Provider<AIRepository>((ref) {
+  return AIRepository();
+});
+
+/// Transcript segments for a past meeting.
+final aiTranscriptProvider = FutureProvider.family
+    .autoDispose<List<TranscriptionSegment>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getTranscript(meetingId);
+});
+
+/// AI coaching report for a meeting.
+final aiCoachingReportProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getCoachingReport(meetingId);
+});
+
+/// AI-predicted outcome for a meeting.
+final aiPredictOutcomeProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).predictOutcome(meetingId);
+});
+
+/// Knowledge gaps detected across meetings.
+final aiKnowledgeGapsProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getKnowledgeGaps(meetingId);
+});
+
+/// Meeting summary (historical fetch).
+final aiMeetingSummaryProvider = FutureProvider.family
+    .autoDispose<MeetingSummary, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getMeetingSummary(meetingId);
+});
+
+/// Memory query results (semantic search).
+final aiMemoryQueryProvider = FutureProvider.family
+    .autoDispose<List<Map<String, dynamic>>, String>((ref, query) {
+  return ref.read(aiRepositoryProvider).queryMemory(query);
+});
+
+/// Meeting replay data (chapters, moments).
+final aiMemoryReplayProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getMemoryReplay(meetingId);
+});
+
+/// Relationship data between two users.
+final aiRelationshipProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, ({String userId, String targetId})>(
+        (ref, params) {
+  return ref
+      .read(aiRepositoryProvider)
+      .getRelationship(params.userId, params.targetId);
+});
+
+/// Emotion analytics for a meeting.
+final aiMeetingEmotionsProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getMeetingEmotions(meetingId);
+});
+
+/// Active workflow statuses.
+final aiActiveWorkflowsProvider =
+    FutureProvider.autoDispose<List<WorkflowStatus>>((ref) {
+  return ref.read(aiRepositoryProvider).getActiveWorkflows();
+});
+
+/// Workflow status by ID.
+final aiWorkflowStatusProvider = FutureProvider.family
+    .autoDispose<WorkflowStatus, String>((ref, workflowId) {
+  return ref.read(aiRepositoryProvider).getWorkflowStatus(workflowId);
+});
+
+/// Tools schema (available integrations).
+final aiToolsSchemaProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.read(aiRepositoryProvider).getToolsSchema();
+});
+
+/// Meeting context for AI assistant.
+final aiMeetingContextProvider = FutureProvider.family
+    .autoDispose<Map<String, dynamic>, String>((ref, meetingId) {
+  return ref.read(aiRepositoryProvider).getMeetingContext(meetingId);
+});

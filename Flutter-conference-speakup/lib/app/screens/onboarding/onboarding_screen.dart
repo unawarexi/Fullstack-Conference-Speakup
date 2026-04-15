@@ -337,6 +337,11 @@ class _MobileLayout extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final screenH = SResponsive.height(context);
+    // On shorter screens (Android ~640-700pt), use a larger fraction;
+    // on taller screens (iPhone 14 ~844pt+) the sheet can be smaller.
+    // Clamp between 40% and 55% of screen height.
+    final sheetFraction = (380 / screenH).clamp(0.40, 0.55);
 
     return Stack(
       children: [
@@ -355,6 +360,7 @@ class _MobileLayout extends StatelessWidget {
           left: 0,
           right: 0,
           bottom: 0,
+          height: screenH * sheetFraction,
           child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             child: BackdropFilter(
@@ -368,14 +374,13 @@ class _MobileLayout extends StatelessWidget {
                   ),
                 ),
                 padding: EdgeInsets.fromLTRB(
-                  SSizes.sectionSpacing,
-                  SSizes.lg,
-                  SSizes.sectionSpacing,
-                  SSizes.lg + bottomPadding,
+                  SResponsive.pagePadding(context),
+                  SResponsive.sp(context, SSizes.lg, tabletSize: SSizes.xl),
+                  SResponsive.pagePadding(context),
+                  SResponsive.sp(context, SSizes.lg, tabletSize: SSizes.xl) + bottomPadding,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Emblem + Skip row
                     Row(
@@ -386,7 +391,7 @@ class _MobileLayout extends StatelessWidget {
                           SkipButton(onTap: onSkip),
                       ],
                     ),
-                    const SizedBox(height: SSizes.md),
+                    SizedBox(height: SResponsive.sp(context, SSizes.md)),
 
                     FadeTransition(
                       opacity: fadeAnim,
@@ -394,9 +399,9 @@ class _MobileLayout extends StatelessWidget {
                         position: slideAnim,
                         child: Text(
                           data.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'Sora',
-                            fontSize: 30,
+                            fontSize: SResponsive.sp(context, 30, tabletSize: 36),
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                             height: 1.15,
@@ -405,26 +410,27 @@ class _MobileLayout extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: SSizes.sm + SSizes.xs),
+                    SizedBox(height: SResponsive.sp(context, SSizes.sm + SSizes.xs)),
 
-                    FadeTransition(
-                      opacity: fadeAnim,
-                      child: SlideTransition(
-                        position: slideAnim,
-                        child: Text(
-                          data.subtitle,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
-                            height: 1.6,
+                    Expanded(
+                      child: FadeTransition(
+                        opacity: fadeAnim,
+                        child: SlideTransition(
+                          position: slideAnim,
+                          child: Text(
+                            data.subtitle,
+                            style: TextStyle(
+                              fontSize: SResponsive.sp(context, 14, tabletSize: 16),
+                              color: Colors.white.withOpacity(0.7),
+                              height: 1.6,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: SSizes.lg),
 
                     DotRow(current: currentPage, total: _kPages.length),
-                    const SizedBox(height: SSizes.pagePadding),
+                    SizedBox(height: SResponsive.sp(context, SSizes.md)),
 
                     CTAButton(
                       label: currentPage < _kPages.length - 1 ? 'Continue' : 'Get Started',

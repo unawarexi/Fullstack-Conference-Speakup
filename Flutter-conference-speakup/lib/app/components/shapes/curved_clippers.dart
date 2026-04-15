@@ -229,3 +229,88 @@ class SLiquidClipper extends CustomClipper<Path> {
   bool shouldReclip(SLiquidClipper oldClipper) =>
       intensity != oldClipper.intensity;
 }
+
+/// A widget that wraps its child with the [SLiquidClipper] organic shape
+/// and optionally blends the decorative background into the layer below
+/// using a full-height gradient overlay.
+///
+/// When [blendBase] is `false` (default), the child is hard-clipped with
+/// the liquid shape.
+///
+/// When [blendBase] is `true`, the child is rendered **without** clipping
+/// as a full background. A gradient overlay sits on top — transparent at
+/// the top (exposing the decorative curves) and solid [blendColor] /
+/// scaffold bg at the bottom, so the shapes naturally dissolve into the
+/// card layer beneath. Use [foreground] to place content (text, avatars)
+/// above the gradient veil so it stays fully visible.
+///
+/// ```dart
+/// SLiquidShape(
+///   blendBase: true,
+///   isDark: isDark,
+///   foreground: MyContent(),
+///   child: MyDecorativeBackground(),
+/// )
+/// ```
+class SLiquidShape extends StatelessWidget {
+  final double intensity;
+  final bool blendBase;
+  final bool isDark;
+  final Color? blendColor;
+  final Widget? foreground;
+  final Widget child;
+
+  const SLiquidShape({
+    super.key,
+    this.intensity = 1.0,
+    this.blendBase = false,
+    this.isDark = true,
+    this.blendColor,
+    this.foreground,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!blendBase) {
+      return ClipPath(
+        clipper: SLiquidClipper(intensity: intensity),
+        child: child,
+      );
+    }
+
+    final bg = blendColor ??
+        (isDark ? const Color(0xFF0A0A0F) : const Color(0xFFF8F9FC));
+
+    return Stack(
+      children: [
+        // Background decorative layer — no clip, fills entire area
+        Positioned.fill(child: child),
+
+        // Gradient veil — transparent at top, solid bg at bottom
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.35, 0.65, 1.0],
+                  colors: [
+                    bg.withValues(alpha: 0.0),
+                    bg.withValues(alpha: 0.15),
+                    bg.withValues(alpha: 0.7),
+                    bg,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Foreground content — above the gradient veil
+        if (foreground != null) foreground!,
+      ],
+    );
+  }
+}

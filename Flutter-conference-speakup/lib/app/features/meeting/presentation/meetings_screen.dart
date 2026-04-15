@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 
 class MeetingsScreen extends StatelessWidget {
   const MeetingsScreen({super.key});

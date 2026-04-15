@@ -8,7 +8,7 @@
         build-apk build-appbundle build-ipa build-web build-macos build-windows build-linux \
         analyze format fix test test-coverage integration-test \
         icons splash env firebase-init gen loc \
-        doctor devices logs install-apk
+        doctor devices logs install-apk 
 
 # ─── Defaults ────────────────────────────────────────────────────────────────
 DART  := dart

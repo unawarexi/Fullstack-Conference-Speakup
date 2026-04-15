@@ -19,8 +19,39 @@ import 'package:flutter_conference_speakup/app/features/meeting/presentation/mee
 import 'package:flutter_conference_speakup/app/features/search/presentation/search_screen.dart';
 import 'package:flutter_conference_speakup/app/features/notification/presentation/notifications_screen.dart';
 import 'package:flutter_conference_speakup/app/features/analytics/presentation/analytics_dashboard_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_knowledge_gaps_screen.dart';
 import 'package:flutter_conference_speakup/app/features/billing/presentation/billing_screen.dart';
 import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_assistant_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_insights_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_coach_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_action_items_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_meeting_prep_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_relationships_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_predictions_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_summaries_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_documents_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_memory_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_meeting_replay_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_workflows_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_smart_scheduling_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_meeting_cost_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/transcription_viewer_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/emotion_analytics_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_sentiment_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_speaking_time_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/call_quality_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/meeting_feedback_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/meeting_materials_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_topic_tracker_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/integrations_hub_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/meeting_templates_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/quick_notes_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/export_reports_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_settings_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/people_directory_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/meeting_invite_screen.dart';
+import 'package:flutter_conference_speakup/app/features/ai/presentation/ai_focus_mode_screen.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/meeting_history_screen.dart';
 import 'package:flutter_conference_speakup/app/features/legal/presentation/terms_of_service_screen.dart';
 import 'package:flutter_conference_speakup/app/features/legal/presentation/privacy_policy_screen.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
@@ -228,16 +259,6 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const CreateMeetingScreen(),
     ),
-    GoRoute(
-      path: '/meeting-detail/:id',
-      name: 'meeting-detail',
-      parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) {
-        final meetingId = state.pathParameters['id']!;
-        return MeetingDetailScreen(meetingId: meetingId);
-      },
-    ),
-
     // ──────────── Search / Notifications ────────────
     GoRoute(
       path: '/search',
@@ -272,6 +293,213 @@ final GoRouter appRouter = GoRouter(
       name: 'ai-assistant',
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const AIAssistantScreen(),
+    ),
+
+    // ──────────── AI Hub + nested sub-screens ────────────
+    GoRoute(
+      path: '/ai-insights',
+      name: 'ai-insights',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const AIInsightsScreen(),
+      routes: [
+        GoRoute(
+          path: 'coach',
+          name: 'ai-coach',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AICoachScreen(),
+        ),
+        GoRoute(
+          path: 'action-items',
+          name: 'ai-action-items',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIActionItemsScreen(),
+        ),
+        GoRoute(
+          path: 'meeting-prep',
+          name: 'ai-meeting-prep',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIMeetingPrepScreen(),
+        ),
+        GoRoute(
+          path: 'relationships',
+          name: 'ai-relationships',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIRelationshipsScreen(),
+        ),
+        GoRoute(
+          path: 'predictions',
+          name: 'ai-predictions',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIPredictionsScreen(),
+        ),
+        GoRoute(
+          path: 'summaries',
+          name: 'ai-summaries',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AISummariesScreen(),
+        ),
+        GoRoute(
+          path: 'documents',
+          name: 'ai-documents',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIDocumentsScreen(),
+        ),
+        GoRoute(
+          path: 'memory',
+          name: 'ai-memory',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIMemoryScreen(),
+        ),
+        GoRoute(
+          path: 'knowledge-gaps',
+          name: 'ai-knowledge-gaps',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIKnowledgeGapsScreen(),
+        ),
+        GoRoute(
+          path: 'workflows',
+          name: 'ai-workflows',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIWorkflowsScreen(),
+        ),
+        GoRoute(
+          path: 'smart-scheduling',
+          name: 'ai-smart-scheduling',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AISmartSchedulingScreen(),
+        ),
+        GoRoute(
+          path: 'meeting-cost',
+          name: 'ai-meeting-cost',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AIMeetingCostScreen(),
+        ),
+      ],
+    ),
+
+    // ──────────── Meeting Detail + nested per-meeting screens ────────────
+    GoRoute(
+      path: '/meeting-detail/:id',
+      name: 'meeting-detail',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) {
+        final meetingId = state.pathParameters['id']!;
+        return MeetingDetailScreen(meetingId: meetingId);
+      },
+      routes: [
+        GoRoute(
+          path: 'replay',
+          name: 'meeting-replay',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) =>
+              AIMeetingReplayScreen(meetingId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: 'transcription',
+          name: 'meeting-transcription',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) =>
+              TranscriptionViewerScreen(meetingId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: 'emotion',
+          name: 'meeting-emotion',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const EmotionAnalyticsScreen(),
+        ),
+        GoRoute(
+          path: 'sentiment',
+          name: 'meeting-sentiment',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AISentimentScreen(),
+        ),
+        GoRoute(
+          path: 'speaking-time',
+          name: 'meeting-speaking-time',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AISpeakingTimeScreen(),
+        ),
+        GoRoute(
+          path: 'materials',
+          name: 'meeting-materials',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const MeetingMaterialsScreen(),
+        ),
+        GoRoute(
+          path: 'feedback',
+          name: 'meeting-feedback',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const MeetingFeedbackScreen(),
+        ),
+        GoRoute(
+          path: 'call-quality',
+          name: 'meeting-call-quality',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const CallQualityScreen(),
+        ),
+        GoRoute(
+          path: 'topic-tracker',
+          name: 'meeting-topic-tracker',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) => const AITopicTrackerScreen(),
+        ),
+      ],
+    ),
+
+    // ──────────── Standalone feature screens ────────────
+    GoRoute(
+      path: '/meeting-history',
+      name: 'meeting-history',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const MeetingHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/people',
+      name: 'people',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const PeopleDirectoryScreen(),
+    ),
+    GoRoute(
+      path: '/integrations',
+      name: 'integrations',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const IntegrationsHubScreen(),
+    ),
+    GoRoute(
+      path: '/ai-settings',
+      name: 'ai-settings',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const AISettingsScreen(),
+    ),
+    GoRoute(
+      path: '/meeting-templates',
+      name: 'meeting-templates',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const MeetingTemplatesScreen(),
+    ),
+    GoRoute(
+      path: '/quick-notes',
+      name: 'quick-notes',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const QuickNotesScreen(),
+    ),
+    GoRoute(
+      path: '/export-reports',
+      name: 'export-reports',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const ExportReportsScreen(),
+    ),
+    GoRoute(
+      path: '/focus-mode',
+      name: 'focus-mode',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const AIFocusModeScreen(),
+    ),
+    GoRoute(
+      path: '/meeting-invite',
+      name: 'meeting-invite',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const MeetingInviteScreen(),
     ),
   ],
 

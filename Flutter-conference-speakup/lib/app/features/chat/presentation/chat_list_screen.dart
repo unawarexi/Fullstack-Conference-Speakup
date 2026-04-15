@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
+import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/app/domain/models/chat_model.dart';
 import 'package:flutter_conference_speakup/store/chat_provider.dart';
@@ -55,7 +56,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           const SizedBox(width: 4),
         ],
       ),
-      body: RefreshIndicator(
+      body: ResponsiveBody(child: RefreshIndicator(
         onRefresh: _onRefresh,
         color: SColors.primary,
         child: CustomScrollView(
@@ -146,6 +147,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -337,6 +339,6 @@ class _AppBarButton extends StatelessWidget {
         child: Icon(icon, size: 18,
           color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary),
       ),
-    );
+);
   }
 }
