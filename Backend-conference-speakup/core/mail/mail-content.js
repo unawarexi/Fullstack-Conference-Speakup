@@ -62,7 +62,38 @@ class EmailContentGenerator {
     };
   }
 
-  // 3. Recording Ready
+  // 3. Meeting Reminder
+  meetingReminder(data) {
+    const isStarting = data.reminderType === "MEETING_STARTING";
+    return {
+      EMAIL_TITLE: isStarting
+        ? `Meeting starting now: ${data.meetingTitle}`
+        : `Meeting reminder: ${data.meetingTitle} starts soon`,
+      GREETING: `Hello ${data.inviteeName || "there"},`,
+      MAIN_CONTENT: isStarting
+        ? `<p>Your meeting <strong>"${data.meetingTitle}"</strong> is starting now!</p>`
+        : `<p>Your meeting <strong>"${data.meetingTitle}"</strong> starts in 5 minutes.</p>`,
+      CONTENT_SECTIONS: [
+        {
+          title: "Meeting Details",
+          content: `
+            <ul style="margin-left:18px;color:#475569;">
+              <li><strong>Title:</strong> ${data.meetingTitle}</li>
+              <li><strong>Time:</strong> ${data.scheduledTime || "—"}</li>
+              <li><strong>Code:</strong> ${data.code || "—"}</li>
+              <li><strong>Host:</strong> ${data.hostName || "—"}</li>
+            </ul>
+          `,
+        },
+      ],
+      BUTTONS: [
+        { text: "Join Meeting", url: `${this.baseUrl}/meeting/${data.code}`, primary: true },
+      ],
+      UNSUBSCRIBE_LINK: this.generateUnsubscribeLink(null, "meeting"),
+    };
+  }
+
+  // 4. Recording Ready
   recordingReady(recording) {
     return {
       EMAIL_TITLE: "Your Recording is Ready",
