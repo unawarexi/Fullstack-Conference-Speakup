@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
@@ -202,7 +202,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       } else if (diff.inDays < 7) {
         key = 'This Week';
       } else {
-        key = DateFormat.yMMMd().format(item.createdAt);
+        key = SFormatters.formatDateYMMMd(item.createdAt);
       }
       grouped.putIfAbsent(key, () => []).add(item);
     }
@@ -349,7 +349,7 @@ class _NotificationTile extends StatelessWidget {
     final diff = now.difference(date);
     if (diff.inMinutes < 1) return 'now';
     if (diff.inHours < 1) return '${diff.inMinutes}m';
-    if (diff.inDays < 1) return DateFormat.jm().format(date);
-    return DateFormat.MMMd().format(date);
+    if (diff.inDays < 1) return SFormatters.formatTimeJm(date);
+    return SFormatters.formatMonthDay(date);
   }
 }
