@@ -13,6 +13,7 @@ class MeetingModel {
   final MeetingType type;
   final MeetingStatus status;
   final DateTime? scheduledAt;
+  final DateTime? scheduledEndAt;
   final DateTime? startedAt;
   final DateTime? endedAt;
   final int participantCount;
@@ -33,6 +34,7 @@ class MeetingModel {
     this.type = MeetingType.instant,
     this.status = MeetingStatus.scheduled,
     this.scheduledAt,
+    this.scheduledEndAt,
     this.startedAt,
     this.endedAt,
     this.participantCount = 0,
@@ -45,6 +47,24 @@ class MeetingModel {
 
   bool get isLive => status == MeetingStatus.live;
   bool get hasPassword => password != null && password!.isNotEmpty;
+
+  /// Recurrence config stored in settings (for RECURRING meetings).
+  Map<String, dynamic>? get recurrence =>
+      settings?['recurrence'] as Map<String, dynamic>?;
+
+  /// Days of week for recurrence (0=Sun..6=Sat).
+  List<int> get recurrenceDays =>
+      (recurrence?['daysOfWeek'] as List<dynamic>?)
+          ?.map((e) => e as int)
+          .toList() ??
+      [];
+
+  /// Per-day schedules for recurrence.
+  List<Map<String, dynamic>> get recurrenceSchedules =>
+      (recurrence?['schedules'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList() ??
+      [];
 
   factory MeetingModel.fromJson(Map<String, dynamic> json) {
     final host = json['host'] as Map<String, dynamic>?;
@@ -61,13 +81,16 @@ class MeetingModel {
       status: MeetingStatus.values.byName(
           (json['status'] as String? ?? 'SCHEDULED').toLowerCase()),
       scheduledAt: json['scheduledAt'] != null
-          ? DateTime.parse(json['scheduledAt'] as String)
+          ? DateTime.parse(json['scheduledAt'] as String).toLocal()
+          : null,
+      scheduledEndAt: json['scheduledEndAt'] != null
+          ? DateTime.parse(json['scheduledEndAt'] as String).toLocal()
           : null,
       startedAt: json['startedAt'] != null
-          ? DateTime.parse(json['startedAt'] as String)
+          ? DateTime.parse(json['startedAt'] as String).toLocal()
           : null,
       endedAt: json['endedAt'] != null
-          ? DateTime.parse(json['endedAt'] as String)
+          ? DateTime.parse(json['endedAt'] as String).toLocal()
           : null,
       participantCount: json['participantCount'] as int? ??
           (json['_count']?['participants'] as int? ?? 0),
@@ -76,7 +99,7 @@ class MeetingModel {
       password: json['password'] as String?,
       settings: json['settings'] as Map<String, dynamic>?,
       createdAt: DateTime.parse(
-          json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
+          json['createdAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
     );
   }
 
@@ -89,6 +112,7 @@ class MeetingModel {
         'type': type.name.toUpperCase(),
         'status': status.name.toUpperCase(),
         'scheduledAt': scheduledAt?.toIso8601String(),
+        'scheduledEndAt': scheduledEndAt?.toIso8601String(),
         'startedAt': startedAt?.toIso8601String(),
         'endedAt': endedAt?.toIso8601String(),
         'participantCount': participantCount,
@@ -104,6 +128,7 @@ class MeetingModel {
     MeetingType? type,
     MeetingStatus? status,
     DateTime? scheduledAt,
+    DateTime? scheduledEndAt,
     DateTime? startedAt,
     DateTime? endedAt,
     int? participantCount,
@@ -123,6 +148,7 @@ class MeetingModel {
         type: type ?? this.type,
         status: status ?? this.status,
         scheduledAt: scheduledAt ?? this.scheduledAt,
+        scheduledEndAt: scheduledEndAt ?? this.scheduledEndAt,
         startedAt: startedAt ?? this.startedAt,
         endedAt: endedAt ?? this.endedAt,
         participantCount: participantCount ?? this.participantCount,

@@ -29,7 +29,7 @@ class TranscriptionSegment {
       speakerName: json['speaker_name'] as String? ?? json['speakerName'] as String?,
       confidence: (json['confidence'] as num?)?.toDouble() ?? 1.0,
       timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'] as String)
+          ? DateTime.parse(json['timestamp'] as String).toLocal()
           : DateTime.now(),
       language: json['language'] as String?,
       isFinal: json['is_final'] as bool? ?? json['isFinal'] as bool? ?? false,
@@ -77,7 +77,7 @@ class CopilotSuggestion {
       context: json['context'] as String?,
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.8,
       timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'] as String)
+          ? DateTime.parse(json['timestamp'] as String).toLocal()
           : DateTime.now(),
     );
   }
@@ -120,7 +120,7 @@ class EmotionSignal {
       engagementScore: (json['engagement_score'] as num?)?.toDouble() ??
           (json['engagementScore'] as num?)?.toDouble() ?? 0.5,
       timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'] as String)
+          ? DateTime.parse(json['timestamp'] as String).toLocal()
           : DateTime.now(),
     );
   }
@@ -160,7 +160,7 @@ class CoachingHint {
       message: json['message'] as String? ?? '',
       severity: json['severity'] as String? ?? 'low',
       timestamp: json['timestamp'] != null
-          ? DateTime.parse(json['timestamp'] as String)
+          ? DateTime.parse(json['timestamp'] as String).toLocal()
           : DateTime.now(),
     );
   }
@@ -246,7 +246,7 @@ class MeetingSummary {
       durationMinutes: json['duration_minutes'] as int? ?? 0,
       sentimentScore: (json['sentiment_score'] as num?)?.toDouble() ?? 0.5,
       generatedAt: json['generated_at'] != null
-          ? DateTime.parse(json['generated_at'] as String)
+          ? DateTime.parse(json['generated_at'] as String).toLocal()
           : DateTime.now(),
     );
   }

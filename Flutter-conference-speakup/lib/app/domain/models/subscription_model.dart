@@ -49,16 +49,16 @@ class SubscriptionModel {
       stripeCustomerId: json['stripeCustomerId'] as String?,
       stripeSubId: json['stripeSubId'] as String?,
       currentPeriodStart: json['currentPeriodStart'] != null
-          ? DateTime.parse(json['currentPeriodStart'] as String)
+          ? DateTime.parse(json['currentPeriodStart'] as String).toLocal()
           : null,
       currentPeriodEnd: json['currentPeriodEnd'] != null
-          ? DateTime.parse(json['currentPeriodEnd'] as String)
+          ? DateTime.parse(json['currentPeriodEnd'] as String).toLocal()
           : null,
       canceledAt: json['canceledAt'] != null
-          ? DateTime.parse(json['canceledAt'] as String)
+          ? DateTime.parse(json['canceledAt'] as String).toLocal()
           : null,
       createdAt: DateTime.parse(
-          json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
+          json['createdAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
     );
   }
 

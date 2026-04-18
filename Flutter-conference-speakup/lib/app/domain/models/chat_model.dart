@@ -40,9 +40,9 @@ class ChatMessage {
           (json['type'] as String? ?? 'TEXT').toLowerCase()),
       replyToId: json['replyToId'] as String?,
       isEdited: json['isEdited'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       updatedAt: DateTime.parse(
-          json['updatedAt'] as String? ?? json['createdAt'] as String),
+          json['updatedAt'] as String? ?? json['createdAt'] as String).toLocal(),
     );
   }
 
@@ -96,7 +96,7 @@ class ChatRoom {
             : null,
         unreadCount: json['unreadCount'] as int? ?? 0,
         createdAt: DateTime.parse(
-            json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
+            json['createdAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -134,7 +134,7 @@ class ChatMember {
       fullName: user?['fullName'] as String?,
       avatar: user?['avatar'] as String?,
       joinedAt: DateTime.parse(
-          json['joinedAt'] as String? ?? DateTime.now().toIso8601String()),
+          json['joinedAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
     );
   }
 

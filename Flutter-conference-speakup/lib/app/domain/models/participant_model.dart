@@ -42,9 +42,9 @@ class Participant {
       role: ParticipantRole.values.byName(
           (json['role'] as String? ?? 'ATTENDEE').toLowerCase()),
       joinedAt: DateTime.parse(
-          json['joinedAt'] as String? ?? DateTime.now().toIso8601String()),
+          json['joinedAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
       leftAt: json['leftAt'] != null
-          ? DateTime.parse(json['leftAt'] as String)
+          ? DateTime.parse(json['leftAt'] as String).toLocal()
           : null,
     );
   }
@@ -143,7 +143,7 @@ class RecordingModel {
       sizeBytes: (json['sizeBytes'] as num?)?.toInt() ?? 0,
       status: RecordingStatus.values.byName(
           (json['status'] as String? ?? 'PROCESSING').toLowerCase()),
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
     );
   }
 

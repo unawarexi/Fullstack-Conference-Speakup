@@ -36,13 +36,13 @@ class UserModel {
         bio: json['bio'] as String?,
         isOnline: json['isOnline'] as bool? ?? false,
         lastSeenAt: json['lastSeenAt'] != null
-            ? DateTime.parse(json['lastSeenAt'] as String)
+            ? DateTime.parse(json['lastSeenAt'] as String).toLocal()
             : null,
         role: UserRole.values.byName(
             (json['role'] as String? ?? 'USER').toLowerCase()),
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
         updatedAt: DateTime.parse(
-            json['updatedAt'] as String? ?? json['createdAt'] as String),
+            json['updatedAt'] as String? ?? json['createdAt'] as String).toLocal(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -113,6 +113,6 @@ class DeviceModel {
         id: json['id'] as String,
         fcmToken: json['fcmToken'] as String,
         platform: json['platform'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       );
 }

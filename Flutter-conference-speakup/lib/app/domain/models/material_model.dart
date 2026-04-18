@@ -49,7 +49,7 @@ class MeetingMaterialModel {
       uploaderName: user?['fullName'] as String?,
       uploaderAvatar: user?['avatar'] as String?,
       createdAt: DateTime.parse(
-          json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
+          json['createdAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
     );
   }
 
