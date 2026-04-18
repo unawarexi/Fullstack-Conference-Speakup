@@ -10,6 +10,9 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 
 /// All chat rooms.
 final chatRoomsProvider = FutureProvider.autoDispose<List<ChatRoom>>((ref) {
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 5), link.close);
+  ref.onDispose(timer.cancel);
   return ref.read(chatRepositoryProvider).getRooms();
 });
 
