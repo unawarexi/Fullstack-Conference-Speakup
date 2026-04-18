@@ -24,7 +24,7 @@ class _MeetingsListScreenState extends ConsumerState<MeetingsListScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -82,6 +82,7 @@ class _MeetingsListScreenState extends ConsumerState<MeetingsListScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
+          ListMeetingsTab(status: 'LIVE', searchQuery: _searchController.text),
           ListMeetingsTab(status: 'SCHEDULED', searchQuery: _searchController.text),
           ListMeetingsTab(status: 'ENDED', searchQuery: _searchController.text),
           ListMeetingsTab(status: 'RECURRING', searchQuery: _searchController.text),

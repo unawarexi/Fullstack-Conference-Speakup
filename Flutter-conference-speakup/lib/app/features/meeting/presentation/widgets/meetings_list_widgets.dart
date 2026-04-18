@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
@@ -50,6 +50,7 @@ class ListTabBar extends StatelessWidget {
         labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         tabs: const [
+          Tab(text: 'Ongoing', height: 36),
           Tab(text: 'Upcoming', height: 36),
           Tab(text: 'Past', height: 36),
           Tab(text: 'Recurring', height: 36),
@@ -221,16 +222,34 @@ class ListMeetingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUpcoming = meeting.status == MeetingStatus.scheduled;
-    final timeStr = meeting.scheduledAt != null
-        ? DateFormat('MMM d · h:mm a').format(meeting.scheduledAt!)
-        : meeting.endedAt != null
-            ? DateFormat('MMM d · h:mm a').format(meeting.endedAt!)
-            : '';
+    String timeStr;
+    if (meeting.scheduledAt != null && meeting.scheduledEndAt != null) {
+      // Show time range: "Apr 18 · 9:00 AM – 10:30 AM"
+      final sameDay = meeting.scheduledAt!.year == meeting.scheduledEndAt!.year
+          && meeting.scheduledAt!.month == meeting.scheduledEndAt!.month
+          && meeting.scheduledAt!.day == meeting.scheduledEndAt!.day;
+      if (sameDay) {
+        timeStr = '${SFormatters.formatDateShort(meeting.scheduledAt!)} · '
+            '${SFormatters.formatTime(meeting.scheduledAt!)} – '
+            '${SFormatters.formatTime(meeting.scheduledEndAt!)}';
+      } else {
+        timeStr = '${SFormatters.formatDateTimeShort(meeting.scheduledAt!)} – '
+            '${SFormatters.formatDateTimeShort(meeting.scheduledEndAt!)}';
+      }
+    } else if (meeting.scheduledAt != null) {
+      timeStr = SFormatters.formatDateTimeCompact(meeting.scheduledAt!);
+    } else if (meeting.endedAt != null) {
+      timeStr = SFormatters.formatDateTimeCompact(meeting.endedAt!);
+    } else {
+      timeStr = '';
+    }
 
     return SCard(
       onTap: () {
         if (meeting.isLive) {
           context.push('/meeting/${meeting.id}');
+        } else {
+          context.push('/meeting-detail/${meeting.id}');
         }
       },
       hasBorder: true,
@@ -347,6 +366,8 @@ class ListEmptyMeetings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, message, sub) = switch (status) {
+      'LIVE' => (Icons.videocam_rounded, 'No ongoing meetings',
+          'Start or join a meeting to see it here'),
       'SCHEDULED' => (SIcons.calendar, 'No upcoming meetings',
           'Schedule a meeting or join one to get started'),
       'ENDED' => (SIcons.clock, 'No past meetings',

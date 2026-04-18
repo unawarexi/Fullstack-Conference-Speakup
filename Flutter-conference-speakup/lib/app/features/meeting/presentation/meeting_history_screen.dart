@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
@@ -139,9 +139,9 @@ class _MeetingHistoryScreenState extends ConsumerState<MeetingHistoryScreen> {
                 final grouped = <String, List<MeetingModel>>{};
                 for (final m in filtered) {
                   final key = m.endedAt != null
-                      ? DateFormat('MMM d, y').format(m.endedAt!)
+                      ? SFormatters.formatDateMedium(m.endedAt!)
                       : m.createdAt != null
-                          ? DateFormat('MMM d, y').format(m.createdAt)
+                          ? SFormatters.formatDateMedium(m.createdAt)
                           : 'Unknown';
                   grouped.putIfAbsent(key, () => []).add(m);
                 }
@@ -326,7 +326,7 @@ class _HistoryTile extends StatelessWidget {
       ].join(' · '),
       trailing: Text(
         meeting.endedAt != null
-            ? DateFormat('h:mm a').format(meeting.endedAt!)
+            ? SFormatters.formatTime(meeting.endedAt!)
             : '',
         style: TextStyle(
           fontSize: 11,
