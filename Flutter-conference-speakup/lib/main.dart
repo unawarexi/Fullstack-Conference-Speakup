@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:flutter_conference_speakup/core/db/hive.dart';
+import 'package:flutter_conference_speakup/core/services/notification_service.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 import 'package:flutter_conference_speakup/core/auth/google_signin.dart';
 import 'package:flutter_conference_speakup/firebase_options.dart';
@@ -32,6 +34,10 @@ void main() async {
   // Initialize Google Sign-In (must be after Firebase.initializeApp)
   await GoogleSignInService.init();
 
+  // FCM background handler + local notifications
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await NotificationService.instance.init();
+
   // Prune expired cache entries
   await HiveService.pruneExpired();
 
@@ -41,13 +47,8 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Status bar style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
+  // Status bar style — handled per-screen by AppBar theme systemOverlayStyle
+  // and AnnotatedRegion on non-AppBar screens.
 
   final app = ProviderScope(
     child: LiquidGlassWidgets.wrap(const SpeakUpApp()),

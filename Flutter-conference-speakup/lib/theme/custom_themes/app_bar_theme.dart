@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 
 class TAppBarTheme {
@@ -14,6 +15,13 @@ class TAppBarTheme {
     actionsIconTheme: IconThemeData(color: SColors.textLight, size: 24),
     titleTextStyle: TextStyle(
         fontSize: 18.0, fontWeight: FontWeight.w600, color: SColors.textLight),
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark, // dark icons on light bg
+      statusBarBrightness: Brightness.light, // iOS: light status bar bg
+      systemNavigationBarColor: SColors.lightBg,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
   );
 
   static const darkAppBarTheme = AppBarTheme(
@@ -26,5 +34,12 @@ class TAppBarTheme {
     actionsIconTheme: IconThemeData(color: SColors.textDark, size: 24),
     titleTextStyle: TextStyle(
         fontSize: 18.0, fontWeight: FontWeight.w600, color: SColors.textDark),
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // light icons on dark bg
+      statusBarBrightness: Brightness.dark, // iOS: dark status bar bg
+      systemNavigationBarColor: SColors.darkBg,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
   );
 }

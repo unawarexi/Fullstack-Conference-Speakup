@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
@@ -168,12 +168,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   upcomingMeetings.when(
                     data: (meetings) {
+                      final now = DateTime.now();
                       final upcoming = meetings
                           .where((m) =>
                               (m.type == MeetingType.scheduled ||
                                   m.type == MeetingType.recurring) &&
                               (m.status == MeetingStatus.scheduled ||
-                                  m.status == MeetingStatus.live))
+                                  m.status == MeetingStatus.live) &&
+                              (m.scheduledAt == null ||
+                                  m.scheduledAt!.isAfter(
+                                      now.subtract(const Duration(minutes: 30)))))
                           .take(3)
                           .toList();
                       if (upcoming.isEmpty) {
@@ -234,10 +238,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   upcomingMeetings.when(
                     data: (meetings) {
+                      final now = DateTime.now();
                       final past = meetings
                           .where((m) =>
                               m.status == MeetingStatus.ended ||
-                              m.status == MeetingStatus.cancelled)
+                              m.status == MeetingStatus.cancelled ||
+                              // Scheduled meetings whose time has passed
+                              (m.status == MeetingStatus.scheduled &&
+                                  m.scheduledAt != null &&
+                                  m.scheduledAt!.isBefore(
+                                      now.subtract(const Duration(minutes: 30)))))
                           .take(4)
                           .toList();
                       if (past.isEmpty) {
@@ -360,7 +370,7 @@ class _HeaderHero extends StatelessWidget {
                       ),
                     const SizedBox(height: 3),
                     Text(
-                      DateFormat('EEE, MMM d').format(DateTime.now()),
+                      SFormatters.formatDateWithDay(DateTime.now()),
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -432,26 +442,23 @@ class _HeaderHero extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // ── Base gradient ──
+          // ── Base fill ──
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: const [0.0, 0.5, 1.0],
-                  colors: isDark
-                      ? [
+                gradient: isDark
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        stops: const [0.0, 0.5, 1.0],
+                        colors: [
                           SColors.primary.withValues(alpha: 0.18),
                           SColors.screenShare.withValues(alpha: 0.06),
                           SColors.darkBg,
-                        ]
-                      : [
-                          SColors.primary.withValues(alpha: 0.32),
-                          SColors.screenShare.withValues(alpha: 0.18),
-                          SColors.blue100,
                         ],
-                ),
+                      )
+                    : null,
+                color: isDark ? null : SColors.blue50,
               ),
             ),
           ),

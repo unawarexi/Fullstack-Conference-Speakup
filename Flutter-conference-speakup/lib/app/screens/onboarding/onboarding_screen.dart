@@ -123,8 +123,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final theme = Theme.of(context);
     final isDesktop = SResponsive.isDesktop(context);
 
+    final isDark = theme.brightness == Brightness.dark;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: Stack(

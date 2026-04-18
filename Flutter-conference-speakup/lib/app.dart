@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/router/app_router.dart';
 import 'package:flutter_conference_speakup/store/theme_provider.dart';
 import 'package:flutter_conference_speakup/theme/theme.dart';
@@ -25,17 +27,31 @@ class SpeakUpApp extends ConsumerWidget {
       routerConfig: appRouter,
 
       builder: (context, child) {
-        return Overlay(
-          initialEntries: [
-            OverlayEntry(
-              builder: (_) => Column(
-                children: [
-                  const ConnectivityToast(),
-                  Expanded(child: child ?? const SizedBox.shrink()),
-                ],
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness:
+                isDark ? Brightness.light : Brightness.dark,
+            statusBarBrightness:
+                isDark ? Brightness.dark : Brightness.light,
+            systemNavigationBarColor:
+                isDark ? SColors.darkBg : SColors.lightBg,
+            systemNavigationBarIconBrightness:
+                isDark ? Brightness.light : Brightness.dark,
+          ),
+          child: Overlay(
+            initialEntries: [
+              OverlayEntry(
+                builder: (_) => Column(
+                  children: [
+                    const ConnectivityToast(),
+                    Expanded(child: child ?? const SizedBox.shrink()),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
