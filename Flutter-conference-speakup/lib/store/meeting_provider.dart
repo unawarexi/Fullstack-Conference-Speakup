@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
 import 'package:flutter_conference_speakup/app/domain/models/participant_model.dart';
+import 'package:flutter_conference_speakup/app/domain/models/material_model.dart';
 import 'package:flutter_conference_speakup/app/domain/repositories/meeting_repository.dart';
 import 'package:flutter_conference_speakup/core/db/hive.dart';
 
@@ -10,14 +11,43 @@ final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {
 });
 
 /// All meetings list (with optional status filter).
+/// Uses keepAlive + 5-minute timer so tab switches don't re-fetch.
+/// Falls back to Hive cache while the network request is in-flight.
 final meetingsProvider = FutureProvider.family
     .autoDispose<List<MeetingModel>, String?>((ref, status) async {
+  // Keep data alive for 5 minutes after all listeners are removed
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 5), link.close);
+  ref.onDispose(timer.cancel);
+
+  final cacheKey = 'meetings_${status ?? "all"}';
+
+  // Return cached data immediately while the API call proceeds
+  final cached = HiveService.getIfFresh(HiveService.meetingCache, cacheKey);
+  if (cached != null && cached is List) {
+    // Fire-and-forget: refresh in background, update cache
+    ref.read(meetingRepositoryProvider).listMeetings(status: status).then(
+      (fresh) {
+        HiveService.putWithTTL(
+          HiveService.meetingCache, cacheKey,
+          fresh.map((m) => m.toJson()).toList(),
+          ttlMinutes: 5,
+        );
+      },
+      onError: (_) {},
+    );
+    return cached
+        .map((e) => MeetingModel.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  // No valid cache — fetch from API
   final meetings =
       await ref.read(meetingRepositoryProvider).listMeetings(status: status);
-  // Cache meetings
-  HiveService.meetingCache.put(
-    'meetings_${status ?? "all"}',
+  HiveService.putWithTTL(
+    HiveService.meetingCache, cacheKey,
     meetings.map((m) => m.toJson()).toList(),
+    ttlMinutes: 5,
   );
   return meetings;
 });
@@ -25,6 +55,9 @@ final meetingsProvider = FutureProvider.family
 /// Single meeting by ID.
 final meetingByIdProvider =
     FutureProvider.family.autoDispose<MeetingModel, String>((ref, id) {
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 3), link.close);
+  ref.onDispose(timer.cancel);
   return ref.read(meetingRepositoryProvider).getById(id);
 });
 
@@ -32,7 +65,20 @@ final meetingByIdProvider =
 final meetingParticipantsProvider =
     FutureProvider.family.autoDispose<List<Participant>, String>(
         (ref, meetingId) {
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 3), link.close);
+  ref.onDispose(timer.cancel);
   return ref.read(meetingRepositoryProvider).getParticipants(meetingId);
+});
+
+/// Materials for a meeting.
+final meetingMaterialsProvider =
+    FutureProvider.family.autoDispose<List<MeetingMaterialModel>, String>(
+        (ref, meetingId) {
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 3), link.close);
+  ref.onDispose(timer.cancel);
+  return ref.read(meetingRepositoryProvider).getMaterials(meetingId);
 });
 
 /// Currently active meeting room state.
@@ -110,9 +156,9 @@ class ActiveMeetingNotifier extends StateNotifier<MeetingRoomState> {
     _startElapsedTimer();
   }
 
-  Future<void> joinByCode(String code) async {
+  Future<void> joinByCode(String code, {String? password}) async {
     final repo = _ref.read(meetingRepositoryProvider);
-    final meeting = await repo.joinByCode(code);
+    final meeting = await repo.joinByCode(code, password: password);
     final token = await repo.getLiveKitToken(meeting.id);
     final participants = await repo.getParticipants(meeting.id);
 

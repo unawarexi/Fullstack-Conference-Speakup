@@ -115,7 +115,7 @@ class DetailActionGrid extends StatelessWidget {
         DetailActionTile(
           icon: Icons.attach_file_rounded,
           label: 'Files',
-          onTap: () => context.push('/meeting/${meeting.id}/files'),
+          onTap: () => context.push('/meeting-detail/${meeting.id}/materials'),
           isDark: isDark,
         ),
       ],

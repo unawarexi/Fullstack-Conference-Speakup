@@ -15,6 +15,7 @@ import 'package:flutter_conference_speakup/app/features/settings/presentation/se
 import 'package:flutter_conference_speakup/app/features/recordings/presentation/recordings_screen.dart';
 import 'package:flutter_conference_speakup/app/features/participant/presentation/participants_screen.dart';
 import 'package:flutter_conference_speakup/app/features/meeting/presentation/create_meeting_screen.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/edit_meeting_screen.dart';
 import 'package:flutter_conference_speakup/app/features/meeting/presentation/meeting_detail_screen.dart';
 import 'package:flutter_conference_speakup/app/features/search/presentation/search_screen.dart';
 import 'package:flutter_conference_speakup/app/features/notification/presentation/notifications_screen.dart';
@@ -388,6 +389,13 @@ final GoRouter appRouter = GoRouter(
       },
       routes: [
         GoRoute(
+          path: 'edit',
+          name: 'edit-meeting',
+          parentNavigatorKey: rootNavigatorKey,
+          builder: (context, state) =>
+              EditMeetingScreen(meetingId: state.pathParameters['id']!),
+        ),
+        GoRoute(
           path: 'replay',
           name: 'meeting-replay',
           parentNavigatorKey: rootNavigatorKey,
@@ -423,7 +431,7 @@ final GoRouter appRouter = GoRouter(
           path: 'materials',
           name: 'meeting-materials',
           parentNavigatorKey: rootNavigatorKey,
-          builder: (context, state) => const MeetingMaterialsScreen(),
+          builder: (context, state) => MeetingMaterialsScreen(meetingId: state.pathParameters['id']!),
         ),
         GoRoute(
           path: 'feedback',
