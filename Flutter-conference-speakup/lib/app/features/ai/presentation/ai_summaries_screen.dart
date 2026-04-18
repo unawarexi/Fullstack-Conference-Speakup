@@ -8,7 +8,7 @@ import 'package:flutter_conference_speakup/store/ai_provider.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 import 'package:flutter_conference_speakup/app/domain/models/ai_models.dart';
 import 'package:flutter_conference_speakup/app/features/ai/widgets/ai_common_widgets.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 
 /// AI Meeting Summaries — browse all AI-generated recaps.
 class AISummariesScreen extends ConsumerWidget {
@@ -94,7 +94,7 @@ class _MeetingTileState extends ConsumerState<_MeetingTile> {
   @override
   Widget build(BuildContext context) {
     final dateStr = widget.scheduledAt != null
-        ? DateFormat('MMM d, yyyy · h:mm a').format(widget.scheduledAt!)
+        ? SFormatters.formatDateTime(widget.scheduledAt!)
         : 'No date';
 
     return Padding(

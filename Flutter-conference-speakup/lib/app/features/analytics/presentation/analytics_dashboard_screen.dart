@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
@@ -86,9 +86,9 @@ class AnalyticsDashboardScreen extends ConsumerWidget {
                     final title = m['title'] as String? ?? 'Untitled Meeting';
                     final status = m['status'] as String? ?? 'ended';
                     final date = m['endedAt'] != null
-                        ? DateFormat.yMMMd().format(DateTime.parse(m['endedAt'] as String))
+                        ? SFormatters.formatDateYMMMd(DateTime.parse(m['endedAt'] as String))
                         : m['scheduledAt'] != null
-                            ? DateFormat.yMMMd().format(DateTime.parse(m['scheduledAt'] as String))
+                            ? SFormatters.formatDateYMMMd(DateTime.parse(m['scheduledAt'] as String))
                             : '';
 
                     return DenseTile(

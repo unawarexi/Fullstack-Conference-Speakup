@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
@@ -275,7 +275,7 @@ class _MessageBubble extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          DateFormat.jm().format(message.createdAt),
+                          SFormatters.formatTimeJm(message.createdAt),
                           style: TextStyle(
                             fontSize: 10,
                             color: isMe ? Colors.white70

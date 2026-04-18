@@ -4,9 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
-import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart';
 import 'package:flutter_conference_speakup/app/domain/models/chat_model.dart';
@@ -309,9 +308,9 @@ class _ChatRoomTile extends StatelessWidget {
     final diff = now.difference(date);
     if (diff.inMinutes < 1) return 'now';
     if (diff.inHours < 1) return '${diff.inMinutes}m';
-    if (diff.inDays < 1) return DateFormat.jm().format(date);
-    if (diff.inDays < 7) return DateFormat.E().format(date);
-    return DateFormat.MMMd().format(date);
+    if (diff.inDays < 1) return SFormatters.formatTimeJm(date);
+    if (diff.inDays < 7) return SFormatters.formatDayOfWeek(date);
+    return SFormatters.formatMonthDay(date);
   }
 }
 

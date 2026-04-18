@@ -10,6 +10,7 @@ import 'package:flutter_conference_speakup/core/constants/responsive.dart';
 import 'package:flutter_conference_speakup/core/constants/text_strings.dart';
 import 'package:flutter_conference_speakup/app/components/ui/card.dart';
 import 'package:flutter_conference_speakup/app/components/ui/bottom_sheet.dart';
+import 'package:flutter_conference_speakup/app/components/ui/activity_indicator.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 import 'package:flutter_conference_speakup/store/auth_provider.dart';
 import 'package:flutter_conference_speakup/store/theme_provider.dart';
@@ -305,8 +306,15 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () async {
                   final confirmed = await _showLogoutConfirmation(context, isDark);
                   if (confirmed == true && context.mounted) {
-                    await ref.read(currentUserProvider.notifier).signOut();
-                    if (context.mounted) context.go('/login');
+                    _showLoadingDialog(context, isDark, 'Signing out…');
+                    try {
+                      await ref.read(currentUserProvider.notifier).signOut();
+                    } finally {
+                      if (context.mounted) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        context.go('/login');
+                      }
+                    }
                   }
                 },
               ),
@@ -355,6 +363,41 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Sign Out', style: TextStyle(color: SColors.error)),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Loading Dialog
+  // ─────────────────────────────────────────────
+
+  void _showLoadingDialog(BuildContext context, bool isDark, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            decoration: BoxDecoration(
+              color: isDark ? SColors.darkCard : SColors.lightCard,
+              borderRadius: BorderRadius.circular(SSizes.radiusMd),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SActivityIndicator(size: 28),
+                const SizedBox(height: 16),
+                Text(message, style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
+                )),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -704,11 +747,16 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (confirmed == true && context.mounted) {
+      _showLoadingDialog(context, isDark, 'Deleting account…');
       try {
         await ref.read(currentUserProvider.notifier).deleteAccount();
-        if (context.mounted) context.go('/login');
+        if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          context.go('/login');
+        }
       } catch (e) {
         if (context.mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to delete account: $e')),
           );

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
@@ -360,7 +360,7 @@ class _CompactMeetingTileState extends State<CompactMeetingTile> {
   Widget build(BuildContext context) {
     final m = widget.meeting;
     final timeStr =
-        m.scheduledAt != null ? DateFormat('h:mm a').format(m.scheduledAt!) : 'Now';
+        m.scheduledAt != null ? SFormatters.formatTime(m.scheduledAt!) : 'Now';
 
     return GestureDetector(
       onTapDown: widget.onTap != null
@@ -616,7 +616,7 @@ class RecentActivityTile extends StatelessWidget {
       icon: SIcons.meetings,
       title: meeting.title,
       subtitle:
-          '${DateFormat('MMM d, h:mm a').format(date)}${duration != null ? ' · ${duration}m' : ''}',
+          '${SFormatters.formatDateTimeShort(date)}${duration != null ? ' · ${duration}m' : ''}',
       showChevron: true,
       onTap: onTap ?? () => context.push('/meeting-detail/${meeting.id}'),
     );

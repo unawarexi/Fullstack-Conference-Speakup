@@ -1,141 +1,126 @@
-Readme
-Changelog
-Example
-Installing
-Versions
-Scores
-Flutter Launcher Icons 
-Flutter Community: flutter_launcher_icons
+i ran this. emulator -avd  pixel-10 -no-snapshot-load. and i got this "acBook-Pro Flutter-conference-speakup % emulator -avd  pixel-10 -no-snapshot-load
+INFO         | Android emulator version 36.5.10.0 (build_id 15081367) (CL:N/A)
+INFO         | Graphics backend: gfxstream
+INFO         | Found systemPath /Users/mac/Library/Android/sdk/system-images/android-37.0/google_apis_playstore_ps16k/x86_64/
+WARNING      | Please update the emulator to one that supports the feature(s): VulkanVirtualQueue
+INFO         | Increasing RAM size to 3072MB
+INFO         | Guest GLES Driver: Auto (ext controls)
+INFO         | emuglConfig_init: vulkan_mode_selected:swiftshader gles_mode_selected:host
+INFO         | Checking system compatibility:
+INFO         |   Checking: hasSufficientDiskSpace
+INFO         |      Ok: Disk space requirements to run avd: `pixel-10` are met
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU compatibility checks are not required
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `pixel-10` are met
+INFO         | Storing crashdata in: /tmp/android-mac/emu-crash-36.5.10.db, detection is enabled for process: 93978
+INFO         | Initializing gfxstream backend
+INFO         | android_startOpenglesRenderer: gpu info
+INFO         | GPU #1
+  Make: 8086
+  Model: 8a53
+  Device ID: 8a53
 
-pub package
-
-A command-line tool which simplifies the task of updating your Flutter app's launcher icon. Fully flexible, allowing you to choose what platform you wish to update the launcher icon for and if you want, the option to keep your old launcher icon in case you want to revert back sometime in the future.
-
-📖 Guide 
-1. Setup the config file 
-Run the following command to create a new config automatically:
-
-dart run flutter_launcher_icons:generate
-This will create a new file called flutter_launcher_icons.yaml in your flutter project's root directory.
-
-If you want to override the default location or name of the config file, use the -f flag:
-
-dart run flutter_launcher_icons:generate -f <your config file name here>
-To override an existing config file, use the -o flag:
-
-dart run flutter_launcher_icons:generate -o
-OR
-
-Add your Flutter Launcher Icons configuration to your pubspec.yaml.
-An example is shown below. More complex examples can be found in the example projects.
-
-dev_dependencies:
-  flutter_launcher_icons: "^0.14.4"
-
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/icon/icon.png"
-  min_sdk_android: 21 # android min sdk min:16, default 21
-  web:
-    generate: true
-    image_path: "path/to/image.png"
-    background_color: "#hexcode"
-    theme_color: "#hexcode"
-  windows:
-    generate: true
-    image_path: "path/to/image.png"
-    icon_size: 48 # min:48, max:256, default: 48
-  macos:
-    generate: true
-    image_path: "path/to/image.png"
-2. Run the package 
-After setting up the configuration, all that is left to do is run the package.
-
-flutter pub get
-dart run flutter_launcher_icons
-If you name your configuration file something other than flutter_launcher_icons.yaml or pubspec.yaml you will need to specify the name of the file when running the package.
-
-flutter pub get
-dart run flutter_launcher_icons -f <your config file name here>
-Note: If you are not using the existing pubspec.yaml ensure that your config file is located in the same directory as it.
-
-If you encounter any issues please report them here.
-
-In the above configuration, the package is setup to replace the existing launcher icons in both the Android and iOS project with the icon located in the image path specified above and given the name "launcher_icon" in the Android project and "Example-Icon" in the iOS project.
-
-🔍 Attributes 
-Shown below is the full list of attributes which you can specify within your Flutter Launcher Icons configuration.
-
-Global 
-image_path: The location of the icon image file which you want to use as the app launcher icon.
-Android 
-android
-
-true: Override the default existing Flutter launcher icon for the platform specified
-false: Ignore making launcher icons for this platform
-icon/path/here.png: This will generate a new launcher icons for the platform with the name you specify, without removing the old default existing Flutter launcher icon.
-image_path_android: The location of the icon image file specific for Android platform (optional - if not defined then the image_path is used)
-
-min_sdk_android: Specify android min sdk value The next two attributes are only used when generating Android launcher icon
-
-adaptive_icon_background: The color (E.g. "#ffffff") or image asset (E.g. "assets/images/christmas-background.png") which will be used to fill out the background of the adaptive icon.
-
-adaptive_icon_foreground: The image asset which will be used for the icon foreground of the adaptive icon Note: Adaptive Icons will only be generated when both adaptive_icon_background and adaptive_icon_foreground are specified. (the image_path is not automatically taken as foreground)
-
-adaptive_icon_foreground_inset: This is used to add padding (in %) to the foreground icon when generating an adaptive icon. The default value is 16.
-
-adaptive_icon_monochrome: The image asset which will be used for the icon foreground of the Android 13+ themed icon. For more information see Android Adaptive Icons
-
-IOS 
-ios
-true: Override the default existing Flutter launcher icon for the platform specified
-false: Ignore making launcher icons for this platform
-icon/path/here.png: This will generate a new launcher icons for the platform with the name you specify, without removing the old default existing Flutter launcher icon.
-image_path_ios: The location of the icon image file specific for iOS platform (optional - if not defined then the image_path is used)
-remove_alpha_ios: Removes alpha channel for IOS icons
-image_path_ios_dark_transparent: The location of the dark mode icon image file specific for iOS 18+ platform. Note: Apple recommends this icon to be transparent. For more information see Apple Human Interface Guidelines for App Icons
-image_path_ios_tinted_grayscale: The location of the tinted mode icon image file specific for iOS 18+ platform. Note: This icon should be an grayscale image. Use desaturate_tinted_to_grayscale_ios: true to automatically desaturate the image provided here.
-desaturate_tinted_to_grayscale_ios: Automatically desaturates tinted mode icon image to grayscale, defaults to false
-background_color_ios: The color (in the format "#RRGGBB") to be used as the background when removing the alpha channel. It is used only when the remove_alpha_ios property is set to true. (optional - if not defined then #ffffff is used)
-Web 
-web: Add web related configs
-generate: Specifies whether to generate icons for this platform or not
-image_path: Path to web icon.png
-background_color: Updates background_color in web/manifest.json
-theme_color: Updates theme_color in web/manifest.json
-Windows 
-windows: Add Windows related configs
-generate: Specifies whether to generate icons for Windows platform or not
-image_path: Path to windows icon.png
-icon_size: Windows app icon size. Icon size should be within this constrains 48<=icon_size<=256, defaults to 48
-MacOS 
-macos: Add MacOS related configs
-generate: Specifies whether to generate icons for MacOS platform or not
-image_path: Path to macos icon.png file
-Note: iOS icons should fill the entire image and not contain transparent borders.
-
-Flavor support 
-Create a Flutter Launcher Icons configuration file for your flavor. The config file is called flutter_launcher_icons-<flavor>.yaml by replacing <flavor> by the name of your desired flavor.
-
-The configuration file format is the same.
-
-An example project with flavor support enabled has been added to the examples.
-
-❓ Troubleshooting 
-Listed a couple common issues with solutions for them
-
-Generated icon color is different from the original icon 
-Caused by an update to the image dependency which is used by Flutter Launcher Icons.
-
-Use #AARRGGBB for colors instead of #AABBGGRR, to be compatible with Flutter image class.
-Related issue
-
-Dependency incompatible 
-You may receive a message similar to the following
-
-Because flutter_launcher_icons >=0.9.0 depends on args 2.0.0 and flutter_native_splash 1.2.0 depends on args ^2.1.1, flutter_launcher_icons >=0.9.0 is incompatible with flutter_native_splash 1.2.0.
-And because no versions of flutter_native_splash match >1.2.0 <2.0.0, flutter_launcher_icons >=0.9.0 is incompatible with flutter_native_splash ^1.2.0.
-So, because enstack depends on both flutter_native_splash ^1.2.0 and flutter_launcher_icons ^0.9.0, version solving failed.
-pub get failed (1; So, because enstack depends on both flutter_native_splash ^1.2.0 and flutter_launcher_icons ^0.9.0, version solving failed.)
-For a quick fix, you can temporarily override all references to a dependency: See here for an example.
+INFO         | initIcdPaths: ICD set to 'swiftshader', using Swiftshader ICD
+INFO         | Setting ICD filenames for the loader = /Users/mac/Library/Android/sdk/emulator/lib64/vulkan/vk_swiftshader_icd.json
+INFO         | SharedLibrary::open for [/Users/mac/Library/Android/sdk/emulator/qemu/darwin-x86_64/lib64/vulkan/libvulkan.dylib]
+INFO         | Added library: /Users/mac/Library/Android/sdk/emulator/qemu/darwin-x86_64/lib64/vulkan/libvulkan.dylib
+INFO         | Enabling Vulkan portability.
+INFO         | Selecting Vulkan device: SwiftShader Device (Subzero), Version: 1.3.0
+INFO         | Initializing VkEmulation features:
+INFO         |     glInteropSupported: false
+INFO         |     useDeferredCommands: true
+INFO         |     createResourceWithRequirements: true
+INFO         |     useVulkanComposition: false
+INFO         |     useVulkanNativeSwapchain: false
+INFO         |     enable guestRenderDoc: false
+INFO         |     ASTC LDR emulation mode: Gpu
+INFO         |     enable ETC2 emulation: true
+INFO         |     enable Ycbcr emulation: false
+INFO         |     guestVulkanOnly: false
+INFO         |     useDedicatedAllocations: false
+INFO         |     guestVulkanMaxApiVersion: 1.4.344
+INFO         | Graphics Adapter Vendor Google (Intel Inc.)
+INFO         | Graphics Adapter Android Emulator OpenGL ES Translator (Intel(R) Iris(TM) Plus Graphics OpenGL Engine)
+INFO         | Graphics API Version OpenGL ES 3.0 (4.1 INTEL-24.5.6)
+INFO         | Graphics API Extensions GL_OES_EGL_sync GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_depth24 GL_OES_depth32 GL_OES_element_index_uint GL_OES_texture_float GL_OES_texture_float_linear GL_OES_compressed_paletted_texture GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth_texture GL_OES_texture_npot GL_OES_rgb8_rgba8 GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_texture_format_BGRA8888 GL_APPLE_texture_format_BGRA8888 
+INFO         | Graphics Device Extensions N/A
+INFO         | Disabling sparse binding feature support
+INFO         | Sending adb public key [QAAAAG+nIeVxaODB+SUS1qbvReZ4M/hvTxjCkrnYVvO7cAAttTa8t7SKdSDkmT1P3atkfVWmMh5VoKss/U3ltWu6o678VvGHBztlnHpvXJo/1zY+ZmSpq+51lpZGl3LCcEhPNVDzsE+SDp0qRA8QI2zxw1J7878JB7CH8dYyi6PwWo12nCMVpLERpgMEDmcR3gMEDrER+LA+HueFxbg4OwpS4KrFwaUA/++pq2WfbRmLLrivtKrXCvgb/Xcj84lBt2cK8AzopHSAmB1ehootaT/TwQ+6EAFu5a5uzv2EWkx3/19N7nOFtoogsGMZUTEU14dzHYPpX/gQfhrQUy1tXbtxQxHxiGamJ/XUggXoVqy9EH0Vb+VsNHYWYLGfUEe+oPIj9dHG4N6s6ZHIzBkgXh4List63xuuoioE8ue0Oj6+cJfLnGenCsM+tv5hmCT/i6uEdXieME4hB4FjJtTucA1fXkkftHJG5daaNcczY+LS/8FRpgZ7/Ehazp3SgH1bQixTaSWtihV6J1gh1B4gL9L8kJ862SbS6bHGf+RIo1i8LVxIP7mMX/9yfmdglIXkvsrMeKDwbSkE9n/Ml1a+SoJm2YJg4dzby1DtpKwx5nL+rZUEx0CZdqNOvGTc+QJWMmqhpERYJMol6Ge5WMHwTsP+AKXPXpeQlnwVxpOp0fRaU3C4qOr1mQEAAQA= mac@unknown]
+INFO         | Userspace boot properties:
+INFO         |   androidboot.boot_devices=pci0000:00/0000:00:03.0 pci0000:00/0000:00:06.0
+INFO         |   androidboot.dalvik.vm.heapsize=576m
+INFO         |   androidboot.debug.hwui.renderer=skiagl
+INFO         |   androidboot.hardware=ranchu
+INFO         |   androidboot.hardware.gltransport=pipe
+INFO         |   androidboot.hardware.vulkan=ranchu
+INFO         |   androidboot.logcat=*:V
+INFO         |   androidboot.opengles.version=196608
+INFO         |   androidboot.qemu=1
+INFO         |   androidboot.qemu.adb.pubkey=QAAAAG+nIeVxaODB+SUS1qbvReZ4M/hvTxjCkrnYVvO7cAAttTa8t7SKdSDkmT1P3atkfVWmMh5VoKss/U3ltWu6o678VvGHBztlnHpvXJo/1zY+ZmSpq+51lpZGl3LCcEhPNVDzsE+SDp0qRA8QI2zxw1J7878JB7CH8dYyi6PwWo12nCMVpLERpgMEDmcR3gMEDrER+LA+HueFxbg4OwpS4KrFwaUA/++pq2WfbRmLLrivtKrXCvgb/Xcj84lBt2cK8AzopHSAmB1ehootaT/TwQ+6EAFu5a5uzv2EWkx3/19N7nOFtoogsGMZUTEU14dzHYPpX/gQfhrQUy1tXbtxQxHxiGamJ/XUggXoVqy9EH0Vb+VsNHYWYLGfUEe+oPIj9dHG4N6s6ZHIzBkgXh4List63xuuoioE8ue0Oj6+cJfLnGenCsM+tv5hmCT/i6uEdXieME4hB4FjJtTucA1fXkkftHJG5daaNcczY+LS/8FRpgZ7/Ehazp3SgH1bQixTaSWtihV6J1gh1B4gL9L8kJ862SbS6bHGf+RIo1i8LVxIP7mMX/9yfmdglIXkvsrMeKDwbSkE9n/Ml1a+SoJm2YJg4dzby1DtpKwx5nL+rZUEx0CZdqNOvGTc+QJWMmqhpERYJMol6Ge5WMHwTsP+AKXPXpeQlnwVxpOp0fRaU3C4qOr1mQEAAQA= mac@unknown
+INFO         |   androidboot.qemu.avd_name=pixel-10
+INFO         |   androidboot.qemu.camera_hq_edge_processing=0
+INFO         |   androidboot.qemu.camera_protocol_ver=1
+INFO         |   androidboot.qemu.cpuvulkan.version=4202496
+INFO         |   androidboot.qemu.gltransport.drawFlushInterval=800
+INFO         |   androidboot.qemu.gltransport.name=pipe
+INFO         |   androidboot.qemu.hwcodec.avcdec=2
+INFO         |   androidboot.qemu.hwcodec.hevcdec=2
+INFO         |   androidboot.qemu.hwcodec.vpxdec=2
+INFO         |   androidboot.qemu.settings.system.screen_off_timeout=2147483647
+INFO         |   androidboot.qemu.skin=pixel_10_pro_xl
+INFO         |   androidboot.qemu.virtiowifi=1
+INFO         |   androidboot.qemu.vsync=60
+INFO         |   androidboot.serialno=EMULATOR36X5X10X0
+INFO         |   androidboot.vbmeta.digest=494ad6b67f7783f71d180a15ea0706825322d7a77e7ca130502c76c191c3d148
+INFO         |   androidboot.vbmeta.hash_alg=sha256
+INFO         |   androidboot.vbmeta.size=6848
+INFO         |   androidboot.veritymode=enforcing
+INFO         | Monitoring duration of emulator setup.
+WARNING      | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
+INFO         | Using security allow list from: /Users/mac/Library/Android/sdk/emulator/lib/emulator_access.json
+WARNING      | *** Basic token auth should only be used by android-studio ***
+INFO         | The active JSON Web Key Sets can be found here: /Users/mac/Library/Caches/TemporaryItems/avd/running/93978/jwks/dcaba7c4-99c1-44aa-9fc2-f89270568807/active.jwk
+INFO         | Scanning /Users/mac/Library/Caches/TemporaryItems/avd/running/93978/jwks/dcaba7c4-99c1-44aa-9fc2-f89270568807 for jwk keys.
+INFO         | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
+INFO         | Advertising in: /Users/mac/Library/Caches/TemporaryItems/avd/running/pid_93978.ini
+INFO         | Activated packet streamer for uwb emulation
+INFO         | Successfully initialized netsim WiFi
+INFO         | Activated packet streamer for bluetooth emulation
+INFO         | Setting display: 0 configuration to: 1344x2992, dpi: 480x480 
+INFO         | setDisplayActiveConfig: id:0, 1344x2992
+INFO         | emulatorSetupEnvironment: Setting up screen background view and display layout at env:1344x2992, lcd:1344x2992
+WARNING      | getEnvironmentConfig: No environment config is provided
+INFO         | getEnvironmentConfig: Using default virtual scene contents for the environment.
+INFO         | Checking system compatibility:
+INFO         |   Checking: hasSufficientDiskSpace
+INFO         |      Ok: Disk space requirements to run avd: `pixel-10` are met
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU compatibility checks are not required
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `pixel-10` are met
+USER_INFO    | Emulator is performing a full startup. This may take upto two minutes, or more.
+INFO         | GPU Vendor=[Google (Intel Inc.)]
+INFO         | GPU Renderer=[Android Emulator OpenGL ES Translator (Intel(R) Iris(TM) Plus Graphics OpenGL Engine)]
+INFO         | GPU Version=[OpenGL ES 3.0 (4.1 INTEL-24.5.6)]
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_rgbcSensorValueWidget_valueChanged() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_posture_valueChanged(int) (:0, )
+INFO         | Warning: QObject::connect: Cannot queue arguments of type 'std::vector<android::emulation::control::SnapshotInfo>'
+(Make sure 'std::vector<android::emulation::control::SnapshotInfo>' is registered using qRegisterMetaType().) (:0, )
+INFO         | AVD supportsNativeGLES=1, supportsGuestAngle=0
+INFO         | Platform does not support Guest Angle
+INFO         | Warning: QObject::connect: No such signal ToolWindow::microphoneEnabledChanged() in /Volumes/Android/buildbot/src/googleplex-android/emu-36-5-release/external/qemu/android/android-ui/modules/aemu-ui-qt/src/android/skin/qt/extended-window.cpp:160 (:0, )
+INFO         | Warning: QObject::connect:  (sender name:   'ToolControls') (:0, )
+INFO         | Warning: QObject::connect:  (receiver name: 'microphonePage') (:0, )
+INFO         | Warning: QObject::connect: No such signal MicrophonePage::microphoneEnabledChanged() in /Volumes/Android/buildbot/src/googleplex-android/emu-36-5-release/external/qemu/android/android-ui/modules/aemu-ui-qt/src/android/skin/qt/extended-window.cpp:162 (:0, )
+INFO         | Warning: QObject::connect:  (sender name:   'microphonePage') (:0, )
+INFO         | Warning: QObject::connect:  (receiver name: 'ToolControls') (:0, )
+INFO         | Created extended window in 666.733ms
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=485.845,208.601 gbl=485.845,208.601 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-485.845,-208.601 last=-485.845,-208.601 Δ 485.845,208.601) : no target window (:0, )
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'
+WARNING      | adb command '/Users/mac/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell getprop sys.boot_completed ' failed: 'adb: device offline'

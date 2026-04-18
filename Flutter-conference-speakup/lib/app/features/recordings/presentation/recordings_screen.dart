@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
@@ -377,7 +377,7 @@ class _RecordingTile extends StatelessWidget {
                       const SizedBox(width: 10),
                       _InfoChip(
                         icon: CupertinoIcons.calendar,
-                        label: DateFormat.MMMd().format(recording.createdAt),
+                        label: SFormatters.formatMonthDay(recording.createdAt),
                         isDark: isDark,
                       ),
                     ],
