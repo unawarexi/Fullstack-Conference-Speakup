@@ -34,14 +34,33 @@ class SDateTimePicker {
     );
   }
 
-  static Future<DateTime?> pickDateTime(BuildContext context) async {
+  static Future<DateTime?> pickDateTime(
+    BuildContext context, {
+    DateTime? initialDateTime,
+    DateTime? minimumDate,
+    DateTime? maximumDate,
+  }) async {
     return _showCupertinoPicker(
       context,
       mode: CupertinoDatePickerMode.dateAndTime,
-      initialDateTime: DateTime.now(),
-      minimumDate: DateTime.now(),
-      maximumDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateTime: initialDateTime ?? DateTime.now(),
+      minimumDate: minimumDate ?? DateTime.now(),
+      maximumDate: maximumDate ?? DateTime.now().add(const Duration(days: 365)),
     );
+  }
+
+  /// Convenience wrapper that returns a [TimeOfDay] instead of [DateTime].
+  static Future<TimeOfDay?> pickTimeOfDay(
+    BuildContext context, {
+    TimeOfDay? initialTime,
+  }) async {
+    final dt = await pickTime(
+      context,
+      initialTime: initialTime != null
+          ? DateTime(2024, 1, 1, initialTime.hour, initialTime.minute)
+          : null,
+    );
+    return dt != null ? TimeOfDay.fromDateTime(dt) : null;
   }
 
   static Future<DateTime?> _showCupertinoPicker(
@@ -51,7 +70,15 @@ class SDateTimePicker {
     DateTime? minimumDate,
     DateTime? maximumDate,
   }) async {
-    DateTime? selected = initialDateTime ?? DateTime.now();
+    // Clamp initial so it's never before min or after max
+    DateTime initial = initialDateTime ?? DateTime.now();
+    if (minimumDate != null && initial.isBefore(minimumDate)) {
+      initial = minimumDate;
+    }
+    if (maximumDate != null && initial.isAfter(maximumDate)) {
+      initial = maximumDate;
+    }
+    DateTime? selected = initial;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final confirmed = await showModalBottomSheet<bool>(
@@ -130,7 +157,7 @@ class SDateTimePicker {
                 ),
                 child: CupertinoDatePicker(
                   mode: mode,
-                  initialDateTime: initialDateTime,
+                  initialDateTime: initial,
                   minimumDate: minimumDate,
                   maximumDate: maximumDate,
                   onDateTimeChanged: (dt) => selected = dt,
