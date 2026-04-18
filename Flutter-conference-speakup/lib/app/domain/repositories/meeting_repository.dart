@@ -40,8 +40,13 @@ class MeetingRepository {
 
   Future<void> delete(String id) => _api.delete(ApiEndpoints.meeting(id));
 
-  Future<MeetingModel> joinByCode(String code) async {
-    final res = await _api.get(ApiEndpoints.joinByCode(code));
+  Future<MeetingModel> joinByCode(String code, {String? password}) async {
+    final res = await _api.get(
+      ApiEndpoints.joinByCode(code),
+      queryParameters: {
+        if (password != null && password.isNotEmpty) 'password': password,
+      },
+    );
     return MeetingModel.fromJson(res.data['data']['meeting']);
   }
 

@@ -5,7 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_conference_speakup/core/utils/formatters.dart';
+import 'package:flutter_conference_speakup/app/components/widgets/date_time_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
@@ -34,6 +35,8 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
   final _descFocusNode = FocusNode();
   DateTime? _scheduledDate;
   TimeOfDay? _scheduledTime;
+  DateTime? _endDate;
+  TimeOfDay? _endTime;
   String _meetingType = 'INSTANT';
   bool _hasPassword = false;
   bool _autoRecord = false;
@@ -44,6 +47,13 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
   bool _isLoading = false;
   final List<String> _inviteEmails = [];
   final List<File> _attachments = [];
+
+  // Recurring: selected days (0=Sun..6=Sat) with per-day schedules
+  final Set<int> _recurringDays = {};
+  final Map<int, TimeOfDay> _recurringStartTimes = {};
+  final Map<int, TimeOfDay> _recurringEndTimes = {};
+
+  static const _dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   @override
   void dispose() {
@@ -381,15 +391,15 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
             const SizedBox(height: SSizes.lg),
 
             // Schedule (if not instant)
-            if (_meetingType != 'INSTANT') ...[
-              SectionHeader(title: 'Schedule'),
+            if (_meetingType == 'SCHEDULED') ...[
+              SectionHeader(title: 'Start Time'),
               Row(
                 children: [
                   Expanded(
                     child: CreateMeetingPickerTile(
                       icon: SIcons.calendar,
                       label: _scheduledDate != null
-                          ? DateFormat('MMM d, y').format(_scheduledDate!)
+                          ? SFormatters.formatDateMedium(_scheduledDate!)
                           : 'Select Date',
                       isDark: isDark,
                       onTap: _pickDate,
@@ -408,6 +418,173 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: SSizes.md),
+              SectionHeader(title: 'End Time'),
+              Row(
+                children: [
+                  Expanded(
+                    child: CreateMeetingPickerTile(
+                      icon: SIcons.calendar,
+                      label: _endDate != null
+                          ? SFormatters.formatDateMedium(_endDate!)
+                          : 'Select Date',
+                      isDark: isDark,
+                      onTap: _pickEndDate,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: CreateMeetingPickerTile(
+                      icon: SIcons.clock,
+                      label: _endTime != null
+                          ? _endTime!.format(context)
+                          : 'Select Time',
+                      isDark: isDark,
+                      onTap: _pickEndTime,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: SSizes.lg),
+            ],
+
+            // Recurring schedule
+            if (_meetingType == 'RECURRING') ...[
+              SectionHeader(title: 'Recurring Days'),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: List.generate(7, (i) {
+                  final selected = _recurringDays.contains(i);
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      if (selected) {
+                        _recurringDays.remove(i);
+                        _recurringStartTimes.remove(i);
+                        _recurringEndTimes.remove(i);
+                      } else {
+                        _recurringDays.add(i);
+                        _recurringStartTimes[i] = const TimeOfDay(hour: 9, minute: 0);
+                        _recurringEndTimes[i] = const TimeOfDay(hour: 10, minute: 0);
+                      }
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? SColors.primary.withValues(alpha: 0.15)
+                            : (isDark ? SColors.darkCard : SColors.lightCard),
+                        borderRadius: BorderRadius.circular(SSizes.radiusSm),
+                        border: Border.all(
+                          color: selected
+                              ? SColors.primary
+                              : (isDark ? SColors.darkBorder : SColors.lightBorder),
+                          width: selected ? 1.5 : 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        _dayLabels[i],
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: selected
+                              ? SColors.primary
+                              : (isDark ? SColors.textDarkSecondary : SColors.textLightSecondary),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: SSizes.md),
+              // Per-day time schedules
+              ...(_recurringDays.toList()..sort()).map((day) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? SColors.darkCard : SColors.lightCard,
+                    borderRadius: BorderRadius.circular(SSizes.radiusSm),
+                    border: Border.all(
+                      color: isDark ? SColors.darkBorder : SColors.lightBorder,
+                      width: 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 36,
+                        child: Text(
+                          _dayLabels[day],
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? SColors.textDark : SColors.textLight,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final t = await SDateTimePicker.pickTimeOfDay(
+                              context,
+                              initialTime: _recurringStartTimes[day] ??
+                                  const TimeOfDay(hour: 9, minute: 0),
+                            );
+                            if (t != null) setState(() => _recurringStartTimes[day] = t);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? SColors.darkElevated : SColors.lightElevated,
+                              borderRadius: BorderRadius.circular(SSizes.radiusSm),
+                            ),
+                            child: Text(
+                              _recurringStartTimes[day]?.format(context) ?? '9:00 AM',
+                              style: TextStyle(fontSize: 13,
+                                  color: isDark ? SColors.textDark : SColors.textLight),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text('→', style: TextStyle(
+                          color: isDark ? SColors.darkMuted : SColors.lightMuted,
+                        )),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final t = await SDateTimePicker.pickTimeOfDay(
+                              context,
+                              initialTime: _recurringEndTimes[day] ??
+                                  const TimeOfDay(hour: 10, minute: 0),
+                            );
+                            if (t != null) setState(() => _recurringEndTimes[day] = t);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? SColors.darkElevated : SColors.lightElevated,
+                              borderRadius: BorderRadius.circular(SSizes.radiusSm),
+                            ),
+                            child: Text(
+                              _recurringEndTimes[day]?.format(context) ?? '10:00 AM',
+                              style: TextStyle(fontSize: 13,
+                                  color: isDark ? SColors.textDark : SColors.textLight),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
               const SizedBox(height: SSizes.lg),
             ],
 
@@ -563,21 +740,32 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
   }
 
   Future<void> _pickDate() async {
-    final date = await showDatePicker(
-      context: context,
+    final date = await SDateTimePicker.pickDate(
+      context,
       initialDate: _scheduledDate ?? DateTime.now().add(const Duration(hours: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date != null) setState(() => _scheduledDate = date);
   }
 
   Future<void> _pickTime() async {
-    final time = await showTimePicker(
-      context: context,
-      initialTime: _scheduledTime ?? TimeOfDay.now(),
-    );
+    final time = await SDateTimePicker.pickTimeOfDay(context, initialTime: _scheduledTime);
     if (time != null) setState(() => _scheduledTime = time);
+  }
+
+  Future<void> _pickEndDate() async {
+    final date = await SDateTimePicker.pickDate(
+      context,
+      initialDate: _endDate ?? _scheduledDate ?? DateTime.now().add(const Duration(hours: 1)),
+    );
+    if (date != null) setState(() => _endDate = date);
+  }
+
+  Future<void> _pickEndTime() async {
+    final time = await SDateTimePicker.pickTimeOfDay(
+      context,
+      initialTime: _endTime ?? TimeOfDay(hour: (TimeOfDay.now().hour + 1) % 24, minute: 0),
+    );
+    if (time != null) setState(() => _endTime = time);
   }
 
   Future<void> _createMeeting() async {
@@ -588,7 +776,8 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
     try {
       final repo = ref.read(meetingRepositoryProvider);
       DateTime? scheduledAt;
-      if (_scheduledDate != null) {
+      DateTime? scheduledEndAt;
+      if (_meetingType == 'SCHEDULED' && _scheduledDate != null) {
         final time = _scheduledTime ?? TimeOfDay.now();
         scheduledAt = DateTime(
           _scheduledDate!.year,
@@ -597,14 +786,60 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
           time.hour,
           time.minute,
         );
+        if (_endDate != null) {
+          final eTime = _endTime ?? TimeOfDay(hour: (time.hour + 1) % 24, minute: 0);
+          scheduledEndAt = DateTime(
+            _endDate!.year,
+            _endDate!.month,
+            _endDate!.day,
+            eTime.hour,
+            eTime.minute,
+          );
+        }
       }
+
+      // For recurring, use the first schedule's next occurrence as scheduledAt
+      Map<String, dynamic>? recurrence;
+      if (_meetingType == 'RECURRING' && _recurringDays.isNotEmpty) {
+        final schedules = (_recurringDays.toList()..sort()).map((day) {
+          final st = _recurringStartTimes[day] ?? const TimeOfDay(hour: 9, minute: 0);
+          final et = _recurringEndTimes[day] ?? const TimeOfDay(hour: 10, minute: 0);
+          return {
+            'day': day,
+            'startTime': SFormatters.timeOfDayToApi(st),
+            'endTime': SFormatters.timeOfDayToApi(et),
+          };
+        }).toList();
+        recurrence = {
+          'daysOfWeek': _recurringDays.toList()..sort(),
+          'schedules': schedules,
+        };
+
+        // Set scheduledAt to the next occurrence
+        final now = DateTime.now();
+        final todayWeekday = now.weekday % 7; // Convert to 0=Sun
+        final sortedDays = _recurringDays.toList()..sort();
+        int nextDay = sortedDays.firstWhere((d) => d >= todayWeekday, orElse: () => sortedDays.first);
+        int daysUntil = (nextDay - todayWeekday + 7) % 7;
+        if (daysUntil == 0) daysUntil = 7; // Schedule for next week if today
+        final nextDate = now.add(Duration(days: daysUntil));
+        final firstSchedule = schedules.firstWhere((s) => s['day'] == nextDay, orElse: () => schedules.first);
+        final parts = (firstSchedule['startTime'] as String).split(':');
+        scheduledAt = DateTime(nextDate.year, nextDate.month, nextDate.day,
+            int.parse(parts[0]), int.parse(parts[1]));
+        final eParts = (firstSchedule['endTime'] as String).split(':');
+        scheduledEndAt = DateTime(nextDate.year, nextDate.month, nextDate.day,
+            int.parse(eParts[0]), int.parse(eParts[1]));
+      }
+
       final meeting = await repo.create({
         'title': _titleCtrl.text.trim(),
         'description': _descCtrl.text.trim().isNotEmpty
             ? _descCtrl.text.trim()
             : null,
         'type': _meetingType,
-        'scheduledAt': scheduledAt?.toIso8601String(),
+        if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
+        if (scheduledEndAt != null) 'scheduledEndAt': scheduledEndAt.toIso8601String(),
         'maxParticipants': _maxParticipants,
         'password': _hasPassword ? _passwordCtrl.text.trim() : null,
         'settings': {
@@ -614,6 +849,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
           'cameraOffOnJoin': _cameraOffOnJoin,
         },
         if (_inviteEmails.isNotEmpty) 'inviteEmails': _inviteEmails,
+        if (recurrence != null) 'recurrence': recurrence,
       });
 
       // Upload attachments in background after meeting is created
@@ -694,6 +930,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final code = meeting.code as String? ?? '';
     final meetingLink = 'https://speakup.app/join/$code';
+    final password = _hasPassword ? _passwordCtrl.text.trim() : null;
 
     showModalBottomSheet(
       context: context,
@@ -785,10 +1022,14 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
                     prefixIcon: Icons.share_rounded,
                     variant: SButtonVariant.outline,
                     onPressed: () {
+                      final shareText = StringBuffer(
+                        'Join my SpeakUp meeting!\n\nCode: $code\nLink: $meetingLink',
+                      );
+                      if (password != null && password.isNotEmpty) {
+                        shareText.write('\nPassword: $password');
+                      }
                       SharePlus.instance.share(
-                        ShareParams(
-                          text: 'Join my SpeakUp meeting!\n\nCode: $code\nLink: $meetingLink',
-                        ),
+                        ShareParams(text: shareText.toString()),
                       );
                     },
                   ),
