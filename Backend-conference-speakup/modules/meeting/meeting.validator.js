@@ -9,6 +9,7 @@ export const createMeetingSchema = z.object({
   description: z.string().max(2000).optional(),
   type: z.enum(["INSTANT", "SCHEDULED", "RECURRING"]),
   scheduledAt: z.coerce.date().optional(),
+  scheduledEndAt: z.coerce.date().optional(),
   maxParticipants: z.number().int().min(2).max(1000).optional(),
   password: z.string().min(4).max(50).optional(),
   settings: z.object({
@@ -21,12 +22,21 @@ export const createMeetingSchema = z.object({
     allowRecording: z.boolean().optional(),
   }).optional(),
   inviteEmails: z.array(z.email()).max(50).optional(),
+  recurrence: z.object({
+    daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+    schedules: z.array(z.object({
+      day: z.number().int().min(0).max(6),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/),
+    })).min(1).max(7),
+  }).optional(),
 });
 
 export const updateMeetingSchema = z.object({
   title: z.string().min(1).max(100).optional(),
   description: z.string().max(2000).nullable().optional(),
   scheduledAt: z.coerce.date().optional(),
+  scheduledEndAt: z.coerce.date().nullable().optional(),
   maxParticipants: z.number().int().min(2).max(1000).optional(),
   password: z.string().min(4).max(50).nullable().optional(),
   settings: z.object({
@@ -39,6 +49,14 @@ export const updateMeetingSchema = z.object({
     allowRecording: z.boolean().optional(),
   }).optional(),
   inviteEmails: z.array(z.email()).max(50).optional(),
+  recurrence: z.object({
+    daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+    schedules: z.array(z.object({
+      day: z.number().int().min(0).max(6),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/),
+    })).min(1).max(7),
+  }).nullable().optional(),
 });
 
 export const joinMeetingSchema = z.object({

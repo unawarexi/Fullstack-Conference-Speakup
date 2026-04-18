@@ -87,6 +87,7 @@ model Meeting {
   type            MeetingType   @default(INSTANT)
   status          MeetingStatus @default(SCHEDULED)
   scheduledAt     DateTime?     @map("scheduled_at")
+  scheduledEndAt  DateTime?     @map("scheduled_end_at")
   startedAt       DateTime?     @map("started_at")
   endedAt         DateTime?     @map("ended_at")
   maxParticipants Int           @default(100) @map("max_participants")
