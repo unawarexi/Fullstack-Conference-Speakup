@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_conference_speakup/app/domain/models/user_model.dart';
 import 'package:flutter_conference_speakup/app/domain/repositories/auth_repository.dart';
+import 'package:flutter_conference_speakup/store/user_provider.dart';
 import 'package:flutter_conference_speakup/core/network/account_guard.dart';
+import 'package:flutter_conference_speakup/core/services/notification_service.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
 
 /// Auth repository singleton provider.
@@ -47,7 +52,13 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     state = const AsyncValue.loading();
     try {
       final user = await _ref.read(authRepositoryProvider).signInWithGoogle();
+      if (user == null) {
+        // User cancelled the sign-in flow — restore idle state
+        state = const AsyncValue.data(null);
+        return;
+      }
       state = AsyncValue.data(user);
+      _registerFcmToken();
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -58,6 +69,7 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     try {
       final user = await _ref.read(authRepositoryProvider).signInWithGithub();
       state = AsyncValue.data(user);
+      _registerFcmToken();
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -93,6 +105,21 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   void setUser(UserModel user) => state = AsyncValue.data(user);
+
+  /// Register FCM token with the backend for push notifications.
+  Future<void> _registerFcmToken() async {
+    try {
+      final token = await NotificationService.instance.getToken();
+      if (token != null) {
+        await _ref.read(userRepositoryProvider).registerDevice(
+              fcmToken: token,
+              platform: Platform.isIOS ? 'ios' : 'android',
+            );
+      }
+    } catch (e) {
+      debugPrint('FCM token registration failed: $e');
+    }
+  }
   void clear() => state = const AsyncValue.data(null);
 }
 

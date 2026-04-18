@@ -28,7 +28,8 @@ class LoginUseCase {
     _setActive(LoginProvider.google);
     try {
       await _ref.read(currentUserProvider.notifier).signInWithGoogle();
-      if (_context.mounted) _context.go('/home');
+      final user = _ref.read(currentUserProvider).valueOrNull;
+      if (user != null && _context.mounted) _context.go('/home');
     } catch (e) {
       if (_context.mounted) {
         SToast.show(_context, message: e.toString(), type: SToastType.error);

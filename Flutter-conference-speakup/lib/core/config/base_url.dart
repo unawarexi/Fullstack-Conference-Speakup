@@ -1,7 +1,8 @@
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'package:flutter_conference_speakup/core/config/environment.dart';
 
 /// Resolves the backend API base URL based on environment and platform.
 ///
@@ -26,8 +27,8 @@ class AppBaseUrl {
 
   static String _resolve() {
     // 1. Explicit override from .env
-    final envUrl = dotenv.env['API_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) {
+    final envUrl = Environment.apiUrl;
+    if (envUrl.isNotEmpty) {
       return envUrl.replaceAll(RegExp(r'/+$'), '');
     }
 
@@ -37,15 +38,16 @@ class AppBaseUrl {
     }
 
     // 3. Debug mode — platform-specific dev URLs
-    final devHost = dotenv.env['DEV_HOST'] ?? '192.168.1.100';
+    final devHost = Environment.devHost;
 
     if (kIsWeb) {
       return 'http://localhost:$_devPort$_apiPrefix';
     }
 
     if (Platform.isAndroid) {
-      // Android emulator routes host loopback through 10.0.2.2
-      return 'http://10.0.2.2:$_devPort$_apiPrefix';
+      // Use emulator loopback for localhost, otherwise use the configured LAN IP.
+      final androidHost = devHost == 'localhost' ? '10.0.2.2' : devHost;
+      return 'http://$androidHost:$_devPort$_apiPrefix';
     }
 
     if (Platform.isIOS) {
@@ -63,8 +65,8 @@ class AppBaseUrl {
   }
 
   static String _resolveWs() {
-    final envWs = dotenv.env['WS_URL'];
-    if (envWs != null && envWs.isNotEmpty) {
+    final envWs = Environment.wsUrl;
+    if (envWs.isNotEmpty) {
       return envWs.replaceAll(RegExp(r'/+$'), '');
     }
 
@@ -72,10 +74,13 @@ class AppBaseUrl {
       return 'wss://api.speakup.app';
     }
 
-    final devHost = dotenv.env['DEV_HOST'] ?? '192.168.1.100';
+    final devHost = Environment.devHost;
 
     if (kIsWeb) return 'ws://localhost:$_devPort';
-    if (Platform.isAndroid) return 'ws://10.0.2.2:$_devPort';
+    if (Platform.isAndroid) {
+      final androidHost = devHost == 'localhost' ? '10.0.2.2' : devHost;
+      return 'ws://$androidHost:$_devPort';
+    }
     if (Platform.isIOS || Platform.isMacOS || Platform.isLinux || Platform.isWindows) {
       return 'ws://localhost:$_devPort';
     }

@@ -17,9 +17,11 @@ class AuthRepository {
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   /// Sign in with Google OAuth → Firebase → Backend sync.
-  Future<UserModel> signInWithGoogle() async {
+  /// Returns `null` when the user cancels the sign-in flow.
+  Future<UserModel?> signInWithGoogle() async {
     try {
       final cred = await GoogleSignInService.signIn();
+      if (cred == null) return null; // user cancelled
       return _syncWithBackend(cred);
     } catch (e) {
       throw ApiException(message: e.toString());
@@ -71,21 +73,22 @@ class AuthRepository {
 
   /// Sign out from Firebase + backend.
   Future<void> signOut() async {
-    try {
-      await _api.post(ApiEndpoints.signOut);
-    } catch (_) {
-      // Backend signout failed — still clear local state
-    }
-    await GoogleSignInService.signOut();
-    await SecureStorageService.clearAll();
-    await HiveService.clearAll();
+    // Fire-and-forget backend signout — don't block local cleanup
+    _api.post(ApiEndpoints.signOut).catchError((_) {});
+    await Future.wait([
+      GoogleSignInService.signOut(),
+      SecureStorageService.clearAll(),
+      HiveService.clearAll(),
+    ]);
   }
 
   /// Delete user account.
   Future<void> deleteAccount() async {
     await _api.delete(ApiEndpoints.deleteAccount);
-    await _firebaseAuth.currentUser?.delete();
-    await SecureStorageService.clearAll();
-    await HiveService.clearAll();
+    await Future.wait([
+      _firebaseAuth.currentUser?.delete() ?? Future.value(),
+      SecureStorageService.clearAll(),
+      HiveService.clearAll(),
+    ]);
   }
 }
