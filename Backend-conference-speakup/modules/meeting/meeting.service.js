@@ -4,6 +4,14 @@
 // Integrates LiveKit, Redis, WebSocket, Kafka, BullMQ
 // ============================================================================
 
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import relativeTime from "dayjs/plugin/relativeTime.js";
+import duration from "dayjs/plugin/duration.js";
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(duration);
+
 import { prisma } from "../../config/prisma.js";
 import { getCache, setCache, deleteCache, deleteCachePattern } from "../../services/redis.service.js";
 import { generateToken as livekitToken, deleteRoom, removeParticipant as livekitRemove, listParticipants as livekitParticipants } from "../../services/livekit.service.js";
@@ -30,6 +38,61 @@ function getMaxParticipants(plan) {
   return MeetingConfig.MAX_PARTICIPANTS_FREE;
 }
 
+/** Enrich meeting response with formatted times via dayjs */
+function enrichMeetingTimes(meeting) {
+  const now = dayjs();
+  const result = { ...meeting };
+
+  if (meeting.scheduledAt) {
+    const scheduled = dayjs(meeting.scheduledAt);
+    result.formattedScheduledAt = scheduled.format("ddd, MMM D, YYYY h:mm A");
+    result.scheduledDate = scheduled.format("YYYY-MM-DD");
+    result.scheduledTime = scheduled.format("h:mm A");
+    result.timeUntilStart = scheduled.isAfter(now) ? scheduled.fromNow() : null;
+    result.isOverdue = scheduled.isBefore(now) && meeting.status === "SCHEDULED";
+  }
+
+  if (meeting.scheduledEndAt) {
+    const scheduledEnd = dayjs(meeting.scheduledEndAt);
+    result.formattedScheduledEndAt = scheduledEnd.format("ddd, MMM D, YYYY h:mm A");
+    result.scheduledEndDate = scheduledEnd.format("YYYY-MM-DD");
+    result.scheduledEndTime = scheduledEnd.format("h:mm A");
+    result.timeUntilEnd = scheduledEnd.isAfter(now) ? scheduledEnd.fromNow() : null;
+
+    // Calculate planned duration from scheduledAt → scheduledEndAt
+    if (meeting.scheduledAt) {
+      const dur = dayjs.duration(scheduledEnd.diff(dayjs(meeting.scheduledAt)));
+      result.plannedDurationMinutes = Math.round(dur.asMinutes());
+      result.plannedDurationFormatted = dur.hours() > 0
+        ? `${dur.hours()}h ${dur.minutes()}m`
+        : `${dur.minutes()}m`;
+    }
+  }
+
+  if (meeting.startedAt) {
+    const started = dayjs(meeting.startedAt);
+    result.formattedStartedAt = started.format("ddd, MMM D, YYYY h:mm A");
+    if (meeting.endedAt) {
+      const ended = dayjs(meeting.endedAt);
+      result.formattedEndedAt = ended.format("ddd, MMM D, YYYY h:mm A");
+      const dur = dayjs.duration(ended.diff(started));
+      result.durationMinutes = Math.round(dur.asMinutes());
+      result.durationFormatted = dur.hours() > 0
+        ? `${dur.hours()}h ${dur.minutes()}m`
+        : `${dur.minutes()}m`;
+    } else if (meeting.status === "LIVE") {
+      const dur = dayjs.duration(now.diff(started));
+      result.elapsedMinutes = Math.round(dur.asMinutes());
+      result.elapsedFormatted = dur.hours() > 0
+        ? `${dur.hours()}h ${dur.minutes()}m`
+        : `${dur.minutes()}m`;
+    }
+  }
+
+  result.createdAtFormatted = dayjs(meeting.createdAt).format("MMM D, YYYY");
+  return result;
+}
+
 // ── CREATE ───────────────────────────────────────────────────────────────
 
 export async function createMeeting(userId, data) {
@@ -46,9 +109,13 @@ export async function createMeeting(userId, data) {
     type: data.type || "INSTANT",
     status: data.type === "SCHEDULED" || data.type === "RECURRING" ? "SCHEDULED" : "LIVE",
     scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
+    scheduledEndAt: data.scheduledEndAt ? new Date(data.scheduledEndAt) : null,
     startedAt: data.type !== "SCHEDULED" && data.type !== "RECURRING" ? new Date() : null,
     maxParticipants: data.maxParticipants || MeetingConfig.DEFAULT_MAX_PARTICIPANTS,
-    settings: data.settings || {},
+    settings: {
+      ...(data.settings || {}),
+      ...(data.recurrence ? { recurrence: data.recurrence } : {}),
+    },
   };
 
   if (data.password) {
@@ -78,7 +145,15 @@ export async function createMeeting(userId, data) {
   const deepLink = getMeetingDeepLink(code);
 
   log.info("Meeting created", { meetingId: meeting.id, code, type: meeting.type });
-  return { ...meeting, password: undefined, meetingLink, deepLink };
+
+  // Schedule reminders for scheduled/recurring meetings
+  if ((meeting.type === "SCHEDULED" || meeting.type === "RECURRING") && meeting.scheduledAt) {
+    await scheduleMeetingReminders(meeting).catch((e) =>
+      log.warn("Failed to schedule reminders", { meetingId: meeting.id, error: e })
+    );
+  }
+
+  return enrichMeetingTimes({ ...meeting, password: undefined, meetingLink, deepLink });
 }
 
 // ── READ ─────────────────────────────────────────────────────────────────
@@ -97,7 +172,7 @@ export async function getMeetingById(meetingId, userId) {
 
   if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
 
-  const result = { ...meeting, password: undefined, participantCount: meeting._count.participants };
+  const result = enrichMeetingTimes({ ...meeting, password: undefined, participantCount: meeting._count.participants });
   await setCache(meetingCacheKey(meetingId), result, CacheTTL.MEETING_DETAILS);
   return result;
 }
@@ -112,7 +187,7 @@ export async function getMeetingByCode(code) {
   });
 
   if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
-  return { ...meeting, password: undefined, participantCount: meeting._count.participants };
+  return enrichMeetingTimes({ ...meeting, password: undefined, participantCount: meeting._count.participants });
 }
 
 export async function listUserMeetings(userId, { page = 1, limit = 20, status }) {
@@ -138,8 +213,25 @@ export async function listUserMeetings(userId, { page = 1, limit = 20, status })
     prisma.meeting.count({ where }),
   ]);
 
+  // Auto-transition scheduled meetings to ENDED if their end time has passed
+  const now = new Date();
+  const expiredIds = [];
+  for (const m of meetings) {
+    if (m.status === "SCHEDULED" && m.scheduledEndAt && new Date(m.scheduledEndAt) < now) {
+      expiredIds.push(m.id);
+      m.status = "ENDED";
+      m.endedAt = m.scheduledEndAt;
+    }
+  }
+  if (expiredIds.length > 0) {
+    prisma.meeting.updateMany({
+      where: { id: { in: expiredIds } },
+      data: { status: "ENDED", endedAt: now },
+    }).catch(() => {});
+  }
+
   return {
-    meetings: meetings.map((m) => ({ ...m, password: undefined, participantCount: m._count.participants })),
+    meetings: meetings.map((m) => enrichMeetingTimes({ ...m, password: undefined, participantCount: m._count.participants })),
     total,
     page,
     limit,
@@ -153,31 +245,131 @@ export async function updateMeeting(meetingId, userId, data) {
   if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
   if (meeting.hostId !== userId) throw new AppError("Only the host can update this meeting", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
 
+  const updateData = {
+    title: data.title,
+    description: data.description,
+    scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
+    scheduledEndAt: data.scheduledEndAt === null ? null : data.scheduledEndAt ? new Date(data.scheduledEndAt) : undefined,
+    maxParticipants: data.maxParticipants,
+    settings: data.settings || data.recurrence
+      ? {
+          ...(meeting.settings || {}),
+          ...(data.settings || {}),
+          ...(data.recurrence !== undefined ? { recurrence: data.recurrence } : {}),
+        }
+      : undefined,
+  };
+
+  // Handle password update: null = remove, string = set new, undefined = no change
+  if (data.password === null) {
+    updateData.password = null;
+  } else if (data.password) {
+    updateData.password = await hashPassword(data.password);
+  }
+
   const updated = await prisma.meeting.update({
     where: { id: meetingId },
-    data: { title: data.title, description: data.description, scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined, maxParticipants: data.maxParticipants, settings: data.settings },
-    include: { host: { select: { id: true, fullName: true, avatar: true } } },
+    data: updateData,
+    include: {
+      host: { select: { id: true, fullName: true, avatar: true } },
+      _count: { select: { participants: { where: { leftAt: null } } } },
+    },
   });
 
   await deleteCache(meetingCacheKey(meetingId));
-  emitToMeeting(meetingId, SocketEvents.MEETING_UPDATED, { meeting: { ...updated, password: undefined } });
 
-  return { ...updated, password: undefined };
+  // Reschedule reminders if scheduledAt changed
+  if (data.scheduledAt && (meeting.type === "SCHEDULED" || meeting.type === "RECURRING")) {
+    await scheduleMeetingReminders(updated).catch((e) =>
+      log.warn("Failed to reschedule reminders", { meetingId, error: e })
+    );
+  }
+
+  // Handle new email invites
+  if (data.inviteEmails?.length > 0) {
+    await sendMeetingInvites(updated, data.inviteEmails, updated.host);
+  }
+
+  const enriched = enrichMeetingTimes({ ...updated, password: undefined, participantCount: updated._count.participants });
+  emitToMeeting(meetingId, SocketEvents.MEETING_UPDATED, { meeting: enriched });
+
+  return enriched;
 }
 
 export async function deleteMeeting(meetingId, userId) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    include: {
+      materials: { select: { id: true, url: true } },
+      recordings: { select: { id: true, url: true } },
+      chatRoom: { select: { id: true } },
+      invites: { select: { userId: true, email: true } },
+      participants: { select: { userId: true }, where: { leftAt: null } },
+    },
+  });
   if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
   if (meeting.hostId !== userId) throw new AppError("Only the host can delete this meeting", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
 
-  // End the meeting in LiveKit
+  // ── 1. End the meeting in LiveKit ──
   await deleteRoom(meetingId).catch(() => {});
 
+  // ── 2. Cancel all pending BullMQ reminder jobs ──
+  await cancelMeetingReminders(meeting).catch((err) =>
+    log.warn("Failed to cancel reminder jobs", { meetingId, error: err.message })
+  );
+
+  // ── 3. Delete materials from Cloudinary ──
+  for (const material of meeting.materials) {
+    try {
+      const publicId = material.url.split("/").slice(-2).join("/").split(".")[0];
+      await deleteFromCloudinary(publicId, "raw");
+    } catch (e) {
+      log.warn("Failed to delete material from Cloudinary", { materialId: material.id, error: e.message });
+    }
+  }
+
+  // ── 4. Delete recordings from Cloudinary ──
+  for (const recording of meeting.recordings) {
+    try {
+      const publicId = recording.url.split("/").slice(-2).join("/").split(".")[0];
+      await deleteFromCloudinary(publicId, "video");
+    } catch (e) {
+      log.warn("Failed to delete recording from Cloudinary", { recordingId: recording.id, error: e.message });
+    }
+  }
+
+  // ── 5. Delete meeting chat room (and its messages/members via cascade) ──
+  if (meeting.chatRoom) {
+    await prisma.chatRoom.delete({ where: { id: meeting.chatRoom.id } }).catch((e) =>
+      log.warn("Failed to delete chat room", { chatRoomId: meeting.chatRoom.id, error: e.message })
+    );
+  }
+
+  // ── 6. Notify participants before deleting ──
+  emitToMeeting(meetingId, SocketEvents.MEETING_ENDED, { meetingId, reason: "deleted" });
+
+  // ── 7. Delete meeting (cascades: participants, recordings, invites, materials) ──
   await prisma.meeting.delete({ where: { id: meetingId } });
+
+  // ── 8. Clear Redis cache ──
   await deleteCache(meetingCacheKey(meetingId));
   await deleteCachePattern(`meeting:${meetingId}:*`);
 
-  emitToMeeting(meetingId, SocketEvents.MEETING_ENDED, { meetingId, reason: "deleted" });
+  // ── 9. Send cancellation notifications to participants/invitees ──
+  const allUserIds = new Set([
+    ...meeting.participants.map((p) => p.userId),
+    ...meeting.invites.filter((i) => i.userId).map((i) => i.userId),
+  ]);
+  allUserIds.delete(userId); // Don't notify the host who deleted it
+
+  for (const uid of allUserIds) {
+    queueNotification(uid, "MEETING_CANCELLED", "Meeting cancelled",
+      `"${meeting.title}" has been cancelled by the host.`,
+      { meetingId, meetingCode: meeting.code }
+    ).catch(() => {});
+  }
+
+  log.info("Meeting deleted with full cleanup", { meetingId });
 }
 
 // ── JOIN / LEAVE / END ───────────────────────────────────────────────────
@@ -255,7 +447,10 @@ export async function leaveMeeting(meetingId, userId) {
 }
 
 export async function endMeeting(meetingId, userId) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    include: { invites: { select: { userId: true, email: true } } },
+  });
   if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
   if (meeting.hostId !== userId) throw new AppError("Only the host can end this meeting", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
 
@@ -269,6 +464,11 @@ export async function endMeeting(meetingId, userId) {
     where: { id: meetingId },
     data: { status: "ENDED", endedAt: new Date(), isRecording: false },
   });
+
+  // Cancel any pending reminder jobs
+  await cancelMeetingReminders(meeting).catch((err) =>
+    log.warn("Failed to cancel reminders on end", { meetingId, error: err.message })
+  );
 
   // Cleanup LiveKit room
   await deleteRoom(meetingId).catch(() => {});
@@ -376,6 +576,126 @@ export async function generateLiveKitToken(meetingId, userId) {
 }
 
 // ── MEETING INVITES ──────────────────────────────────────────────────────
+
+// ── MEETING REMINDERS ────────────────────────────────────────────────────
+
+async function scheduleMeetingReminders(meeting) {
+  const { addJob } = await import("../../services/bullmq.service.js");
+  const scheduledAt = dayjs(meeting.scheduledAt);
+  const now = dayjs();
+
+  // Get all invited/accepted participants + host
+  const invites = await prisma.meetingInvite.findMany({
+    where: { meetingId: meeting.id, status: { in: ["PENDING", "ACCEPTED"] } },
+    select: { email: true, userId: true },
+  });
+
+  const host = await prisma.user.findUnique({
+    where: { id: meeting.hostId },
+    select: { id: true, email: true, fullName: true },
+  });
+
+  const participantData = { meetingId: meeting.id, meetingTitle: meeting.title, code: meeting.code, hostName: host?.fullName };
+
+  // ── 5 minutes before meeting ──
+  const fiveMinBefore = scheduledAt.subtract(5, "minute");
+  if (fiveMinBefore.isAfter(now)) {
+    const delay = fiveMinBefore.diff(now);
+
+    // Notify host
+    if (host) {
+      await addJob("NOTIFICATION", `reminder:5min:host:${meeting.id}`, {
+        userId: host.id, type: "MEETING_REMINDER",
+        title: "Meeting starts in 5 minutes",
+        body: `"${meeting.title}" starts in 5 minutes`,
+        data: { meetingId: meeting.id, meetingCode: meeting.code, reminderType: "5_MINUTES_BEFORE" },
+      }, { delay, jobId: `reminder-5min-host-${meeting.id}` }).catch(() => {});
+
+      await addJob("EMAIL", `reminder:5min:email:host:${meeting.id}`, {
+        type: "meeting-reminder", to: host.email,
+        data: { ...participantData, inviteeName: host.fullName, reminderType: "5_MINUTES_BEFORE", scheduledTime: scheduledAt.format("h:mm A") },
+      }, { delay, jobId: `reminder-5min-email-host-${meeting.id}` }).catch(() => {});
+    }
+
+    // Notify invited participants
+    for (const invite of invites) {
+      if (invite.userId) {
+        await addJob("NOTIFICATION", `reminder:5min:${invite.userId}:${meeting.id}`, {
+          userId: invite.userId, type: "MEETING_REMINDER",
+          title: "Meeting starts in 5 minutes",
+          body: `"${meeting.title}" starts in 5 minutes`,
+          data: { meetingId: meeting.id, meetingCode: meeting.code, reminderType: "5_MINUTES_BEFORE" },
+        }, { delay, jobId: `reminder-5min-${invite.userId}-${meeting.id}` }).catch(() => {});
+      }
+      if (invite.email) {
+        await addJob("EMAIL", `reminder:5min:email:${invite.email}:${meeting.id}`, {
+          type: "meeting-reminder", to: invite.email,
+          data: { ...participantData, inviteeName: invite.email.split("@")[0], reminderType: "5_MINUTES_BEFORE", scheduledTime: scheduledAt.format("h:mm A") },
+        }, { delay, jobId: `reminder-5min-email-${invite.email}-${meeting.id}` }).catch(() => {});
+      }
+    }
+  }
+
+  // ── At meeting start time ──
+  if (scheduledAt.isAfter(now)) {
+    const startDelay = scheduledAt.diff(now);
+
+    if (host) {
+      await addJob("NOTIFICATION", `reminder:start:host:${meeting.id}`, {
+        userId: host.id, type: "MEETING_REMINDER",
+        title: "Meeting is starting now",
+        body: `"${meeting.title}" is starting now. Join to begin!`,
+        data: { meetingId: meeting.id, meetingCode: meeting.code, reminderType: "MEETING_STARTING" },
+      }, { delay: startDelay, jobId: `reminder-start-host-${meeting.id}` }).catch(() => {});
+    }
+
+    for (const invite of invites) {
+      if (invite.userId) {
+        await addJob("NOTIFICATION", `reminder:start:${invite.userId}:${meeting.id}`, {
+          userId: invite.userId, type: "MEETING_REMINDER",
+          title: "Meeting is starting now",
+          body: `"${meeting.title}" is starting now`,
+          data: { meetingId: meeting.id, meetingCode: meeting.code, reminderType: "MEETING_STARTING" },
+        }, { delay: startDelay, jobId: `reminder-start-${invite.userId}-${meeting.id}` }).catch(() => {});
+      }
+    }
+  }
+
+  log.info("Meeting reminders scheduled", { meetingId: meeting.id, scheduledAt: scheduledAt.toISOString() });
+}
+
+// ── CANCEL MEETING REMINDERS ─────────────────────────────────────────────
+
+async function cancelMeetingReminders(meeting) {
+  const { removeJob } = await import("../../services/bullmq.service.js");
+
+  // Collect all job IDs that may have been scheduled for this meeting
+  const jobIds = [
+    { queue: "NOTIFICATION", id: `reminder-5min-host-${meeting.id}` },
+    { queue: "NOTIFICATION", id: `reminder-start-host-${meeting.id}` },
+    { queue: "EMAIL", id: `reminder-5min-email-host-${meeting.id}` },
+  ];
+
+  // Add participant/invitee-specific reminder jobs
+  const invites = meeting.invites || [];
+  for (const invite of invites) {
+    if (invite.userId) {
+      jobIds.push({ queue: "NOTIFICATION", id: `reminder-5min-${invite.userId}-${meeting.id}` });
+      jobIds.push({ queue: "NOTIFICATION", id: `reminder-start-${invite.userId}-${meeting.id}` });
+    }
+    if (invite.email) {
+      jobIds.push({ queue: "EMAIL", id: `reminder-5min-email-${invite.email}-${meeting.id}` });
+      jobIds.push({ queue: "EMAIL", id: `reminder-start-email-${invite.email}-${meeting.id}` });
+    }
+  }
+
+  // Remove all jobs in parallel
+  await Promise.allSettled(
+    jobIds.map(({ queue, id }) => removeJob(queue, id))
+  );
+
+  log.info("Meeting reminders cancelled", { meetingId: meeting.id, jobCount: jobIds.length });
+}
 
 async function sendMeetingInvites(meeting, emails, host) {
   const uniqueEmails = [...new Set(emails.map((e) => e.toLowerCase().trim()))];

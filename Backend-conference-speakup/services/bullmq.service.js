@@ -113,6 +113,25 @@ export function getQueue(name) {
 }
 
 // ============================================================================
+// REMOVE JOB BY ID
+// ============================================================================
+
+export async function removeJob(queueName, jobId) {
+  const queue = queues[queueName];
+  if (!queue) return;
+
+  try {
+    const job = await queue.getJob(jobId);
+    if (job) {
+      await job.remove();
+      log.debug(`Job removed: ${queueName}/${jobId}`);
+    }
+  } catch (err) {
+    log.debug(`Could not remove job ${queueName}/${jobId}`, { error: err.message });
+  }
+}
+
+// ============================================================================
 // DISCONNECT
 // ============================================================================
 
@@ -129,6 +148,7 @@ export async function disconnectBullMQ() {
 export default {
   initQueues,
   addJob,
+  removeJob,
   registerWorker,
   getQueue,
   disconnectBullMQ,

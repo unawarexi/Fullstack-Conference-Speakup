@@ -26,6 +26,9 @@ async function processEmailJob(job) {
     case "meeting-invite":
       content = emailContent.meetingInvite(data);
       break;
+    case "meeting-reminder":
+      content = emailContent.meetingReminder(data);
+      break;
     case "recording-ready":
       content = emailContent.recordingReady(data);
       break;
@@ -62,7 +65,7 @@ async function processNotificationJob(job) {
 
   // Import dynamically to avoid circular deps
   const { createNotification } = await import("../modules/notification/notification.service.js");
-  await createNotification(userId, type, { title, body, ...data });
+  await createNotification(userId, { type, title, body, data: data || {} });
 
   log.info("Notification processed", { type, userId, jobId: job.id });
 }
