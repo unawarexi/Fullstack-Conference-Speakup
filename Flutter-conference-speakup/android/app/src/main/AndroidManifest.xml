@@ -105,6 +105,10 @@
     <!-- Wake lock for video calls -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
+    <!-- Full-screen intent for incoming call notifications -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+
     
     <application
         android:label="SpeakUp"

@@ -10,6 +10,7 @@ import 'package:flutter_conference_speakup/store/user_provider.dart';
 import 'package:flutter_conference_speakup/core/network/account_guard.dart';
 import 'package:flutter_conference_speakup/core/services/notification_service.dart';
 import 'package:flutter_conference_speakup/core/services/storage_service.dart';
+import 'package:flutter_conference_speakup/core/services/websocket.dart';
 
 /// Auth repository singleton provider.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -45,6 +46,7 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     final cached = _ref.read(authRepositoryProvider).getCachedUser();
     if (cached != null) {
       state = AsyncValue.data(cached);
+      _connectWebSocket(cached);
     }
   }
 
@@ -59,6 +61,7 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       }
       state = AsyncValue.data(user);
       _registerFcmToken();
+      _connectWebSocket(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -70,6 +73,7 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       final user = await _ref.read(authRepositoryProvider).signInWithGithub();
       state = AsyncValue.data(user);
       _registerFcmToken();
+      _connectWebSocket(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -116,10 +120,31 @@ class CurrentUserNotifier extends StateNotifier<AsyncValue<UserModel?>> {
               platform: Platform.isIOS ? 'ios' : 'android',
             );
       }
+      // Listen for token refresh and re-register automatically
+      NotificationService.instance.onTokenRefresh.listen((newToken) async {
+        try {
+          await _ref.read(userRepositoryProvider).registerDevice(
+                fcmToken: newToken,
+                platform: Platform.isIOS ? 'ios' : 'android',
+              );
+        } catch (e) {
+          debugPrint('FCM token refresh registration failed: $e');
+        }
+      });
     } catch (e) {
       debugPrint('FCM token registration failed: $e');
     }
   }
+
+  /// Connect WebSocket and register user for personal notification room.
+  void _connectWebSocket(UserModel? user) {
+    if (user == null) return;
+    final ws = WebSocketService();
+    ws.connect().then((_) {
+      ws.setUserId(user.id);
+    });
+  }
+
   void clear() => state = const AsyncValue.data(null);
 }
 

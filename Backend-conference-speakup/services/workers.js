@@ -26,6 +26,9 @@ async function processEmailJob(job) {
     case "meeting-invite":
       content = emailContent.meetingInvite(data);
       break;
+    case "meeting-invite-download":
+      content = emailContent.meetingInviteDownload(data);
+      break;
     case "meeting-reminder":
       content = emailContent.meetingReminder(data);
       break;
@@ -40,6 +43,12 @@ async function processEmailJob(job) {
       break;
     case "goodbye":
       content = emailContent.goodbyeEmail(data);
+      break;
+    case "meeting-duration-warning":
+      content = emailContent.meetingDurationWarning(data);
+      break;
+    case "meeting-duration-expired":
+      content = emailContent.meetingDurationExpired(data);
       break;
     default:
       throw new Error(`Unknown email type: ${type}`);
@@ -62,6 +71,17 @@ async function processEmailJob(job) {
 
 async function processNotificationJob(job) {
   const { type, userId, title, body, data } = job.data;
+
+  // Auto-end meeting when duration expires
+  if (data?.reminderType === "DURATION_EXPIRED" && data?.meetingId) {
+    try {
+      const { endMeeting } = await import("../modules/meeting/meeting.service.js");
+      await endMeeting(data.meetingId, userId);
+      log.info("Meeting auto-ended by duration expiry", { meetingId: data.meetingId });
+    } catch (e) {
+      log.warn("Failed to auto-end meeting", { meetingId: data.meetingId, error: e.message });
+    }
+  }
 
   // Import dynamically to avoid circular deps
   const { createNotification } = await import("../modules/notification/notification.service.js");

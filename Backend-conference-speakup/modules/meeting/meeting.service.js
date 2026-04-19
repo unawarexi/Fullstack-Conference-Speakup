@@ -20,12 +20,33 @@ import { publishEvent } from "../../services/kafka.service.js";
 import { hashPassword, verifyPassword } from "../../services/encryption.service.js";
 import { generateUniqueMeetingCode, getMeetingLink, getMeetingDeepLink } from "../../core/utils/meeting-code.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../services/cloudinary.service.js";
-import { CacheTTL, SocketEvents, KafkaTopics, MeetingConfig, ErrorCodes, HttpStatus } from "../../config/constants.js";
+import { CacheTTL, SocketEvents, KafkaTopics, MeetingConfig, ErrorCodes, HttpStatus, AppLinks } from "../../config/constants.js";
 import { AppError } from "../../middlewares/errorhandler.middleware.js";
 import { queueNotification, queueEmail } from "../../services/workers.js";
+import { sendEmail } from "../../services/mailer.service.js";
+import emailContent from "../../core/mail/mail-content.js";
+import { render } from "../../core/mail/mail-render.js";
 import { createLogger } from "../../logs/logger.js";
 
 const log = createLogger("MeetingService");
+
+// Direct email fallback when BullMQ/Redis is unavailable
+async function sendEmailDirect(type, to, data) {
+  const templateFn = type === "meeting-invite" ? emailContent.meetingInvite : emailContent.meetingInviteDownload;
+  const content = templateFn(data);
+  const html = render(content);
+  await sendEmail({ to, subject: content.EMAIL_TITLE, html });
+  log.info("Email sent directly (queue fallback)", { type, to });
+}
+
+async function queueOrSendEmail(type, to, data) {
+  try {
+    await queueEmail(type, to, data);
+  } catch (queueErr) {
+    log.warn("Queue unavailable, sending email directly", { type, to, error: queueErr.message });
+    await sendEmailDirect(type, to, data);
+  }
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -90,6 +111,22 @@ function enrichMeetingTimes(meeting) {
   }
 
   result.createdAtFormatted = dayjs(meeting.createdAt).format("MMM D, YYYY");
+
+  // Include durationMinutes and compute expected end time for instant meetings
+  if (meeting.durationMinutes) {
+    result.durationMinutes = meeting.durationMinutes;
+    if (meeting.startedAt) {
+      const expectedEnd = dayjs(meeting.startedAt).add(meeting.durationMinutes, "minute");
+      result.expectedEndAt = expectedEnd.toISOString();
+      result.formattedExpectedEndAt = expectedEnd.format("h:mm A");
+      if (meeting.status === "LIVE") {
+        const remaining = expectedEnd.diff(now, "minute");
+        result.remainingMinutes = Math.max(0, remaining);
+        result.isExpired = remaining <= 0;
+      }
+    }
+  }
+
   return result;
 }
 
@@ -110,6 +147,7 @@ export async function createMeeting(userId, data) {
     status: data.type === "SCHEDULED" || data.type === "RECURRING" ? "SCHEDULED" : "LIVE",
     scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
     scheduledEndAt: data.scheduledEndAt ? new Date(data.scheduledEndAt) : null,
+    durationMinutes: data.type === "INSTANT" ? null : (data.durationMinutes || null),
     startedAt: data.type !== "SCHEDULED" && data.type !== "RECURRING" ? new Date() : null,
     maxParticipants: data.maxParticipants || MeetingConfig.DEFAULT_MAX_PARTICIPANTS,
     settings: {
@@ -150,6 +188,13 @@ export async function createMeeting(userId, data) {
   if ((meeting.type === "SCHEDULED" || meeting.type === "RECURRING") && meeting.scheduledAt) {
     await scheduleMeetingReminders(meeting).catch((e) =>
       log.warn("Failed to schedule reminders", { meetingId: meeting.id, error: e })
+    );
+  }
+
+  // Schedule duration-based expiry and warnings for meetings with a duration
+  if (meeting.durationMinutes) {
+    await scheduleDurationExpiry(meeting).catch((e) =>
+      log.warn("Failed to schedule duration expiry", { meetingId: meeting.id, error: e })
     );
   }
 
@@ -214,6 +259,7 @@ export async function listUserMeetings(userId, { page = 1, limit = 20, status })
   ]);
 
   // Auto-transition scheduled meetings to ENDED if their end time has passed
+  // Also transition LIVE meetings whose duration has expired
   const now = new Date();
   const expiredIds = [];
   for (const m of meetings) {
@@ -221,6 +267,14 @@ export async function listUserMeetings(userId, { page = 1, limit = 20, status })
       expiredIds.push(m.id);
       m.status = "ENDED";
       m.endedAt = m.scheduledEndAt;
+    }
+    if (m.status === "LIVE" && m.durationMinutes && m.startedAt) {
+      const expectedEnd = new Date(m.startedAt.getTime() + m.durationMinutes * 60 * 1000);
+      if (expectedEnd < now) {
+        expiredIds.push(m.id);
+        m.status = "ENDED";
+        m.endedAt = expectedEnd;
+      }
     }
   }
   if (expiredIds.length > 0) {
@@ -250,6 +304,7 @@ export async function updateMeeting(meetingId, userId, data) {
     description: data.description,
     scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
     scheduledEndAt: data.scheduledEndAt === null ? null : data.scheduledEndAt ? new Date(data.scheduledEndAt) : undefined,
+    durationMinutes: data.durationMinutes === null ? null : data.durationMinutes || undefined,
     maxParticipants: data.maxParticipants,
     settings: data.settings || data.recurrence
       ? {
@@ -402,6 +457,14 @@ export async function joinMeeting(meetingId, userId, password) {
     throw new AppError("Meeting is locked", HttpStatus.FORBIDDEN, ErrorCodes.FORBIDDEN);
   }
 
+  // Check if user is banned from this meeting
+  const ban = await prisma.meetingBan.findUnique({
+    where: { meetingId_userId: { meetingId, userId } },
+  });
+  if (ban) {
+    throw new AppError("You are banned from this meeting", HttpStatus.FORBIDDEN, ErrorCodes.BANNED_FROM_MEETING);
+  }
+
   // Upsert participant (re-joining after leaving)
   const participant = await prisma.participant.upsert({
     where: { meetingId_userId: { meetingId, userId } },
@@ -431,7 +494,7 @@ export async function leaveMeeting(meetingId, userId) {
   const participant = await prisma.participant.findUnique({
     where: { meetingId_userId: { meetingId, userId } },
   });
-  if (!participant) return;
+  if (!participant) return { autoEnded: false };
 
   await prisma.participant.update({
     where: { id: participant.id },
@@ -444,6 +507,62 @@ export async function leaveMeeting(meetingId, userId) {
   emitToMeeting(meetingId, SocketEvents.PARTICIPANT_LEFT, { userId, meetingId });
 
   publishEvent(KafkaTopics.PARTICIPANT_EVENTS, meetingId, { type: "participant.left", meetingId, userId }).catch(() => {});
+
+  // ── Auto-end logic ─────────────────────────────────────────────────────
+  // 2-person call: auto-end when one leaves (like a phone call)
+  // Conference (3+): auto-end only when nobody remains
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    include: {
+      _count: { select: { participants: { where: { leftAt: null } } } },
+      participants: { select: { id: true } },
+    },
+  });
+
+  if (meeting && meeting.status === "LIVE") {
+    const activeCount = meeting._count.participants;
+    const totalEverJoined = meeting.participants.length;
+
+    const shouldAutoEnd =
+      (totalEverJoined <= 2 && activeCount <= 1) || // 1-on-1 call — other person left
+      (activeCount === 0);                           // conference — everyone left
+
+    if (shouldAutoEnd) {
+      // Mark any remaining participant as left
+      await prisma.participant.updateMany({
+        where: { meetingId, leftAt: null },
+        data: { leftAt: new Date() },
+      });
+
+      const updated = await prisma.meeting.update({
+        where: { id: meetingId },
+        data: { status: "ENDED", endedAt: new Date(), isRecording: false },
+      });
+
+      await cancelMeetingReminders(meeting).catch((err) =>
+        log.warn("Failed to cancel reminders on auto-end", { meetingId, error: err.message })
+      );
+
+      await deleteRoom(meetingId).catch(() => {});
+      await deleteCache(meetingCacheKey(meetingId));
+      await deleteCachePattern(`meeting:${meetingId}:*`);
+
+      const reason = totalEverJoined <= 2 ? "call_ended" : "all_left";
+      emitToMeeting(meetingId, SocketEvents.MEETING_ENDED, { meetingId, reason, autoEnded: true });
+
+      publishEvent(KafkaTopics.MEETING_EVENTS, meetingId, {
+        type: "meeting.ended",
+        meetingId,
+        reason: "auto_ended",
+        duration: updated.startedAt ? Math.floor((updated.endedAt - updated.startedAt) / 1000) : 0,
+      }).catch(() => {});
+
+      log.info("Meeting auto-ended", { meetingId, reason, totalEverJoined, activeCount });
+      return { autoEnded: true };
+    }
+  }
+
+  return { autoEnded: false };
 }
 
 export async function endMeeting(meetingId, userId) {
@@ -529,7 +648,7 @@ export async function getParticipants(meetingId) {
   return participants;
 }
 
-export async function kickParticipant(meetingId, hostId, participantUserId) {
+export async function kickParticipant(meetingId, hostId, participantUserId, { ban = false, reason } = {}) {
   const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
   if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
   if (meeting.hostId !== hostId) throw new AppError("Only the host can kick participants", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
@@ -544,12 +663,74 @@ export async function kickParticipant(meetingId, hostId, participantUserId) {
   // Remove from LiveKit room
   await livekitRemove(meetingId, participantUserId).catch(() => {});
 
+  // Optionally ban from rejoining
+  if (ban) {
+    await prisma.meetingBan.upsert({
+      where: { meetingId_userId: { meetingId, userId: participantUserId } },
+      update: { reason, bannedBy: hostId },
+      create: { meetingId, userId: participantUserId, bannedBy: hostId, reason },
+    });
+    emitToMeeting(meetingId, SocketEvents.PARTICIPANT_BANNED, { userId: participantUserId, meetingId, reason });
+    emitToUser(participantUserId, SocketEvents.PARTICIPANT_BANNED, { meetingId, reason });
+  }
+
   await deleteCache(participantsCacheKey(meetingId));
 
-  emitToMeeting(meetingId, SocketEvents.PARTICIPANT_KICKED, { userId: participantUserId, meetingId });
-  emitToUser(participantUserId, SocketEvents.PARTICIPANT_KICKED, { meetingId });
+  emitToMeeting(meetingId, SocketEvents.PARTICIPANT_KICKED, { userId: participantUserId, meetingId, banned: ban });
+  emitToUser(participantUserId, SocketEvents.PARTICIPANT_KICKED, { meetingId, banned: ban });
 
-  await queueNotification(participantUserId, "SYSTEM", "Removed from meeting", `You were removed from "${meeting.title}"`, { meetingId }).catch(() => {});
+  const action = ban ? "banned from" : "removed from";
+  await queueNotification(participantUserId, "SYSTEM", ban ? "Banned from meeting" : "Removed from meeting",
+    `You were ${action} "${meeting.title}"`, { meetingId }).catch(() => {});
+}
+
+export async function banParticipant(meetingId, hostId, targetUserId, reason) {
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
+  if (meeting.hostId !== hostId) throw new AppError("Only the host can ban participants", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
+
+  const ban = await prisma.meetingBan.upsert({
+    where: { meetingId_userId: { meetingId, userId: targetUserId } },
+    update: { reason, bannedBy: hostId },
+    create: { meetingId, userId: targetUserId, bannedBy: hostId, reason },
+  });
+
+  // If user is currently in the meeting, kick them out
+  const participant = await prisma.participant.findUnique({
+    where: { meetingId_userId: { meetingId, userId: targetUserId } },
+  });
+  if (participant && !participant.leftAt) {
+    await prisma.participant.update({ where: { id: participant.id }, data: { leftAt: new Date() } });
+    await livekitRemove(meetingId, targetUserId).catch(() => {});
+    await deleteCache(participantsCacheKey(meetingId));
+  }
+
+  emitToMeeting(meetingId, SocketEvents.PARTICIPANT_BANNED, { userId: targetUserId, meetingId, reason });
+  emitToUser(targetUserId, SocketEvents.PARTICIPANT_BANNED, { meetingId, reason });
+
+  await queueNotification(targetUserId, "SYSTEM", "Banned from meeting",
+    `You were banned from "${meeting.title}"${reason ? `: ${reason}` : ""}`,
+    { meetingId }).catch(() => {});
+
+  return ban;
+}
+
+export async function unbanParticipant(meetingId, hostId, targetUserId) {
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
+  if (meeting.hostId !== hostId) throw new AppError("Only the host can unban participants", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
+
+  await prisma.meetingBan.deleteMany({ where: { meetingId, userId: targetUserId } });
+
+  log.info("Participant unbanned", { meetingId, targetUserId, by: hostId });
+}
+
+export async function getMeetingBans(meetingId) {
+  return prisma.meetingBan.findMany({
+    where: { meetingId },
+    include: { user: { select: { id: true, fullName: true, avatar: true } } },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 // ── LIVEKIT TOKEN ────────────────────────────────────────────────────────
@@ -697,8 +878,147 @@ async function cancelMeetingReminders(meeting) {
   log.info("Meeting reminders cancelled", { meetingId: meeting.id, jobCount: jobIds.length });
 }
 
+// ── SCHEDULE DURATION-BASED EXPIRY AND WARNINGS ─────────────────────────
+
+async function scheduleDurationExpiry(meeting) {
+  const { addJob } = await import("../../services/bullmq.service.js");
+  const startTime = meeting.startedAt ? dayjs(meeting.startedAt) : dayjs();
+  const durationMs = meeting.durationMinutes * 60 * 1000;
+  const now = dayjs();
+
+  const host = await prisma.user.findUnique({
+    where: { id: meeting.hostId },
+    select: { id: true, email: true, fullName: true },
+  });
+
+  // ── Warning at 5 minutes before end ──
+  if (meeting.durationMinutes > 5) {
+    const warningTime = startTime.add(meeting.durationMinutes - 5, "minute");
+    const warningDelay = warningTime.diff(now);
+    if (warningDelay > 0) {
+      // Push notification to host
+      await addJob("NOTIFICATION", `duration:warn:host:${meeting.id}`, {
+        userId: meeting.hostId, type: "MEETING_REMINDER",
+        title: "Meeting ending in 5 minutes",
+        body: `"${meeting.title}" will end in 5 minutes`,
+        data: { meetingId: meeting.id, meetingCode: meeting.code, reminderType: "DURATION_WARNING" },
+      }, { delay: warningDelay, jobId: `duration-warn-host-${meeting.id}` }).catch(() => {});
+
+      // Email warning to host
+      if (host?.email) {
+        await addJob("EMAIL", `duration:warn:email:${meeting.id}`, {
+          type: "meeting-duration-warning", to: host.email,
+          data: {
+            meetingId: meeting.id, meetingTitle: meeting.title,
+            code: meeting.code, hostName: host.fullName,
+            durationMinutes: meeting.durationMinutes,
+            remainingMinutes: 5,
+          },
+        }, { delay: warningDelay, jobId: `duration-warn-email-${meeting.id}` }).catch(() => {});
+      }
+
+      // WebSocket warning to all participants
+      await addJob("NOTIFICATION", `duration:warn:ws:${meeting.id}`, {
+        userId: "__broadcast__", type: "MEETING_REMINDER",
+        title: "Meeting ending soon",
+        body: `This meeting will end in 5 minutes`,
+        data: { meetingId: meeting.id, reminderType: "DURATION_WARNING", broadcastToMeeting: true },
+      }, { delay: warningDelay, jobId: `duration-warn-ws-${meeting.id}` }).catch(() => {});
+    }
+  }
+
+  // ── Auto-end at duration expiry ──
+  const expiryDelay = startTime.add(meeting.durationMinutes, "minute").diff(now);
+  if (expiryDelay > 0) {
+    await addJob("NOTIFICATION", `duration:expire:${meeting.id}`, {
+      userId: meeting.hostId, type: "MEETING_REMINDER",
+      title: "Meeting time is up",
+      body: `"${meeting.title}" has reached its ${meeting.durationMinutes}-minute limit and has ended.`,
+      data: { meetingId: meeting.id, meetingCode: meeting.code, reminderType: "DURATION_EXPIRED" },
+    }, { delay: expiryDelay, jobId: `duration-expire-${meeting.id}` }).catch(() => {});
+
+    if (host?.email) {
+      await addJob("EMAIL", `duration:expire:email:${meeting.id}`, {
+        type: "meeting-duration-expired", to: host.email,
+        data: {
+          meetingId: meeting.id, meetingTitle: meeting.title,
+          code: meeting.code, hostName: host.fullName,
+          durationMinutes: meeting.durationMinutes,
+        },
+      }, { delay: expiryDelay, jobId: `duration-expire-email-${meeting.id}` }).catch(() => {});
+    }
+  }
+
+  log.info("Duration expiry scheduled", { meetingId: meeting.id, durationMinutes: meeting.durationMinutes });
+}
+
+// ── RECREATE MEETING ─────────────────────────────────────────────────────
+
+export async function recreateMeeting(originalMeetingId, userId, overrides = {}) {
+  const original = await prisma.meeting.findUnique({
+    where: { id: originalMeetingId },
+    include: {
+      host: { select: { id: true, fullName: true, avatar: true, email: true } },
+      materials: { select: { name: true, url: true, type: true, sizeBytes: true } },
+    },
+  });
+
+  if (!original) throw new AppError("Meeting not found", HttpStatus.NOT_FOUND, ErrorCodes.MEETING_NOT_FOUND);
+  if (original.hostId !== userId) throw new AppError("Only the host can recreate this meeting", HttpStatus.FORBIDDEN, ErrorCodes.NOT_MEETING_HOST);
+  if (original.status !== "ENDED" && original.status !== "CANCELLED") {
+    throw new AppError("Only past meetings can be recreated", HttpStatus.BAD_REQUEST);
+  }
+
+  const newData = {
+    title: overrides.title || original.title,
+    description: overrides.description !== undefined ? overrides.description : original.description,
+    type: overrides.type || original.type,
+    maxParticipants: original.maxParticipants,
+    durationMinutes: overrides.durationMinutes || original.durationMinutes,
+    settings: { ...(original.settings || {}) },
+  };
+
+  // Remove recurrence from settings if present (clean copy)
+  if (newData.settings.recurrence) delete newData.settings.recurrence;
+
+  // For scheduled: require new scheduledAt, or default to now + 1 hour
+  if (newData.type === "SCHEDULED") {
+    newData.scheduledAt = overrides.scheduledAt
+      ? new Date(overrides.scheduledAt).toISOString()
+      : new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    if (overrides.scheduledEndAt) {
+      newData.scheduledEndAt = new Date(overrides.scheduledEndAt).toISOString();
+    }
+  }
+
+  // Create as a new meeting via the existing createMeeting flow
+  const newMeeting = await createMeeting(userId, newData);
+
+  // If user wants to carry over materials, copy the references
+  if (overrides.copyMaterials && original.materials.length > 0) {
+    for (const mat of original.materials) {
+      await prisma.meetingMaterial.create({
+        data: {
+          meetingId: newMeeting.id,
+          userId,
+          name: mat.name,
+          url: mat.url,
+          type: mat.type,
+          sizeBytes: mat.sizeBytes,
+        },
+      }).catch((e) => log.warn("Failed to copy material", { name: mat.name, error: e }));
+    }
+  }
+
+  log.info("Meeting recreated", { originalId: originalMeetingId, newId: newMeeting.id });
+  return newMeeting;
+}
+
 async function sendMeetingInvites(meeting, emails, host) {
   const uniqueEmails = [...new Set(emails.map((e) => e.toLowerCase().trim()))];
+  const isInstant = meeting.type === "INSTANT";
+  let successCount = 0;
+  let failCount = 0;
 
   for (const email of uniqueEmails) {
     try {
@@ -724,32 +1044,78 @@ async function sendMeetingInvites(meeting, emails, host) {
         ? new Date(meeting.scheduledAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
         : "Instant";
 
-      await queueEmail("meeting-invite", email, {
-        title: meeting.title,
-        hostName: host.fullName,
-        inviteeName: existingUser?.fullName || email.split("@")[0],
-        inviteeId: existingUser?.id || null,
-        date: meetingDate,
-        time: meetingTime,
-        code: meeting.code,
-        meetingId: meeting.id,
-        inviteToken: invite.token,
-      }).catch((e) => log.warn("Failed to queue invite email", { email, error: e }));
+      if (existingUser) {
+        // ── Registered user: standard meeting invite + push notification ──
+        await queueOrSendEmail("meeting-invite", email, {
+          title: meeting.title,
+          hostName: host.fullName,
+          inviteeName: existingUser.fullName || email.split("@")[0],
+          inviteeId: existingUser.id,
+          date: meetingDate,
+          time: meetingTime,
+          code: meeting.code,
+          meetingId: meeting.id,
+          inviteToken: invite.token,
+          isInstant,
+        }).catch((e) => log.error("Failed to send invite email", { email, error: e.message || e }));
 
-      // Send in-app notification if user exists
-      if (existingUser?.id) {
-        await queueNotification(
-          existingUser.id,
-          "MEETING_INVITE",
-          "Meeting Invitation",
-          `${host.fullName} invited you to "${meeting.title}"`,
-          { meetingId: meeting.id, meetingCode: meeting.code, inviteToken: invite.token },
-        ).catch(() => {});
+        // Send in-app notification + push (they have the app)
+        try {
+          await queueNotification(
+            existingUser.id,
+            "MEETING_INVITE",
+            isInstant ? "Incoming Call" : "Meeting Invitation",
+            isInstant
+              ? `${host.fullName} is calling you on SpeakUp`
+              : `${host.fullName} invited you to "${meeting.title}"`,
+            { meetingId: meeting.id, meetingCode: meeting.code, inviteToken: invite.token, isInstant, hostName: host.fullName, hostAvatar: host.avatar || "" },
+          );
+        } catch (queueErr) {
+          // Queue failed — send notification directly (bypassing BullMQ)
+          log.warn("Queue unavailable for notification, sending directly", { userId: existingUser.id, error: queueErr.message });
+          try {
+            const { createNotification } = await import("../notification/notification.service.js");
+            await createNotification(existingUser.id, {
+              type: "MEETING_INVITE",
+              title: isInstant ? "Incoming Call" : "Meeting Invitation",
+              body: isInstant
+                ? `${host.fullName} is calling you on SpeakUp`
+                : `${host.fullName} invited you to "${meeting.title}"`,
+              data: { meetingId: meeting.id, meetingCode: meeting.code, inviteToken: invite.token, isInstant, hostName: host.fullName, hostAvatar: host.avatar || "" },
+            });
+          } catch (directErr) {
+            log.error("Failed to send invite notification directly", { userId: existingUser.id, error: directErr.message || directErr });
+          }
+        }
+      } else {
+        // ── Unregistered user: send app download invite with host profile ──
+        await queueOrSendEmail("meeting-invite-download", email, {
+          title: meeting.title,
+          hostName: host.fullName,
+          hostEmail: host.email,
+          hostAvatar: host.avatar || null,
+          inviteeName: email.split("@")[0],
+          date: meetingDate,
+          time: meetingTime,
+          code: meeting.code,
+          meetingId: meeting.id,
+          inviteToken: invite.token,
+          isInstant,
+          appLinks: {
+            googlePlay: AppLinks.GOOGLE_PLAY,
+            appleStore: AppLinks.APPLE_STORE,
+            webApp: AppLinks.WEB_APP,
+          },
+        }).catch((e) => log.error("Failed to send download invite email", { email, error: e.message || e }));
       }
+      successCount++;
     } catch (e) {
-      log.warn("Failed to send invite", { email, meetingId: meeting.id, error: e });
+      failCount++;
+      log.error("Failed to send invite", { email, meetingId: meeting.id, error: e.message || e });
     }
   }
+
+  log.info("Meeting invites processed", { meetingId: meeting.id, total: uniqueEmails.length, success: successCount, failed: failCount });
 }
 
 export async function respondToInvite(token, userId, response) {

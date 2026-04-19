@@ -1,13 +1,10 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_conference_speakup/core/utils/formatters.dart';
 import 'package:flutter_conference_speakup/app/components/widgets/date_time_picker.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/icons.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
@@ -18,6 +15,11 @@ import 'package:flutter_conference_speakup/app/components/ui/dense_widgets.dart'
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
 import 'package:flutter_conference_speakup/app/features/meeting/usecases/meeting_utils.dart';
 import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/create_meeting_widgets.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/invite_participants_section.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/attachments_section.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/schedule_section.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/meeting_settings_section.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/meeting_created_dialog.dart';
 
 class CreateMeetingScreen extends ConsumerStatefulWidget {
   const CreateMeetingScreen({super.key}); 
@@ -44,6 +46,7 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
   bool _muteOnJoin = false;
   bool _cameraOffOnJoin = false;
   int _maxParticipants = 100;
+  int? _durationMinutes;
   bool _isLoading = false;
   final List<String> _inviteEmails = [];
   final List<File> _attachments = [];
@@ -52,8 +55,6 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
   final Set<int> _recurringDays = {};
   final Map<int, TimeOfDay> _recurringStartTimes = {};
   final Map<int, TimeOfDay> _recurringEndTimes = {};
-
-  static const _dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   @override
   void dispose() {
@@ -101,7 +102,10 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
                   label: 'Instant',
                   icon: Icons.bolt_rounded,
                   selected: _meetingType == 'INSTANT',
-                  onTap: () => setState(() => _meetingType = 'INSTANT'),
+                  onTap: () => setState(() {
+                    _meetingType = 'INSTANT';
+                    _durationMinutes = null;
+                  }),
                 ),
                 const SizedBox(width: 8),
                 CreateMeetingTypeChip(
@@ -145,588 +149,94 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
             const SizedBox(height: SSizes.lg),
 
             // Email Invites
-            SectionHeader(title: 'Invite Participants'),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? SColors.darkCard : SColors.lightCard,
-                borderRadius: BorderRadius.circular(SSizes.radiusMd),
-                border: Border.all(
-                  color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                  width: 0.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 42,
-                          child: TextField(
-                            controller: _emailCtrl,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.done,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? SColors.textDark : SColors.textLight,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Enter email address',
-                              hintStyle: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? SColors.textDarkTertiary
-                                    : SColors.textLightTertiary,
-                              ),
-                              prefixIcon: Icon(Icons.email_outlined,
-                                  size: 17,
-                                  color: isDark
-                                      ? SColors.textDarkTertiary
-                                      : SColors.textLightTertiary),
-                              prefixIconConstraints:
-                                  const BoxConstraints(minWidth: 40, minHeight: 40),
-                              border: InputBorder.none,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            onSubmitted: (_) => _addEmail(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: _addEmail,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: SColors.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                          ),
-                          child: const Icon(Icons.add_rounded,
-                              size: 18, color: SColors.primary),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_inviteEmails.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _inviteEmails.map((email) {
-                        return Chip(
-                          label: Text(email,
-                              style: const TextStyle(fontSize: 12)),
-                          deleteIcon: const Icon(Icons.close, size: 14),
-                          onDeleted: () =>
-                              setState(() => _inviteEmails.remove(email)),
-                          backgroundColor: isDark
-                              ? SColors.darkElevated
-                              : SColors.lightElevated,
-                          side: BorderSide.none,
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                  if (_inviteEmails.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Invites are optional — share the code after creating',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? SColors.textDarkTertiary
-                              : SColors.textLightTertiary,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            InviteParticipantsSection(
+              meetingType: _meetingType,
+              emailCtrl: _emailCtrl,
+              inviteEmails: _inviteEmails,
+              onAddEmail: _addEmail,
+              onRemoveEmail: (email) =>
+                  setState(() => _inviteEmails.remove(email)),
             ),
             const SizedBox(height: SSizes.lg),
 
-            // Attachments / Materials
-            SectionHeader(title: 'Attachments'),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? SColors.darkCard : SColors.lightCard,
-                borderRadius: BorderRadius.circular(SSizes.radiusMd),
-                border: Border.all(
-                  color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                  width: 0.5,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: _pickAttachment,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: SColors.primary.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                        color: SColors.primary.withValues(alpha: 0.04),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.attach_file_rounded,
-                              size: 18, color: SColors.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Add files, images or documents',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: SColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (_attachments.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    ..._attachments.asMap().entries.map((entry) {
-                      final idx = entry.key;
-                      final file = entry.value;
-                      final name = file.path.split('/').last;
-                      final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
-                      final sizeKb = file.lengthSync() / 1024;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? SColors.darkElevated
-                                : SColors.lightElevated,
-                            borderRadius:
-                                BorderRadius.circular(SSizes.radiusSm),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                fileTypeIcon(ext),
-                                size: 18,
-                                color: fileTypeColor(ext),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: isDark
-                                            ? SColors.textDark
-                                            : SColors.textLight,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      sizeKb < 1024
-                                          ? '${sizeKb.toStringAsFixed(1)} KB'
-                                          : '${(sizeKb / 1024).toStringAsFixed(1)} MB',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: isDark
-                                            ? SColors.textDarkTertiary
-                                            : SColors.textLightTertiary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () => setState(
-                                    () => _attachments.removeAt(idx)),
-                                child: Icon(Icons.close_rounded,
-                                    size: 16,
-                                    color: isDark
-                                        ? SColors.textDarkTertiary
-                                        : SColors.textLightTertiary),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ] else
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Share documents, images, or files with participants',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? SColors.textDarkTertiary
-                              : SColors.textLightTertiary,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            // Attachments
+            AttachmentsSection(
+              attachments: _attachments,
+              onPickAttachment: _pickAttachment,
+              onRemoveAttachment: (idx) =>
+                  setState(() => _attachments.removeAt(idx)),
             ),
             const SizedBox(height: SSizes.lg),
 
             // Schedule (if not instant)
-            if (_meetingType == 'SCHEDULED') ...[
-              SectionHeader(title: 'Start Time'),
-              Row(
-                children: [
-                  Expanded(
-                    child: CreateMeetingPickerTile(
-                      icon: SIcons.calendar,
-                      label: _scheduledDate != null
-                          ? SFormatters.formatDateMedium(_scheduledDate!)
-                          : 'Select Date',
-                      isDark: isDark,
-                      onTap: _pickDate,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: CreateMeetingPickerTile(
-                      icon: SIcons.clock,
-                      label: _scheduledTime != null
-                          ? _scheduledTime!.format(context)
-                          : 'Select Time',
-                      isDark: isDark,
-                      onTap: _pickTime,
-                    ),
-                  ),
-                ],
+            if (_meetingType == 'SCHEDULED')
+              ScheduledDateTimeSection(
+                scheduledDate: _scheduledDate,
+                scheduledTime: _scheduledTime,
+                endDate: _endDate,
+                endTime: _endTime,
+                onPickDate: _pickDate,
+                onPickTime: _pickTime,
+                onPickEndDate: _pickEndDate,
+                onPickEndTime: _pickEndTime,
               ),
-              const SizedBox(height: SSizes.md),
-              SectionHeader(title: 'End Time'),
-              Row(
-                children: [
-                  Expanded(
-                    child: CreateMeetingPickerTile(
-                      icon: SIcons.calendar,
-                      label: _endDate != null
-                          ? SFormatters.formatDateMedium(_endDate!)
-                          : 'Select Date',
-                      isDark: isDark,
-                      onTap: _pickEndDate,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: CreateMeetingPickerTile(
-                      icon: SIcons.clock,
-                      label: _endTime != null
-                          ? _endTime!.format(context)
-                          : 'Select Time',
-                      isDark: isDark,
-                      onTap: _pickEndTime,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: SSizes.lg),
-            ],
 
             // Recurring schedule
-            if (_meetingType == 'RECURRING') ...[
-              SectionHeader(title: 'Recurring Days'),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: List.generate(7, (i) {
-                  final selected = _recurringDays.contains(i);
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      if (selected) {
-                        _recurringDays.remove(i);
-                        _recurringStartTimes.remove(i);
-                        _recurringEndTimes.remove(i);
-                      } else {
-                        _recurringDays.add(i);
-                        _recurringStartTimes[i] = const TimeOfDay(hour: 9, minute: 0);
-                        _recurringEndTimes[i] = const TimeOfDay(hour: 10, minute: 0);
-                      }
-                    }),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? SColors.primary.withValues(alpha: 0.15)
-                            : (isDark ? SColors.darkCard : SColors.lightCard),
-                        borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                        border: Border.all(
-                          color: selected
-                              ? SColors.primary
-                              : (isDark ? SColors.darkBorder : SColors.lightBorder),
-                          width: selected ? 1.5 : 0.5,
-                        ),
-                      ),
-                      child: Text(
-                        _dayLabels[i],
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: selected
-                              ? SColors.primary
-                              : (isDark ? SColors.textDarkSecondary : SColors.textLightSecondary),
-                        ),
-                      ),
-                    ),
-                  );
+            if (_meetingType == 'RECURRING')
+              RecurringScheduleSection(
+                recurringDays: _recurringDays,
+                recurringStartTimes: _recurringStartTimes,
+                recurringEndTimes: _recurringEndTimes,
+                onToggleDay: (i) => setState(() {
+                  if (_recurringDays.contains(i)) {
+                    _recurringDays.remove(i);
+                    _recurringStartTimes.remove(i);
+                    _recurringEndTimes.remove(i);
+                  } else {
+                    _recurringDays.add(i);
+                    _recurringStartTimes[i] =
+                        const TimeOfDay(hour: 9, minute: 0);
+                    _recurringEndTimes[i] =
+                        const TimeOfDay(hour: 10, minute: 0);
+                  }
                 }),
+                onStartTimeChanged: (day, t) =>
+                    setState(() => _recurringStartTimes[day] = t),
+                onEndTimeChanged: (day, t) =>
+                    setState(() => _recurringEndTimes[day] = t),
               ),
-              const SizedBox(height: SSizes.md),
-              // Per-day time schedules
-              ...(_recurringDays.toList()..sort()).map((day) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isDark ? SColors.darkCard : SColors.lightCard,
-                    borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                    border: Border.all(
-                      color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                      width: 0.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 36,
-                        child: Text(
-                          _dayLabels[day],
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? SColors.textDark : SColors.textLight,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final t = await SDateTimePicker.pickTimeOfDay(
-                              context,
-                              initialTime: _recurringStartTimes[day] ??
-                                  const TimeOfDay(hour: 9, minute: 0),
-                            );
-                            if (t != null) setState(() => _recurringStartTimes[day] = t);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isDark ? SColors.darkElevated : SColors.lightElevated,
-                              borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                            ),
-                            child: Text(
-                              _recurringStartTimes[day]?.format(context) ?? '9:00 AM',
-                              style: TextStyle(fontSize: 13,
-                                  color: isDark ? SColors.textDark : SColors.textLight),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text('→', style: TextStyle(
-                          color: isDark ? SColors.darkMuted : SColors.lightMuted,
-                        )),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final t = await SDateTimePicker.pickTimeOfDay(
-                              context,
-                              initialTime: _recurringEndTimes[day] ??
-                                  const TimeOfDay(hour: 10, minute: 0),
-                            );
-                            if (t != null) setState(() => _recurringEndTimes[day] = t);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isDark ? SColors.darkElevated : SColors.lightElevated,
-                              borderRadius: BorderRadius.circular(SSizes.radiusSm),
-                            ),
-                            child: Text(
-                              _recurringEndTimes[day]?.format(context) ?? '10:00 AM',
-                              style: TextStyle(fontSize: 13,
-                                  color: isDark ? SColors.textDark : SColors.textLight),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )),
-              const SizedBox(height: SSizes.lg),
-            ],
 
             // Settings
-            SectionHeader(title: 'Settings'),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isDark ? SColors.darkCard : SColors.lightCard,
-                borderRadius: BorderRadius.circular(SSizes.radiusMd),
-                border: Border.all(
-                  color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                  width: 0.5,
-                ),
-              ),
-              child: Column(
-                children: [
-                  ToggleRow(
-                    icon: SIcons.lock,
-                    title: 'Password Protected',
-                    subtitle: 'Require password to join',
-                    value: _hasPassword,
-                    onChanged: (v) => setState(() => _hasPassword = v),
-                  ),
-                  if (_hasPassword) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      child: CreateMeetingInputField(
-                        controller: _passwordCtrl,
-                        label: '',
-                        hint: 'Enter meeting password',
-                        icon: SIcons.lock,
-                        isDark: isDark,
-                        isPassword: true,
-                      ),
-                    ),
-                  ],
-                  ToggleRow(
-                    icon: SIcons.record,
-                    title: 'Auto Record',
-                    subtitle: 'Start recording automatically',
-                    value: _autoRecord,
-                    onChanged: (v) => setState(() => _autoRecord = v),
-                  ),
-                  ToggleRow(
-                    icon: Icons.hourglass_empty_rounded,
-                    title: 'Waiting Room',
-                    subtitle: 'Approve participants before joining',
-                    value: _waitingRoom,
-                    onChanged: (v) => setState(() => _waitingRoom = v),
-                  ),
-                  ToggleRow(
-                    icon: SIcons.micOff,
-                    title: 'Mute on Join',
-                    subtitle: 'Participants muted when joining',
-                    value: _muteOnJoin,
-                    onChanged: (v) => setState(() => _muteOnJoin = v),
-                  ),
-                  ToggleRow(
-                    icon: SIcons.cameraOff,
-                    title: 'Camera Off on Join',
-                    subtitle: 'Participants camera off when joining',
-                    value: _cameraOffOnJoin,
-                    onChanged: (v) => setState(() => _cameraOffOnJoin = v),
-                  ),
-                  // Max participants
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? SColors.darkElevated
-                                : SColors.lightElevated,
-                            borderRadius:
-                                BorderRadius.circular(SSizes.radiusSm),
-                          ),
-                          child: Icon(SIcons.participants,
-                              size: 17,
-                              color: isDark
-                                  ? SColors.textDarkSecondary
-                                  : SColors.textLightSecondary),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Max Participants',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? SColors.textDark
-                                      : SColors.textLight,
-                                ),
-                              ),
-                              Text(
-                                '$_maxParticipants participants',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? SColors.textDarkTertiary
-                                      : SColors.textLightTertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          width: 140,
-                          child: CupertinoSlider(
-                            value: _maxParticipants.toDouble(),
-                            min: 2,
-                            max: 500,
-                            divisions: 498,
-                            activeColor: SColors.primary,
-                            onChanged: (v) =>
-                                setState(() => _maxParticipants = v.round()),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            MeetingSettingsSection(
+              meetingType: _meetingType,
+              hasPassword: _hasPassword,
+              onPasswordChanged: (v) => setState(() => _hasPassword = v),
+              passwordCtrl: _passwordCtrl,
+              autoRecord: _autoRecord,
+              onAutoRecordChanged: (v) => setState(() => _autoRecord = v),
+              waitingRoom: _waitingRoom,
+              onWaitingRoomChanged: (v) => setState(() => _waitingRoom = v),
+              muteOnJoin: _muteOnJoin,
+              onMuteOnJoinChanged: (v) => setState(() => _muteOnJoin = v),
+              cameraOffOnJoin: _cameraOffOnJoin,
+              onCameraOffOnJoinChanged: (v) =>
+                  setState(() => _cameraOffOnJoin = v),
+              maxParticipants: _maxParticipants,
+              onMaxParticipantsChanged: (v) =>
+                  setState(() => _maxParticipants = v),
+              durationMinutes: _durationMinutes,
+              onDurationChanged: (v) =>
+                  setState(() => _durationMinutes = v),
             ),
             const SizedBox(height: SSizes.xl),
 
             // Create Button
             SButton(
               text: _meetingType == 'INSTANT'
-                  ? 'Start Meeting'
+                  ? (_inviteEmails.isNotEmpty ? 'Start Call' : 'Start Meeting')
                   : 'Schedule Meeting',
               prefixIcon: _meetingType == 'INSTANT'
-                  ? Icons.videocam_rounded
+                  ? (_inviteEmails.isNotEmpty ? Icons.call_rounded : Icons.videocam_rounded)
                   : SIcons.calendar,
               isLoading: _isLoading,
               onPressed: _createMeeting,
@@ -841,7 +351,8 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
         if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
         if (scheduledEndAt != null) 'scheduledEndAt': scheduledEndAt.toIso8601String(),
         'maxParticipants': _maxParticipants,
-        'password': _hasPassword ? _passwordCtrl.text.trim() : null,
+        if (_durationMinutes != null && _meetingType != 'INSTANT') 'durationMinutes': _durationMinutes,
+        if (_hasPassword && _passwordCtrl.text.trim().isNotEmpty) 'password': _passwordCtrl.text.trim(),
         'settings': {
           'autoRecord': _autoRecord,
           'waitingRoom': _waitingRoom,
@@ -927,130 +438,15 @@ class _CreateMeetingScreenState extends ConsumerState<CreateMeetingScreen> {
   }
 
   void _showMeetingCreatedDialog(dynamic meeting) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final code = meeting.code as String? ?? '';
-    final meetingLink = 'https://speakup.app/join/$code';
     final password = _hasPassword ? _passwordCtrl.text.trim() : null;
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isDark ? SColors.darkBorder : SColors.lightBorder,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Icon(Icons.check_circle_rounded,
-                size: 48, color: SColors.success),
-            const SizedBox(height: 12),
-            Text(
-              'Meeting Created!',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: isDark ? SColors.textDark : SColors.textLight,
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Meeting code display
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: SColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(SSizes.radiusMd),
-                border: Border.all(
-                  color: SColors.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    code,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: SColors.primary,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: code));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Code copied!')),
-                      );
-                    },
-                    child: const Icon(Icons.copy_rounded,
-                        size: 18, color: SColors.primary),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_inviteEmails.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  '${_inviteEmails.length} invite(s) sent via email',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark
-                        ? SColors.textDarkSecondary
-                        : SColors.textLightSecondary,
-                  ),
-                ),
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: SButton(
-                    text: 'Share Link',
-                    prefixIcon: Icons.share_rounded,
-                    variant: SButtonVariant.outline,
-                    onPressed: () {
-                      final shareText = StringBuffer(
-                        'Join my SpeakUp meeting!\n\nCode: $code\nLink: $meetingLink',
-                      );
-                      if (password != null && password.isNotEmpty) {
-                        shareText.write('\nPassword: $password');
-                      }
-                      SharePlus.instance.share(
-                        ShareParams(text: shareText.toString()),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SButton(
-                    text: 'Done',
-                    prefixIcon: Icons.check_rounded,
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      context.pop();
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+    MeetingCreatedDialog.show(
+      context,
+      code: code,
+      password: password,
+      inviteCount: _inviteEmails.length,
+      onDone: () => context.pop(),
     );
   }
 }

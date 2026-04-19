@@ -10,6 +10,10 @@ import { notFound } from "../../middlewares/errorhandler.middleware.js";
 import { SocketEvents, Pagination } from "../../config/constants.js";
 
 export async function createNotification(userId, { type, title, body, data = {} }) {
+  // Respect user's notification preferences
+  const enabled = await isNotificationEnabled(userId, type);
+  if (!enabled) return null;
+
   const notification = await prisma.notification.create({
     data: { userId, type, title, body, data },
   });
@@ -17,13 +21,13 @@ export async function createNotification(userId, { type, title, body, data = {} 
   emitToUser(userId, SocketEvents.NOTIFICATION, { notification });
 
   // Fire-and-forget push notification
-  sendPushToUser(userId, { title, body, data }).catch(() => {});
+  sendPushToUser(userId, { title, body, data: { ...data, type, notificationId: notification.id } }).catch(() => {});
 
   return notification;
 }
 
 export async function getNotifications(userId, { page = 1, limit = 20 }) {
-  const take = Math.min(parseInt(limit) || 20, Pagination.MAX_PAGE_SIZE);
+  const take = Math.min(parseInt(limit) || 20, Pagination.MAX_LIMIT);
   const skip = (Math.max(parseInt(page) || 1, 1) - 1) * take;
 
   const [notifications, total, unreadCount] = await Promise.all([
@@ -83,9 +87,40 @@ async function sendPushToUser(userId, { title, body, data = {} }) {
   const tokens = devices.map(d => d.fcmToken).filter(Boolean);
   if (tokens.length === 0) return;
 
+  // Determine channel and priority based on notification type
+  const type = data.type || "SYSTEM";
+  const isCall = type === "MEETING_INVITE" && data.isInstant === "true";
+  const isChat = type === "CHAT_MESSAGE";
+
+  const channelId = isCall ? "incoming_calls" : isChat ? "chat_messages" : "meeting_reminders";
+  const priority = isCall || isChat ? "high" : "normal";
+  const sound = isCall ? "ringtone.mp3" : "default";
+
   const message = {
     notification: { title, body },
     data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
+    android: {
+      priority: "high",
+      notification: {
+        channelId,
+        priority: isCall ? "max" : "high",
+        sound,
+        defaultVibrateTimings: !isCall,
+        ...(isCall && { vibrateTimingsMillis: [0, 500, 200, 500, 200, 500] }),
+        visibility: "PUBLIC",
+      },
+    },
+    apns: {
+      headers: { "apns-priority": "10" },
+      payload: {
+        aps: {
+          sound: isCall ? { name: "ringtone.caf", critical: true, volume: 1.0 } : "default",
+          "content-available": 1,
+          "mutable-content": 1,
+          ...(isCall && { "interruption-level": "critical" }),
+        },
+      },
+    },
     tokens,
   };
 

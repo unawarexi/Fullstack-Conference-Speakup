@@ -28,9 +28,15 @@ class ApiEndpoints {
   static String meetingParticipants(String id) => '/meetings/$id/participants';
   static String kickParticipant(String meetingId, String participantId) =>
       '/meetings/$meetingId/kick/$participantId';
+  static String banParticipant(String meetingId, String userId) =>
+      '/meetings/$meetingId/ban/$userId';
+  static String unbanParticipant(String meetingId, String userId) =>
+      '/meetings/$meetingId/ban/$userId';
+  static String meetingBans(String meetingId) => '/meetings/$meetingId/bans';
   static String meetingToken(String id) => '/meetings/$id/token';
   static String meetingInvites(String id) => '/meetings/$id/invites';
   static String respondToInvite(String token) => '/meetings/invite/$token/respond';
+  static String recreateMeeting(String id) => '/meetings/$id/recreate';
 
   // ──────────── Meeting Materials ────────────
   static String meetingMaterials(String meetingId) => '/meetings/$meetingId/materials';

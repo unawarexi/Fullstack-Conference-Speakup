@@ -13,12 +13,27 @@ class WebSocketService {
   io.Socket? _socket;
   final _eventControllers = <String, StreamController<dynamic>>{};
   bool _reconnecting = false;
+  String? _userId;
 
   WebSocketService._();
   factory WebSocketService() => _instance ??= WebSocketService._();
 
   bool get isConnected => _socket?.connected ?? false;
   bool get isReconnecting => _reconnecting;
+
+  /// Set the authenticated user ID for WebSocket registration.
+  void setUserId(String userId) {
+    _userId = userId;
+    _registerUser();
+  }
+
+  /// Register user with the backend so they join their personal notification room.
+  void _registerUser() {
+    if (_userId != null && isConnected) {
+      _socket?.emit('auth:register', _userId);
+      _log.i('[WS] Registered user: $_userId');
+    }
+  }
 
   /// Connect to WebSocket server with Firebase auth token.
   Future<void> connect() async {
@@ -48,6 +63,8 @@ class WebSocketService {
         _log.i('[WS] Connected');
         _reconnecting = false;
         _emit('connection_status', true);
+        // Register user for personal notification room
+        _registerUser();
       })
       ..onDisconnect((_) {
         _log.w('[WS] Disconnected');
@@ -57,6 +74,8 @@ class WebSocketService {
         _log.i('[WS] Reconnected');
         _reconnecting = false;
         _emit('connection_status', true);
+        // Re-register after reconnection
+        _registerUser();
       })
       ..onReconnectAttempt((_) {
         _reconnecting = true;
@@ -73,6 +92,7 @@ class WebSocketService {
     _socket?.dispose();
     _socket = null;
     _reconnecting = false;
+    _userId = null;
   }
 
   void emit(String event, [dynamic data]) {

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_conference_speakup/core/services/websocket.dart';
 import 'package:flutter_conference_speakup/core/constants/colors.dart';
 import 'package:flutter_conference_speakup/core/constants/sizes.dart';
 import 'package:flutter_conference_speakup/core/constants/responsive.dart';
@@ -37,6 +39,9 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
   bool _topBarVisible = true;
   bool _isFrontCamera = true;
   final _voiceController = TextEditingController();
+  StreamSubscription? _meetingEndedSub;
+  StreamSubscription? _kickedSub;
+  StreamSubscription? _bannedSub;
 
   late final AnimationController _copilotSlideController;
   late final AnimationController _voiceAssistantController;
@@ -56,11 +61,76 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(meetingAIProvider.notifier).startListening(widget.meetingId);
     });
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // Listen for meeting:ended from WebSocket (e.g. auto-end on 2-person call,
+    // or host ended the meeting)
+    _meetingEndedSub = WebSocketService()
+        .stream('meeting:ended')
+        .listen(_onMeetingEnded);
+    // Listen for kick/ban events targeting this user
+    _kickedSub = WebSocketService()
+        .stream('participant:kicked')
+        .listen(_onKickedOrBanned);
+    _bannedSub = WebSocketService()
+        .stream('participant:banned')
+        .listen(_onKickedOrBanned);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
+  }
+
+  void _onMeetingEnded(dynamic data) {
+    // Only react if this event is for our current meeting
+    if (data is Map && data['meetingId'] == widget.meetingId) {
+      // Local-only cleanup — backend already ended the meeting
+      ref.read(activeMeetingProvider.notifier).cleanupLocal();
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              data['reason'] == 'call_ended'
+                  ? 'Call ended'
+                  : 'Meeting has ended',
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _onKickedOrBanned(dynamic data) {
+    if (data is Map && data['meetingId'] == widget.meetingId) {
+      ref.read(activeMeetingProvider.notifier).cleanupLocal();
+      if (mounted) {
+        Navigator.of(context).pop();
+        final isBanned = data['banned'] == true ||
+            data['reason'] != null;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isBanned
+                  ? 'You have been banned from this meeting'
+                  : 'You have been removed from this meeting',
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
+    _meetingEndedSub?.cancel();
+    _kickedSub?.cancel();
+    _bannedSub?.cancel();
     _copilotSlideController.dispose();
     _voiceAssistantController.dispose();
     _voiceController.dispose();
@@ -99,6 +169,16 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
 
   void _handleLeave() {
     HapticFeedback.heavyImpact();
+    final meetingState = ref.read(activeMeetingProvider);
+    // +1 for self — participants list is other people
+    final totalInCall = meetingState.participants.length + 1;
+    final isTwoPersonCall = totalInCall <= 2;
+    final title = isTwoPersonCall ? 'End Call?' : 'Leave Meeting?';
+    final message = isTwoPersonCall
+        ? 'This will end the call for both participants.'
+        : 'The meeting will continue for other participants.';
+    final actionLabel = isTwoPersonCall ? 'End Call' : 'Leave';
+
     showDialog(
       context: context,
       builder: (ctx) {
@@ -109,14 +189,14 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
             borderRadius: BorderRadius.circular(SSizes.radiusLg),
           ),
           title: Text(
-            'Leave Meeting?',
+            title,
             style: TextStyle(
               color: isDark ? SColors.textDark : SColors.textLight,
               fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
-            'Are you sure you want to leave this meeting?',
+            message,
             style: TextStyle(
               color: isDark ? SColors.textDarkSecondary : SColors.textLightSecondary,
               fontSize: 14,
@@ -133,12 +213,12 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
               ),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
-                ref.read(activeMeetingProvider.notifier).leaveMeeting();
-                Navigator.of(context).pop();
+                await ref.read(activeMeetingProvider.notifier).leaveMeeting();
+                if (context.mounted) Navigator.of(context).pop();
               },
-              child: const Text('Leave', style: TextStyle(color: SColors.callEnd, fontWeight: FontWeight.w600)),
+              child: Text(actionLabel, style: const TextStyle(color: SColors.callEnd, fontWeight: FontWeight.w600)),
             ),
           ],
         );
@@ -160,7 +240,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
     final controlsBarH = SResponsive.sp(context, 72, tabletSize: 80, desktopSize: 84);
 
     return Scaffold(
-      backgroundColor: isDark ? SColors.darkBg : SColors.lightBg,
+      backgroundColor: isDark ? SColors.participantTile : SColors.participantTileLight,
       resizeToAvoidBottomInset: false,
       body: GestureDetector(
         onTap: () => setState(() => _topBarVisible = !_topBarVisible),
@@ -203,6 +283,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
+                      useRootNavigator: true,
                       backgroundColor: Colors.transparent,
                       builder: (_) => MeetingParticipantsSheet(
                         meetingId: widget.meetingId,
@@ -217,6 +298,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen>
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
+                      useRootNavigator: true,
                       backgroundColor: Colors.transparent,
                       builder: (_) => SizedBox(
                         height: MediaQuery.of(context).size.height * 0.65,

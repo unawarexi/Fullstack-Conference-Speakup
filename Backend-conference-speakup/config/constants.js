@@ -60,6 +60,7 @@ export const ErrorCodes = {
   RECORDING_IN_PROGRESS: "E4007",
   RECORDING_NOT_STARTED: "E4008",
   SUBSCRIPTION_EXPIRED: "E4009",
+  BANNED_FROM_MEETING: "E4010",
 
   // Rate Limiting
   RATE_LIMIT_EXCEEDED: "E8001",
@@ -154,6 +155,7 @@ export const SocketEvents = {
   PARTICIPANT_HAND_LOWERED: "participant:hand_lowered",
   PARTICIPANT_ROLE_CHANGED: "participant:role_changed",
   PARTICIPANT_KICKED: "participant:kicked",
+  PARTICIPANT_BANNED: "participant:banned",
 
   // Chat
   CHAT_MESSAGE: "chat:message",
@@ -264,6 +266,12 @@ export const Headers = {
   PLATFORM: "x-platform",
 };
 
+export const AppLinks = {
+  GOOGLE_PLAY: "https://play.google.com/store/apps/details?id=com.speakup.conference",
+  APPLE_STORE: "https://apps.apple.com/app/speakup-conference/id0000000000",
+  WEB_APP: process.env.FRONTEND_URL || "https://speakup.app",
+};
+
 export default {
   HttpStatus,
   ErrorCodes,
@@ -275,4 +283,5 @@ export default {
   BullQueues,
   Pagination,
   Headers,
+  AppLinks,
 };

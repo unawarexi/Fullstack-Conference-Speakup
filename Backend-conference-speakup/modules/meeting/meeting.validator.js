@@ -10,6 +10,7 @@ export const createMeetingSchema = z.object({
   type: z.enum(["INSTANT", "SCHEDULED", "RECURRING"]),
   scheduledAt: z.coerce.date().optional(),
   scheduledEndAt: z.coerce.date().optional(),
+  durationMinutes: z.number().int().min(1).max(1440).optional(),
   maxParticipants: z.number().int().min(2).max(1000).optional(),
   password: z.string().min(4).max(50).optional(),
   settings: z.object({
@@ -37,6 +38,7 @@ export const updateMeetingSchema = z.object({
   description: z.string().max(2000).nullable().optional(),
   scheduledAt: z.coerce.date().optional(),
   scheduledEndAt: z.coerce.date().nullable().optional(),
+  durationMinutes: z.number().int().min(1).max(1440).nullable().optional(),
   maxParticipants: z.number().int().min(2).max(1000).optional(),
   password: z.string().min(4).max(50).nullable().optional(),
   settings: z.object({

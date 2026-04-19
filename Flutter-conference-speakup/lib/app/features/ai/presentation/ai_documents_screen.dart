@@ -96,6 +96,7 @@ class AIDocumentsScreen extends ConsumerWidget {
   void _showUploadSheet(BuildContext context, bool isDark) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(SSizes.radiusLg)),

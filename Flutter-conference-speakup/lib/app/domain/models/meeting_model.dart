@@ -20,6 +20,7 @@ class MeetingModel {
   final int maxParticipants;
   final bool isRecording;
   final String? password;
+  final int? durationMinutes;
   final Map<String, dynamic>? settings;
   final DateTime createdAt;
 
@@ -41,6 +42,7 @@ class MeetingModel {
     this.maxParticipants = 100,
     this.isRecording = false,
     this.password,
+    this.durationMinutes,
     this.settings,
     required this.createdAt,
   });
@@ -97,6 +99,7 @@ class MeetingModel {
       maxParticipants: json['maxParticipants'] as int? ?? 100,
       isRecording: json['isRecording'] as bool? ?? false,
       password: json['password'] as String?,
+      durationMinutes: json['durationMinutes'] as int?,
       settings: json['settings'] as Map<String, dynamic>?,
       createdAt: DateTime.parse(
           json['createdAt'] as String? ?? DateTime.now().toIso8601String()).toLocal(),
@@ -118,6 +121,7 @@ class MeetingModel {
         'participantCount': participantCount,
         'maxParticipants': maxParticipants,
         'isRecording': isRecording,
+        'durationMinutes': durationMinutes,
         'settings': settings,
         'createdAt': createdAt.toIso8601String(),
       };
@@ -135,6 +139,7 @@ class MeetingModel {
     int? maxParticipants,
     bool? isRecording,
     String? password,
+    int? durationMinutes,
     Map<String, dynamic>? settings,
   }) =>
       MeetingModel(
@@ -155,6 +160,7 @@ class MeetingModel {
         maxParticipants: maxParticipants ?? this.maxParticipants,
         isRecording: isRecording ?? this.isRecording,
         password: password ?? this.password,
+        durationMinutes: durationMinutes ?? this.durationMinutes,
         settings: settings ?? this.settings,
         createdAt: createdAt,
       );
