@@ -36,13 +36,16 @@ class EmailContentGenerator {
 
   // 2. Meeting Invitation
   meetingInvite(meeting) {
+    const isInstant = meeting.isInstant || false;
     return {
-      EMAIL_TITLE: `You're invited to a meeting: ${meeting.title}`,
+      EMAIL_TITLE: isInstant
+        ? `${meeting.hostName} is calling you on SpeakUp`
+        : `You're invited to a meeting: ${meeting.title}`,
       GREETING: `Hello ${meeting.inviteeName || "there"},`,
-      MAIN_CONTENT: `
-        <p><strong>${meeting.hostName}</strong> has invited you to a meeting on SpeakUp.</p>
-      `,
-      CONTENT_SECTIONS: [
+      MAIN_CONTENT: isInstant
+        ? `<p><strong>${meeting.hostName}</strong> is calling you right now on SpeakUp. Tap below to join.</p>`
+        : `<p><strong>${meeting.hostName}</strong> has invited you to a meeting on SpeakUp.</p>`,
+      CONTENT_SECTIONS: isInstant ? [] : [
         {
           title: "Meeting Details",
           content: `
@@ -56,9 +59,73 @@ class EmailContentGenerator {
         },
       ],
       BUTTONS: [
-        { text: "Join Meeting", url: `${this.baseUrl}/meeting/${meeting.code}`, primary: true },
+        { text: isInstant ? "Join Call Now" : "Join Meeting", url: `${this.baseUrl}/meeting/${meeting.code}`, primary: true },
       ],
       UNSUBSCRIBE_LINK: this.generateUnsubscribeLink(meeting.inviteeId, "meeting"),
+    };
+  }
+
+  // 2b. Meeting Invite — Download App (for unregistered users)
+  meetingInviteDownload(data) {
+    const isInstant = data.isInstant;
+    const avatarHtml = data.hostAvatar
+      ? `<img src="${data.hostAvatar}" alt="${data.hostName}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;margin-bottom:8px;" />`
+      : `<div style="width:56px;height:56px;border-radius:50%;background:#6366F1;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;margin-bottom:8px;">${(data.hostName || "?")[0].toUpperCase()}</div>`;
+
+    return {
+      EMAIL_TITLE: isInstant
+        ? `${data.hostName} is calling you on SpeakUp`
+        : `You're invited to "${data.title}" on SpeakUp`,
+      GREETING: `Hello ${data.inviteeName || "there"},`,
+      MAIN_CONTENT: `
+        <div style="text-align:center;padding:16px 0;">
+          ${avatarHtml}
+          <p style="font-size:16px;margin:8px 0 4px;">
+            <strong>${data.hostName}</strong>
+            ${data.hostEmail ? `<br/><span style="font-size:13px;color:#64748B;">${data.hostEmail}</span>` : ""}
+          </p>
+          <p style="font-size:15px;margin-top:12px;">
+            ${isInstant
+              ? `is calling you right now on <strong>SpeakUp</strong>.`
+              : `invited you to <strong>"${data.title}"</strong> on SpeakUp.`
+            }
+          </p>
+        </div>
+      `,
+      CONTENT_SECTIONS: [
+        ...(isInstant ? [] : [{
+          title: "Meeting Details",
+          content: `
+            <ul style="margin-left:18px;color:#475569;">
+              <li><strong>Title:</strong> ${data.title}</li>
+              <li><strong>Date:</strong> ${data.date || "—"}</li>
+              <li><strong>Time:</strong> ${data.time || "—"}</li>
+              <li><strong>Code:</strong> ${data.code || "—"}</li>
+            </ul>
+          `,
+        }]),
+        {
+          title: "Get SpeakUp",
+          content: `
+            <p style="color:#475569;">Download SpeakUp to join ${isInstant ? "the call" : "the meeting"}. It's free and takes less than a minute.</p>
+            <div style="text-align:center;padding:12px 0;">
+              <a href="${data.appLinks?.googlePlay || "#"}" style="display:inline-block;margin:6px 8px;padding:10px 20px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">
+                ▶ Google Play
+              </a>
+              <a href="${data.appLinks?.appleStore || "#"}" style="display:inline-block;margin:6px 8px;padding:10px 20px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:13px;">
+                 App Store
+              </a>
+            </div>
+            <p style="text-align:center;color:#94A3B8;font-size:12px;margin-top:4px;">
+              Or join from your browser: <a href="${data.appLinks?.webApp}/meeting/${data.code}" style="color:#6366F1;">${data.appLinks?.webApp}/meeting/${data.code}</a>
+            </p>
+          `,
+        },
+      ],
+      BUTTONS: [
+        { text: isInstant ? "Join Call Now" : "Join Meeting", url: `${this.baseUrl}/meeting/${data.code}`, primary: true },
+      ],
+      UNSUBSCRIBE_LINK: this.generateUnsubscribeLink(null, "meeting"),
     };
   }
 
@@ -176,6 +243,57 @@ class EmailContentGenerator {
         { text: "Come Back Anytime", url: `${this.baseUrl}/`, primary: true },
       ],
       UNSUBSCRIBE_LINK: this.generateUnsubscribeLink(user.id, "goodbye"),
+    };
+  }
+
+  // 7. Meeting Duration Warning (5 min before end)
+  meetingDurationWarning(data) {
+    return {
+      EMAIL_TITLE: `Meeting ending soon: ${data.meetingTitle}`,
+      GREETING: `Hello ${data.hostName || "there"},`,
+      MAIN_CONTENT: `
+        <p>Your meeting <strong>"${data.meetingTitle}"</strong> will end in <strong>${data.remainingMinutes} minutes</strong>.</p>
+        <p>The meeting was set to last ${data.durationMinutes} minutes.</p>
+      `,
+      CONTENT_SECTIONS: [
+        {
+          title: "Meeting Details",
+          content: `
+            <ul style="margin-left:18px;color:#475569;">
+              <li><strong>Title:</strong> ${data.meetingTitle}</li>
+              <li><strong>Code:</strong> ${data.code || "—"}</li>
+              <li><strong>Duration:</strong> ${data.durationMinutes} minutes</li>
+            </ul>
+          `,
+        },
+      ],
+      BUTTONS: [
+        { text: "Go to Meeting", url: `${this.baseUrl}/meeting/${data.code}`, primary: true },
+      ],
+      UNSUBSCRIBE_LINK: this.generateUnsubscribeLink(null, "meeting"),
+    };
+  }
+
+  // 8. Meeting Duration Expired
+  meetingDurationExpired(data) {
+    return {
+      EMAIL_TITLE: `Meeting ended: ${data.meetingTitle}`,
+      GREETING: `Hello ${data.hostName || "there"},`,
+      MAIN_CONTENT: `
+        <p>Your meeting <strong>"${data.meetingTitle}"</strong> has ended after reaching its ${data.durationMinutes}-minute time limit.</p>
+        <p>You can recreate this meeting from your meeting history if needed.</p>
+      `,
+      CONTENT_SECTIONS: [
+        {
+          title: "What's next?",
+          content: `<p>Visit your meeting history to recreate this meeting with the same settings, or create a new one from scratch.</p>`,
+        },
+      ],
+      BUTTONS: [
+        { text: "View Meeting History", url: `${this.baseUrl}/meetings`, primary: true },
+        { text: "Create New Meeting", url: `${this.baseUrl}/meetings/create` },
+      ],
+      UNSUBSCRIBE_LINK: this.generateUnsubscribeLink(null, "meeting"),
     };
   }
 

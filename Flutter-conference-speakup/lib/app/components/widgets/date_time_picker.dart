@@ -85,6 +85,7 @@ class SDateTimePicker {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (ctx) => Container(
         height: 320,
         decoration: BoxDecoration(

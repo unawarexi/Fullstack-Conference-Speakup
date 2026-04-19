@@ -58,8 +58,11 @@ class MeetingRepository {
     return getById(meetingId);
   }
 
-  Future<void> leave(String meetingId) =>
-      _api.post(ApiEndpoints.leaveMeeting(meetingId));
+  /// Returns true if the meeting was auto-ended (e.g. 2-person call).
+  Future<bool> leave(String meetingId) async {
+    final res = await _api.post(ApiEndpoints.leaveMeeting(meetingId));
+    return res.data['data']?['autoEnded'] == true;
+  }
 
   Future<void> end(String meetingId) =>
       _api.post(ApiEndpoints.endMeeting(meetingId));
@@ -76,8 +79,19 @@ class MeetingRepository {
     return list.map((e) => Participant.fromJson(e)).toList();
   }
 
-  Future<void> kickParticipant(String meetingId, String participantId) =>
-      _api.post(ApiEndpoints.kickParticipant(meetingId, participantId));
+  Future<void> kickParticipant(String meetingId, String participantId, {bool ban = false, String? reason}) =>
+      _api.post(ApiEndpoints.kickParticipant(meetingId, participantId), data: {
+        'ban': ban,
+        if (reason != null) 'reason': reason,
+      });
+
+  Future<void> banParticipant(String meetingId, String userId, {String? reason}) =>
+      _api.post(ApiEndpoints.banParticipant(meetingId, userId), data: {
+        if (reason != null) 'reason': reason,
+      });
+
+  Future<void> unbanParticipant(String meetingId, String userId) =>
+      _api.delete(ApiEndpoints.unbanParticipant(meetingId, userId));
 
   /// Get LiveKit token for WebRTC connection.
   Future<String> getLiveKitToken(String meetingId) async {
@@ -119,4 +133,13 @@ class MeetingRepository {
 
   Future<void> deleteMaterial(String materialId) =>
       _api.delete(ApiEndpoints.material(materialId));
+
+  /// Recreate a past meeting with optional overrides.
+  Future<MeetingModel> recreate(String meetingId, {Map<String, dynamic>? overrides}) async {
+    final res = await _api.post(
+      ApiEndpoints.recreateMeeting(meetingId),
+      data: overrides ?? {},
+    );
+    return MeetingModel.fromJson(res.data['data']['meeting']);
+  }
 }

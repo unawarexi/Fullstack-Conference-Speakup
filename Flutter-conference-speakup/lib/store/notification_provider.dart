@@ -72,9 +72,10 @@ class NotificationsNotifier
   }
 
   void _listenToWebSocket() {
-    _wsSub = WebSocketService().stream('notification').listen((data) {
+    _wsSub = WebSocketService().stream('notification:received').listen((data) {
       if (data is Map<String, dynamic>) {
-        final notification = NotificationModel.fromJson(data);
+        final notifData = data['notification'] as Map<String, dynamic>? ?? data;
+        final notification = NotificationModel.fromJson(notifData);
         state.whenData((list) {
           state = AsyncValue.data([notification, ...list]);
         });

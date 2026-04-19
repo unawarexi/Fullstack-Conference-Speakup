@@ -183,11 +183,18 @@ export function initWebSocket(httpServer) {
       }
     });
 
-    // Disconnect
-    socket.on(SocketEvents.DISCONNECT, (reason) => {
+    // Disconnect — update DB and trigger auto-end check
+    socket.on(SocketEvents.DISCONNECT, async (reason) => {
       const { meetingId, userId } = socket.data;
-      if (meetingId) {
+      if (meetingId && userId) {
         socket.to(`meeting:${meetingId}`).emit(SocketEvents.PARTICIPANT_LEFT, { userId, socketId: socket.id, reason });
+        // Persist the leave in the database and check for auto-end
+        try {
+          const { leaveMeeting } = await import("../modules/meeting/meeting.service.js");
+          await leaveMeeting(meetingId, userId);
+        } catch (err) {
+          log.warn("Failed to persist disconnect leave", { meetingId, userId, error: err.message });
+        }
       }
       log.debug("Client disconnected", { socketId: socket.id, reason });
     });

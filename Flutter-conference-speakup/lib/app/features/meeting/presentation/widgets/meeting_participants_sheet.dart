@@ -299,6 +299,8 @@ class _ParticipantRow extends ConsumerWidget {
               onSelected: (action) {
                 if (action == 'kick') {
                   _confirmKick(context, ref);
+                } else if (action == 'ban') {
+                  _confirmBan(context, ref);
                 }
               },
               itemBuilder: (ctx) => [
@@ -313,6 +315,23 @@ class _ParticipantRow extends ConsumerWidget {
                         style: TextStyle(
                           color: SColors.error,
                           fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'ban',
+                  child: Row(
+                    children: [
+                      Icon(Iconsax.slash, size: 16, color: SColors.error),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Remove & Ban',
+                        style: TextStyle(
+                          color: SColors.error,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -343,7 +362,7 @@ class _ParticipantRow extends ConsumerWidget {
           ),
         ),
         content: Text(
-          'Remove ${participant.name} from this meeting?',
+          'Remove ${participant.name} from this meeting? They can rejoin.',
           style: TextStyle(
             color: isDark
                 ? SColors.textDarkSecondary
@@ -373,6 +392,107 @@ class _ParticipantRow extends ConsumerWidget {
             },
             child: const Text(
               'Remove',
+              style: TextStyle(
+                color: SColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmBan(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? SColors.darkCard : SColors.lightCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(SSizes.radiusLg),
+        ),
+        title: Text(
+          'Remove & Ban?',
+          style: TextStyle(
+            color: isDark ? SColors.textDark : SColors.textLight,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${participant.name} will be removed and cannot rejoin this meeting.',
+              style: TextStyle(
+                color: isDark
+                    ? SColors.textDarkSecondary
+                    : SColors.textLightSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              maxLength: 200,
+              style: TextStyle(
+                color: isDark ? SColors.textDark : SColors.textLight,
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Reason (optional)',
+                hintStyle: TextStyle(
+                  color: isDark
+                      ? SColors.textDarkTertiary
+                      : SColors.textLightTertiary,
+                  fontSize: 13,
+                ),
+                filled: true,
+                fillColor: isDark ? SColors.darkSurface : SColors.lightElevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(SSizes.radiusMd),
+                  borderSide: BorderSide.none,
+                ),
+                counterStyle: TextStyle(
+                  color: isDark
+                      ? SColors.textDarkTertiary
+                      : SColors.textLightTertiary,
+                  fontSize: 11,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark
+                    ? SColors.textDarkSecondary
+                    : SColors.textLightSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final reason = reasonController.text.trim();
+              ref.read(meetingRepositoryProvider).kickParticipant(
+                    meetingId,
+                    participant.id,
+                    ban: true,
+                    reason: reason.isNotEmpty ? reason : null,
+                  );
+              ref.read(activeMeetingProvider.notifier).refreshParticipants();
+            },
+            child: const Text(
+              'Ban',
               style: TextStyle(
                 color: SColors.error,
                 fontWeight: FontWeight.w600,

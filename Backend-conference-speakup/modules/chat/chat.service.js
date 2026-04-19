@@ -8,6 +8,7 @@ import { getCache, setCache, deleteCache } from "../../services/redis.service.js
 import { emitToMeeting, emitToUser } from "../../services/websocket.service.js";
 import { publishEvent } from "../../services/kafka.service.js";
 import { badRequest, forbidden, notFound } from "../../middlewares/errorhandler.middleware.js";
+import { queueNotification } from "../../services/workers.js";
 import { CacheTTL, SocketEvents, KafkaTopics, Pagination } from "../../config/constants.js";
 
 export async function getOrCreateMeetingChat(meetingId, userId) {
@@ -30,7 +31,7 @@ export async function getOrCreateMeetingChat(meetingId, userId) {
         name: meeting.title,
         isGroup: true,
         members: {
-          create: { userId, role: meeting.hostId === userId ? "ADMIN" : "MEMBER" },
+          create: { userId },
         },
       },
     });
@@ -38,7 +39,7 @@ export async function getOrCreateMeetingChat(meetingId, userId) {
     await prisma.chatMember.upsert({
       where: { chatRoomId_userId: { chatRoomId: chatRoom.id, userId } },
       update: {},
-      create: { chatRoomId: chatRoom.id, userId, role: meeting.hostId === userId ? "ADMIN" : "MEMBER" },
+      create: { chatRoomId: chatRoom.id, userId },
     });
   }
 
@@ -107,6 +108,23 @@ export async function sendMessage(chatRoomId, userId, { content, type = "TEXT", 
 
   if (chatRoom?.meetingId) {
     emitToMeeting(chatRoom.meetingId, SocketEvents.CHAT_MESSAGE, { message });
+
+    // Push notifications to all chat room members except the sender
+    const members = await prisma.chatMember.findMany({
+      where: { chatRoomId, userId: { not: userId } },
+      select: { userId: true },
+    });
+    const senderName = message.sender?.fullName || "Someone";
+    const preview = type === "TEXT" ? content.trim().slice(0, 100) : `Sent a ${type.toLowerCase()}`;
+    for (const member of members) {
+      queueNotification(
+        member.userId,
+        "CHAT_MESSAGE",
+        `Message from ${senderName}`,
+        preview,
+        { chatRoomId, messageId: message.id, meetingId: chatRoom.meetingId, senderId: userId },
+      ).catch(() => {});
+    }
   }
 
   await publishEvent(KafkaTopics.CHAT_MESSAGES, chatRoomId, {
@@ -127,10 +145,15 @@ export async function deleteMessage(messageId, userId) {
   });
   if (!message) throw notFound("Message not found");
   if (message.senderId !== userId) {
-    const member = await prisma.chatMember.findUnique({
-      where: { chatRoomId_userId: { chatRoomId: message.chatRoomId, userId } },
+    // Only the meeting host can delete other people's messages
+    const chatRoom = await prisma.chatRoom.findUnique({
+      where: { id: message.chatRoomId },
+      select: { meetingId: true },
     });
-    if (!member || member.role !== "ADMIN") throw forbidden("Cannot delete this message");
+    const isHost = chatRoom?.meetingId
+      ? !!(await prisma.meeting.findFirst({ where: { id: chatRoom.meetingId, hostId: userId } }))
+      : false;
+    if (!isHost) throw forbidden("Cannot delete this message");
   }
 
   await prisma.message.delete({ where: { id: messageId } });

@@ -8,7 +8,7 @@ import { env } from "../../config/env.config.js";
 import { getCache, setCache, deleteCache } from "../../services/redis.service.js";
 import { publishEvent } from "../../services/kafka.service.js";
 import { emitToMeeting } from "../../services/websocket.service.js";
-import { queueEmail } from "../../services/workers.js";
+import { queueEmail, queueNotification } from "../../services/workers.js";
 import { badRequest, forbidden, notFound } from "../../middlewares/errorhandler.middleware.js";
 import { CacheTTL, SocketEvents, KafkaTopics } from "../../config/constants.js";
 import { S3Client, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
@@ -162,6 +162,15 @@ export async function handleRecordingComplete(recordingId, { fileUrl, fileSize, 
       recordingId: recording.id,
     });
   }
+
+  // Push notification for recording ready
+  await queueNotification(
+    recording.userId,
+    "RECORDING_READY",
+    "Recording Ready",
+    `Your recording of "${recording.meeting.title}" is ready to download`,
+    { recordingId: recording.id, meetingId: recording.meetingId },
+  ).catch(() => {});
 
   await publishEvent(KafkaTopics.RECORDING_EVENTS, recording.id, {
     type: "recording.completed", recordingId, meetingId: recording.meetingId, userId: recording.userId, fileSize, duration,

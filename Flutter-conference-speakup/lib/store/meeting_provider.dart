@@ -5,6 +5,7 @@ import 'package:flutter_conference_speakup/app/domain/models/participant_model.d
 import 'package:flutter_conference_speakup/app/domain/models/material_model.dart';
 import 'package:flutter_conference_speakup/app/domain/repositories/meeting_repository.dart';
 import 'package:flutter_conference_speakup/core/db/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {
   return MeetingRepository();
@@ -12,7 +13,7 @@ final meetingRepositoryProvider = Provider<MeetingRepository>((ref) {
 
 /// All meetings list (with optional status filter).
 /// Uses keepAlive + 5-minute timer so tab switches don't re-fetch.
-/// Falls back to Hive cache while the network request is in-flight.
+/// Always fetches from API; falls back to Hive cache on network error.
 final meetingsProvider = FutureProvider.family
     .autoDispose<List<MeetingModel>, String?>((ref, status) async {
   // Keep data alive for 5 minutes after all listeners are removed
@@ -22,34 +23,26 @@ final meetingsProvider = FutureProvider.family
 
   final cacheKey = 'meetings_${status ?? "all"}';
 
-  // Return cached data immediately while the API call proceeds
-  final cached = HiveService.getIfFresh(HiveService.meetingCache, cacheKey);
-  if (cached != null && cached is List) {
-    // Fire-and-forget: refresh in background, update cache
-    ref.read(meetingRepositoryProvider).listMeetings(status: status).then(
-      (fresh) {
-        HiveService.putWithTTL(
-          HiveService.meetingCache, cacheKey,
-          fresh.map((m) => m.toJson()).toList(),
-          ttlMinutes: 5,
-        );
-      },
-      onError: (_) {},
+  try {
+    // Always fetch fresh data from the API
+    final meetings =
+        await ref.read(meetingRepositoryProvider).listMeetings(status: status);
+    HiveService.putWithTTL(
+      HiveService.meetingCache, cacheKey,
+      meetings.map((m) => m.toJson()).toList(),
+      ttlMinutes: 5,
     );
-    return cached
-        .map((e) => MeetingModel.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    return meetings;
+  } catch (e) {
+    // Network error — fall back to cached data if available
+    final cached = HiveService.getIfFresh(HiveService.meetingCache, cacheKey);
+    if (cached != null && cached is List) {
+      return cached
+          .map((e) => MeetingModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    rethrow;
   }
-
-  // No valid cache — fetch from API
-  final meetings =
-      await ref.read(meetingRepositoryProvider).listMeetings(status: status);
-  HiveService.putWithTTL(
-    HiveService.meetingCache, cacheKey,
-    meetings.map((m) => m.toJson()).toList(),
-    ttlMinutes: 5,
-  );
-  return meetings;
 });
 
 /// Single meeting by ID.
@@ -187,14 +180,19 @@ class ActiveMeetingNotifier extends StateNotifier<MeetingRoomState> {
   void toggleRecording() =>
       state = state.copyWith(isRecording: !state.isRecording);
 
-  Future<void> leaveMeeting() async {
+  /// Leave the current meeting. Returns true if the meeting was auto-ended
+  /// (e.g. 2-person call where the other person left).
+  Future<bool> leaveMeeting() async {
+    bool autoEnded = false;
     if (state.meeting != null) {
-      await _ref
+      autoEnded = await _ref
           .read(meetingRepositoryProvider)
           .leave(state.meeting!.id);
     }
     _elapsedTimer?.cancel();
     state = const MeetingRoomState();
+    _clearMeetingCacheAndRefresh();
+    return autoEnded;
   }
 
   Future<void> endMeeting() async {
@@ -203,6 +201,28 @@ class ActiveMeetingNotifier extends StateNotifier<MeetingRoomState> {
     }
     _elapsedTimer?.cancel();
     state = const MeetingRoomState();
+    _clearMeetingCacheAndRefresh();
+  }
+
+  /// Clear stale Hive cache then invalidate providers so the next read
+  /// fetches fresh data from the API instead of returning cached LIVE meetings.
+  void _clearMeetingCacheAndRefresh() {
+    final box = HiveService.meetingCache;
+    for (final key in ['meetings_all', 'meetings_LIVE', 'meetings_ENDED']) {
+      box.delete(key);
+      Hive.box('cache_ttl').delete('${box.name}:$key');
+    }
+    _ref.invalidate(meetingsProvider(null));
+    _ref.invalidate(meetingsProvider('LIVE'));
+    _ref.invalidate(meetingsProvider('ENDED'));
+  }
+
+  /// Local-only cleanup (no API call) — used when the server already knows
+  /// (e.g. WebSocket meeting:ended, participant:kicked, participant:banned).
+  void cleanupLocal() {
+    _elapsedTimer?.cancel();
+    state = const MeetingRoomState();
+    _clearMeetingCacheAndRefresh();
   }
 
   void _startElapsedTimer() {

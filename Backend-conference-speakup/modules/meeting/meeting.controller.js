@@ -54,8 +54,8 @@ export async function joinMeeting(req, res, next) {
 
 export async function leaveMeeting(req, res, next) {
   try {
-    await meetingService.leaveMeeting(req.params.id, req.user.id);
-    res.json({ success: true, message: "Left meeting" });
+    const result = await meetingService.leaveMeeting(req.params.id, req.user.id);
+    res.json({ success: true, message: "Left meeting", data: { autoEnded: result?.autoEnded || false } });
   } catch (error) { next(error); }
 }
 
@@ -89,8 +89,30 @@ export async function getParticipants(req, res, next) {
 
 export async function kickParticipant(req, res, next) {
   try {
-    await meetingService.kickParticipant(req.params.id, req.user.id, req.params.participantId);
-    res.json({ success: true, message: "Participant removed" });
+    const { ban, reason } = req.body || {};
+    await meetingService.kickParticipant(req.params.id, req.user.id, req.params.participantId, { ban: !!ban, reason });
+    res.json({ success: true, message: ban ? "Participant banned" : "Participant removed" });
+  } catch (error) { next(error); }
+}
+
+export async function banParticipant(req, res, next) {
+  try {
+    const ban = await meetingService.banParticipant(req.params.id, req.user.id, req.params.userId, req.body?.reason);
+    res.json({ success: true, data: { ban } });
+  } catch (error) { next(error); }
+}
+
+export async function unbanParticipant(req, res, next) {
+  try {
+    await meetingService.unbanParticipant(req.params.id, req.user.id, req.params.userId);
+    res.json({ success: true, message: "Participant unbanned" });
+  } catch (error) { next(error); }
+}
+
+export async function getMeetingBans(req, res, next) {
+  try {
+    const bans = await meetingService.getMeetingBans(req.params.id);
+    res.json({ success: true, data: { bans } });
   } catch (error) { next(error); }
 }
 
@@ -153,5 +175,12 @@ export async function deleteMaterial(req, res, next) {
   try {
     await meetingService.deleteMaterial(req.params.materialId, req.user.id);
     res.json({ success: true, message: "Material deleted" });
+  } catch (error) { next(error); }
+}
+
+export async function recreateMeeting(req, res, next) {
+  try {
+    const meeting = await meetingService.recreateMeeting(req.params.id, req.user.id, req.body);
+    res.status(HttpStatus.CREATED).json({ success: true, data: { meeting } });
   } catch (error) { next(error); }
 }

@@ -11,6 +11,7 @@ import 'package:flutter_conference_speakup/app/components/ui/card.dart';
 import 'package:flutter_conference_speakup/app/components/ui/button.dart';
 import 'package:flutter_conference_speakup/app/domain/models/meeting_model.dart';
 import 'package:flutter_conference_speakup/store/meeting_provider.dart';
+import 'package:flutter_conference_speakup/app/features/meeting/presentation/widgets/recreate_meeting_sheet.dart';
 
 // ─────────────────────────────────────────────
 //  Custom Tab Bar
@@ -347,6 +348,20 @@ class ListMeetingCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+          if (meeting.status == MeetingStatus.ended ||
+              meeting.status == MeetingStatus.cancelled) ...[
+            const SizedBox(height: SSizes.md),
+            SButton(
+              text: 'Recreate Meeting',
+              variant: SButtonVariant.outline,
+              size: SButtonSize.sm,
+              prefixIcon: Icons.refresh_rounded,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                RecreateMeetingSheet.show(context, meeting);
+              },
             ),
           ],
         ],

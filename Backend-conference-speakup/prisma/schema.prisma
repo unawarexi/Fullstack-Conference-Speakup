@@ -41,6 +41,8 @@ model User {
   devices        Device[]
   meetingInvites MeetingInvite[]
   materials      MeetingMaterial[]
+  meetingBans    MeetingBan[]   @relation("BannedUser")
+  issuedBans     MeetingBan[]   @relation("BanIssuer")
   notificationPreference NotificationPreference?
 
   @@index([email])
@@ -88,6 +90,7 @@ model Meeting {
   status          MeetingStatus @default(SCHEDULED)
   scheduledAt     DateTime?     @map("scheduled_at")
   scheduledEndAt  DateTime?     @map("scheduled_end_at")
+  durationMinutes Int?          @map("duration_minutes")
   startedAt       DateTime?     @map("started_at")
   endedAt         DateTime?     @map("ended_at")
   maxParticipants Int           @default(100) @map("max_participants")
@@ -103,6 +106,7 @@ model Meeting {
   chatRoom     ChatRoom?
   invites      MeetingInvite[]
   materials    MeetingMaterial[]
+  bans         MeetingBan[]
 
   @@index([hostId])
   @@index([code])
@@ -130,6 +134,24 @@ model Participant {
   @@index([meetingId])
   @@index([userId])
   @@map("participants")
+}
+
+model MeetingBan {
+  id        String   @id @default(cuid())
+  meetingId String   @map("meeting_id")
+  userId    String   @map("user_id")
+  reason    String?
+  bannedBy  String   @map("banned_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation("BannedUser", fields: [userId], references: [id], onDelete: Cascade)
+  banner  User    @relation("BanIssuer", fields: [bannedBy], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_bans")
 }
 
 // ──────────── CHAT ────────────
